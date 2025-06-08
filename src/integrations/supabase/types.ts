@@ -9,16 +9,286 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admin_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+        }
+        Relationships: []
+      }
+      blogs: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string | null
+          featured_image_url: string | null
+          id: string
+          scheduled_date: string | null
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string | null
+          featured_image_url?: string | null
+          id?: string
+          scheduled_date?: string | null
+          status?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          featured_image_url?: string | null
+          id?: string
+          scheduled_date?: string | null
+          status?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      gd_registrations: {
+        Row: {
+          attended: boolean | null
+          gd_id: string
+          id: string
+          registered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attended?: boolean | null
+          gd_id: string
+          id?: string
+          registered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attended?: boolean | null
+          gd_id?: string
+          id?: string
+          registered_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_registrations_gd_id_fkey"
+            columns: ["gd_id"]
+            isOneToOne: false
+            referencedRelation: "group_discussions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_discussions: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          meet_link: string | null
+          moderator_id: string | null
+          scheduled_date: string
+          slot_capacity: number | null
+          topic_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          meet_link?: string | null
+          moderator_id?: string | null
+          scheduled_date: string
+          slot_capacity?: number | null
+          topic_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          meet_link?: string | null
+          moderator_id?: string | null
+          scheduled_date?: string
+          slot_capacity?: number | null
+          topic_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      media_content: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_published: boolean | null
+          media_type: string
+          media_url: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          media_type: string
+          media_url: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          media_type?: string
+          media_url?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          is_admin: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          is_admin?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reward_points: {
+        Row: {
+          awarded_by: string | null
+          created_at: string | null
+          gd_date: string | null
+          id: string
+          points: number
+          reason: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          awarded_by?: string | null
+          created_at?: string | null
+          gd_date?: string | null
+          id?: string
+          points?: number
+          reason: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          awarded_by?: string | null
+          created_at?: string | null
+          gd_date?: string | null
+          id?: string
+          points?: number
+          reason?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_total_points: {
+        Args: { _user_id: string }
+        Returns: number
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +403,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
