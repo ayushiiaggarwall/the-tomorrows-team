@@ -234,10 +234,12 @@ const Leaderboard = () => {
                 Refer a Friend
               </Button>
               
-              <Button className="w-full btn-outline">
-                <User className="w-4 h-4 mr-2" />
-                View My Dashboard
-              </Button>
+              <Link to="/dashboard">
+                <Button className="w-full btn-outline">
+                  <User className="w-4 h-4 mr-2" />
+                  View My Dashboard
+                </Button>
+              </Link>
             </div>
 
             {/* Monthly Recognition */}
