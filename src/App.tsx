@@ -11,6 +11,7 @@ import Leaderboard from "./pages/Leaderboard";
 import WatchLearn from "./pages/WatchLearn";
 import Resources from "./pages/Resources";
 import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/watch-learn" element={<WatchLearn />} />
           <Route path="/resources" element={<Resources />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
