@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
-
 const Index = () => {
   const features = [{
     icon: <Users className="w-6 h-6" />,
@@ -72,7 +71,7 @@ const Index = () => {
                 </Button>
               </Link>
               <Link to="/watch-learn">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-primary hover:text-white text-lg px-8 py-4">
+                <Button size="lg" variant="outline" className="border-white text-lg px-8 py-4 text-blue-500 bg-slate-50">
                   <Play className="w-5 h-5 mr-2" />
                   Watch Past GDs
                 </Button>
@@ -221,5 +220,4 @@ const Index = () => {
       <Footer />
     </div>;
 };
-
 export default Index;
