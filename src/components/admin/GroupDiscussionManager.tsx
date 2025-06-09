@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,8 @@ interface GroupDiscussion {
   slot_capacity: number;
   is_active: boolean;
   created_at: string;
-  moderator: {
-    full_name: string;
-    email: string;
-  } | null;
+  moderator_name?: string;
+  moderator_email?: string;
   registrations_count: number;
 }
 
@@ -47,17 +46,26 @@ const GroupDiscussionManager = () => {
       // First get discussions
       const { data: gdData, error: gdError } = await supabase
         .from('group_discussions')
-        .select(`
-          *,
-          moderator:profiles!group_discussions_moderator_id_fkey(full_name, email)
-        `)
+        .select('*')
         .order('scheduled_date', { ascending: false });
 
       if (gdError) throw gdError;
 
-      // Then get registration counts for each discussion
-      const discussionsWithCounts = await Promise.all(
+      // Then get moderator details and registration counts for each discussion
+      const discussionsWithDetails = await Promise.all(
         (gdData || []).map(async (discussion) => {
+          // Get moderator details if moderator_id exists
+          let moderatorData = null;
+          if (discussion.moderator_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', discussion.moderator_id)
+              .single();
+            moderatorData = data;
+          }
+
+          // Get registration count
           const { count } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact' })
@@ -65,12 +73,14 @@ const GroupDiscussionManager = () => {
           
           return {
             ...discussion,
+            moderator_name: moderatorData?.full_name || '',
+            moderator_email: moderatorData?.email || '',
             registrations_count: count || 0
           };
         })
       );
 
-      setDiscussions(discussionsWithCounts);
+      setDiscussions(discussionsWithDetails);
     } catch (error) {
       console.error('Error fetching discussions:', error);
     }
@@ -164,7 +174,7 @@ const GroupDiscussionManager = () => {
       scheduled_date: new Date(discussion.scheduled_date).toISOString().slice(0, 16),
       meet_link: discussion.meet_link || '',
       slot_capacity: discussion.slot_capacity.toString(),
-      moderator_id: discussion.moderator?.email || ''
+      moderator_id: discussion.moderator_email || ''
     });
     setEditingId(discussion.id);
   };
@@ -332,7 +342,7 @@ const GroupDiscussionManager = () => {
                   <TableCell>{new Date(discussion.scheduled_date).toLocaleString()}</TableCell>
                   <TableCell>{discussion.slot_capacity}</TableCell>
                   <TableCell>{discussion.registrations_count || 0}</TableCell>
-                  <TableCell>{discussion.moderator?.full_name || 'None'}</TableCell>
+                  <TableCell>{discussion.moderator_name || 'None'}</TableCell>
                   <TableCell>
                     <Badge variant={discussion.is_active ? "default" : "secondary"}>
                       {discussion.is_active ? 'Active' : 'Cancelled'}

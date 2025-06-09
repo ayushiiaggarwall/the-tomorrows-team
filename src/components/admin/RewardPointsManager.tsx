@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,10 +18,8 @@ interface RewardEntry {
   type: string;
   gd_date: string | null;
   created_at: string;
-  profiles: {
-    full_name: string;
-    email: string;
-  } | null;
+  user_email?: string;
+  user_name?: string;
 }
 
 const RewardPointsManager = () => {
@@ -38,20 +37,32 @@ const RewardPointsManager = () => {
 
   const fetchRewardEntries = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: rewardData, error: rewardError } = await supabase
         .from('reward_points')
-        .select(`
-          *,
-          profiles!reward_points_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
-      setRewardEntries(data || []);
+      if (rewardError) throw rewardError;
+
+      // Get user details for each reward entry
+      const entriesWithUsers = await Promise.all(
+        (rewardData || []).map(async (entry) => {
+          const { data: userData } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', entry.user_id)
+            .single();
+
+          return {
+            ...entry,
+            user_email: userData?.email || '',
+            user_name: userData?.full_name || 'Unknown'
+          };
+        })
+      );
+
+      setRewardEntries(entriesWithUsers);
     } catch (error) {
       console.error('Error fetching reward entries:', error);
     }
@@ -146,8 +157,8 @@ const RewardPointsManager = () => {
   };
 
   const filteredEntries = rewardEntries.filter(entry =>
-    entry.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entry.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    entry.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    entry.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -260,8 +271,8 @@ const RewardPointsManager = () => {
             <TableBody>
               {filteredEntries.map((entry) => (
                 <TableRow key={entry.id}>
-                  <TableCell>{entry.profiles?.full_name || 'N/A'}</TableCell>
-                  <TableCell>{entry.profiles?.email}</TableCell>
+                  <TableCell>{entry.user_name || 'N/A'}</TableCell>
+                  <TableCell>{entry.user_email}</TableCell>
                   <TableCell className="font-semibold text-green-600">+{entry.points}</TableCell>
                   <TableCell>{entry.type}</TableCell>
                   <TableCell>{entry.reason}</TableCell>

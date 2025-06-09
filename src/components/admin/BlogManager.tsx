@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,8 @@ interface Blog {
   status: string;
   scheduled_date: string | null;
   created_at: string;
-  author: {
-    full_name: string;
-    email: string;
-  } | null;
+  author_name?: string;
+  author_email?: string;
 }
 
 const BlogManager = () => {
@@ -42,16 +41,31 @@ const BlogManager = () => {
 
   const fetchBlogs = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: blogData, error: blogError } = await supabase
         .from('blogs')
-        .select(`
-          *,
-          author:profiles!blogs_author_id_fkey(full_name, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setBlogs(data || []);
+      if (blogError) throw blogError;
+
+      // Get author details for each blog
+      const blogsWithAuthors = await Promise.all(
+        (blogData || []).map(async (blog) => {
+          const { data: authorData } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('id', blog.author_id)
+            .single();
+
+          return {
+            ...blog,
+            author_name: authorData?.full_name || 'Unknown',
+            author_email: authorData?.email || ''
+          };
+        })
+      );
+
+      setBlogs(blogsWithAuthors);
     } catch (error) {
       console.error('Error fetching blogs:', error);
     }
@@ -293,7 +307,7 @@ const BlogManager = () => {
               {blogs.map((blog) => (
                 <TableRow key={blog.id}>
                   <TableCell className="font-medium">{blog.title}</TableCell>
-                  <TableCell>{blog.author?.full_name || 'Unknown'}</TableCell>
+                  <TableCell>{blog.author_name || 'Unknown'}</TableCell>
                   <TableCell>
                     <Badge variant={blog.status === 'published' ? "default" : "secondary"}>
                       {blog.status}
