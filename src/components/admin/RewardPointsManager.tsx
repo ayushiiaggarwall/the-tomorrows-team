@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Plus, Undo } from 'lucide-react';
+import { Search, Plus, Undo, Trophy } from 'lucide-react';
 
 interface RewardEntry {
   id: string;
@@ -21,7 +20,7 @@ interface RewardEntry {
   profiles: {
     full_name: string;
     email: string;
-  };
+  } | null;
 }
 
 const RewardPointsManager = () => {
@@ -43,7 +42,7 @@ const RewardPointsManager = () => {
         .from('reward_points')
         .select(`
           *,
-          profiles (
+          profiles!reward_points_user_id_fkey (
             full_name,
             email
           )

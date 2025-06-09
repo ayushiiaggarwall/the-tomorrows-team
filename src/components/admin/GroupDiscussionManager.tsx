@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,17 +44,33 @@ const GroupDiscussionManager = () => {
 
   const fetchDiscussions = async () => {
     try {
-      const { data, error } = await supabase
+      // First get discussions
+      const { data: gdData, error: gdError } = await supabase
         .from('group_discussions')
         .select(`
           *,
-          moderator:moderator_id(full_name, email),
-          registrations_count:gd_registrations(count)
+          moderator:profiles!group_discussions_moderator_id_fkey(full_name, email)
         `)
         .order('scheduled_date', { ascending: false });
 
-      if (error) throw error;
-      setDiscussions(data || []);
+      if (gdError) throw gdError;
+
+      // Then get registration counts for each discussion
+      const discussionsWithCounts = await Promise.all(
+        (gdData || []).map(async (discussion) => {
+          const { count } = await supabase
+            .from('gd_registrations')
+            .select('*', { count: 'exact' })
+            .eq('gd_id', discussion.id);
+          
+          return {
+            ...discussion,
+            registrations_count: count || 0
+          };
+        })
+      );
+
+      setDiscussions(discussionsWithCounts);
     } catch (error) {
       console.error('Error fetching discussions:', error);
     }

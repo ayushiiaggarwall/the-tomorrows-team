@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ interface Blog {
   author: {
     full_name: string;
     email: string;
-  };
+  } | null;
 }
 
 const BlogManager = () => {
@@ -47,7 +46,7 @@ const BlogManager = () => {
         .from('blogs')
         .select(`
           *,
-          author:author_id(full_name, email)
+          author:profiles!blogs_author_id_fkey(full_name, email)
         `)
         .order('created_at', { ascending: false });
 
