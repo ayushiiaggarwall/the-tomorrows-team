@@ -2,8 +2,99 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const ParticipationSummary = () => {
+  const { user } = useAuth();
+
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['user-participation-stats', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      // Get GDs attended count
+      const { data: gdsAttended } = await supabase
+        .from('gd_registrations')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('attended', true);
+
+      // Get total points
+      const { data: pointsData } = await supabase
+        .from('reward_points')
+        .select('points')
+        .eq('user_id', user.id);
+
+      const totalPoints = pointsData?.reduce((sum, entry) => sum + entry.points, 0) || 0;
+
+      // Get best speaker awards (assuming these are specific reward types)
+      const { data: bestSpeakerAwards } = await supabase
+        .from('reward_points')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'best_speaker');
+
+      // Get referrals count (assuming these are specific reward types)
+      const { data: referrals } = await supabase
+        .from('reward_points')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'referral');
+
+      // Get user rank by comparing total points
+      const { data: allUserPoints } = await supabase
+        .from('reward_points')
+        .select('user_id, points');
+
+      let userRank = 1;
+      if (allUserPoints) {
+        const userTotals = allUserPoints.reduce((acc, entry) => {
+          acc[entry.user_id] = (acc[entry.user_id] || 0) + entry.points;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const sortedUsers = Object.entries(userTotals)
+          .sort(([,a], [,b]) => b - a);
+        
+        userRank = sortedUsers.findIndex(([userId]) => userId === user.id) + 1;
+      }
+
+      return {
+        totalGDs: gdsAttended?.length || 0,
+        bestSpeakerAwards: bestSpeakerAwards?.length || 0,
+        totalPoints,
+        userRank: userRank || 'N/A',
+        totalReferrals: referrals?.length || 0
+      };
+    },
+    enabled: !!user?.id
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            ✅ Your Participation Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 bg-muted/50 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasActivity = stats && (stats.totalGDs > 0 || stats.totalPoints > 0);
+
   return (
     <Card>
       <CardHeader>
@@ -15,37 +106,50 @@ const ParticipationSummary = () => {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-primary">12</div>
-            <div className="text-sm text-muted-foreground">Total GDs Attended</div>
+        {!hasActivity ? (
+          <div className="text-center py-8">
+            <div className="text-6xl mb-4">🌟</div>
+            <h3 className="text-lg font-semibold mb-2">Welcome to The Tomorrows Team!</h3>
+            <p className="text-muted-foreground mb-4">
+              Start your journey by joining your first group discussion. Your participation stats will appear here.
+            </p>
+            <Button className="btn-primary">Join Your First GD</Button>
           </div>
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-accent">3</div>
-            <div className="text-sm text-muted-foreground">Best Speaker Awards</div>
-          </div>
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-success">285</div>
-            <div className="text-sm text-muted-foreground">Points Earned</div>
-          </div>
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-primary">#7</div>
-            <div className="text-sm text-muted-foreground">Rank on Leaderboard</div>
-          </div>
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold text-accent">5</div>
-            <div className="text-sm text-muted-foreground">Total Referrals</div>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap gap-3 pt-4">
-          <Button className="btn-secondary">
-            🔄 Update My Profile
-          </Button>
-          <Button variant="outline">
-            📜 View Full Participation History
-          </Button>
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-primary">{stats.totalGDs}</div>
+                <div className="text-sm text-muted-foreground">Total GDs Attended</div>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-accent">{stats.bestSpeakerAwards}</div>
+                <div className="text-sm text-muted-foreground">Best Speaker Awards</div>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-success">{stats.totalPoints}</div>
+                <div className="text-sm text-muted-foreground">Points Earned</div>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-primary">#{stats.userRank}</div>
+                <div className="text-sm text-muted-foreground">Rank on Leaderboard</div>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-accent">{stats.totalReferrals}</div>
+                <div className="text-sm text-muted-foreground">Total Referrals</div>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-3 pt-4">
+              <Button className="btn-secondary">
+                🔄 Update My Profile
+              </Button>
+              <Button variant="outline">
+                📜 View Full Participation History
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

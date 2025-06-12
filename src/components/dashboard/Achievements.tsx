@@ -2,30 +2,93 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 const Achievements = () => {
-  const achievements = [
-    {
-      icon: '🥇',
-      title: 'Best Speaker – March 2025',
-      description: 'Outstanding performance in group discussion'
+  const { user } = useAuth();
+
+  const { data: achievements, isLoading } = useQuery({
+    queryKey: ['user-achievements', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      const { data: rewardPoints } = await supabase
+        .from('reward_points')
+        .select('type, points, reason, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!rewardPoints) return [];
+
+      const achievementsList = [];
+
+      // Best Speaker achievements
+      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type === 'best_speaker');
+      if (bestSpeakerAwards.length > 0) {
+        achievementsList.push({
+          icon: '🥇',
+          title: `Best Speaker – ${bestSpeakerAwards.length} Award${bestSpeakerAwards.length > 1 ? 's' : ''}`,
+          description: 'Outstanding performance in group discussions'
+        });
+      }
+
+      // Points milestone achievements
+      const totalPoints = rewardPoints.reduce((sum, rp) => sum + rp.points, 0);
+      if (totalPoints >= 100) {
+        achievementsList.push({
+          icon: '🧠',
+          title: `Top Thinker – ${totalPoints} Points Earned`,
+          description: 'Reached significant participation milestones'
+        });
+      }
+
+      // Participation streak achievements
+      const gdsAttended = rewardPoints.filter(rp => rp.type === 'attendance').length;
+      if (gdsAttended >= 3) {
+        achievementsList.push({
+          icon: '🎯',
+          title: `${gdsAttended} GDs Attended`,
+          description: 'Consistent participation in group discussions'
+        });
+      }
+
+      // Referral achievements
+      const referrals = rewardPoints.filter(rp => rp.type === 'referral');
+      if (referrals.length > 0) {
+        achievementsList.push({
+          icon: '👥',
+          title: `Referred ${referrals.length} New Participant${referrals.length > 1 ? 's' : ''}`,
+          description: 'Growing the community through referrals'
+        });
+      }
+
+      return achievementsList;
     },
-    {
-      icon: '🧠',
-      title: 'Top Thinker – 100 Points Earned',
-      description: 'Reached the century mark in participation points'
-    },
-    {
-      icon: '🎯',
-      title: '3 GDs Back-to-Back',
-      description: 'Consistent participation streak'
-    },
-    {
-      icon: '👥',
-      title: 'Referred 5 New Participants',
-      description: 'Growing the community through referrals'
-    }
-  ];
+    enabled: !!user?.id
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            🏅 Your Achievements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-16 bg-muted/50 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -34,27 +97,40 @@ const Achievements = () => {
           🏅 Your Achievements
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          You're doing great. Let's celebrate it!
+          {achievements?.length ? "You're doing great. Let's celebrate it!" : "Start participating to unlock achievements!"}
         </p>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {achievements.map((achievement, index) => (
-            <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl">{achievement.icon}</div>
-              <div className="flex-1">
-                <div className="font-medium text-sm">{achievement.title}</div>
-                <div className="text-xs text-muted-foreground">{achievement.description}</div>
-              </div>
+        {!achievements?.length ? (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">🏆</div>
+            <h3 className="text-lg font-semibold mb-2">No Achievements Yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Participate in group discussions, earn points, and refer friends to unlock achievements!
+            </p>
+            <Button className="btn-primary">Join Your First GD</Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {achievements.map((achievement, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                  <div className="text-2xl">{achievement.icon}</div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{achievement.title}</div>
+                    <div className="text-xs text-muted-foreground">{achievement.description}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        
-        <div className="mt-4">
-          <Button variant="outline" size="sm">
-            📎 Download Certificate
-          </Button>
-        </div>
+            
+            <div className="mt-4">
+              <Button variant="outline" size="sm">
+                📎 Download Certificate
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
