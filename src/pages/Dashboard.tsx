@@ -12,9 +12,30 @@ import Achievements from '@/components/dashboard/Achievements';
 import RewardPoints from '@/components/dashboard/RewardPoints';
 import RecommendedResources from '@/components/dashboard/RecommendedResources';
 import CommunityAnnouncements from '@/components/dashboard/CommunityAnnouncements';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
-  const userName = "Sarah"; // This would come from user authentication
+  const { user } = useAuth();
+
+  const { data: userProfile, isLoading } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', user.id)
+        .single();
+
+      return profile;
+    },
+    enabled: !!user?.id
+  });
+
+  const displayName = userProfile?.full_name || user?.email?.split('@')[0] || 'User';
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,7 +49,7 @@ const Dashboard = () => {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-foreground mb-2">
-                Welcome, {userName} 👋
+                Welcome, {displayName} 👋
               </h1>
               <p className="text-lg text-muted-foreground">
                 Here's your progress on The Tomorrows Team!

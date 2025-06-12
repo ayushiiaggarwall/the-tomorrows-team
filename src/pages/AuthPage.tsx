@@ -45,6 +45,15 @@ const AuthPage = () => {
           return;
         }
 
+        if (!formData.fullName.trim()) {
+          toast({
+            title: "Error",
+            description: "Full name is required",
+            variant: "destructive"
+          });
+          return;
+        }
+
         const { error } = await signUp(formData.email, formData.password, formData.fullName);
         
         if (error) {
