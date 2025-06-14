@@ -33,14 +33,14 @@ const Navigation = () => {
               <img 
                 src="/lovable-uploads/c7fe4466-9155-4710-8813-441ebec4a40b.png" 
                 alt="The Tomorrows Team" 
-                className="h-8 w-8"
+                className="h-10 w-auto"
               />
               <span className="text-xl font-bold text-primary">The Tomorrows Team</span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden lg:flex items-center space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -52,29 +52,29 @@ const Navigation = () => {
             ))}
           </div>
 
-          {/* User Actions */}
-          <div className="hidden md:flex items-center space-x-3">
+          {/* User Actions - Simplified for Admin */}
+          <div className="hidden lg:flex items-center space-x-3">
             {user ? (
-              <>
+              <div className="flex items-center space-x-2">
                 <Link to="/dashboard">
                   <Button variant="outline" size="sm">
-                    <User className="w-4 h-4 mr-2" />
+                    <User className="w-4 h-4 mr-1" />
                     Dashboard
                   </Button>
                 </Link>
                 {isAdmin && (
                   <Link to="/admin">
                     <Button variant="outline" size="sm" className="bg-primary/10 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Settings className="w-4 h-4 mr-1" />
                       Admin
                     </Button>
                   </Link>
                 )}
                 <Button onClick={handleSignOut} variant="outline" size="sm">
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-4 h-4 mr-1" />
                   Sign Out
                 </Button>
-              </>
+              </div>
             ) : (
               <Link to="/login">
                 <Button className="btn-primary">Sign In</Button>
@@ -83,7 +83,7 @@ const Navigation = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          <div className="lg:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-foreground/80 hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
@@ -96,7 +96,7 @@ const Navigation = () => {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-b border-border">
             {navItems.map((item) => (
               <Link

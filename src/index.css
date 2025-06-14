@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 13% 9%;
 
-    --primary: 214 95% 55%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
 
     --secondary: 220 14% 96%;
@@ -25,8 +25,8 @@
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 0 84% 55%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 0 0% 9%;
 
     --success: 142 71% 45%;
     --success-foreground: 0 0% 98%;
@@ -36,7 +36,7 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 214 95% 55%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
   }
@@ -51,7 +51,7 @@
     --popover: 220 13% 9%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 214 95% 55%;
+    --primary: 217 91% 60%;
     --primary-foreground: 220 13% 9%;
 
     --secondary: 215 28% 17%;
@@ -60,7 +60,7 @@
     --muted: 215 28% 17%;
     --muted-foreground: 217 11% 65%;
 
-    --accent: 0 84% 55%;
+    --accent: 43 96% 56%;
     --accent-foreground: 220 13% 9%;
 
     --success: 142 71% 45%;
@@ -71,7 +71,7 @@
 
     --border: 215 28% 17%;
     --input: 215 28% 17%;
-    --ring: 214 95% 55%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -123,12 +123,12 @@
     @apply border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors duration-200;
   }
 
-  /* Custom button styles for specific use cases */
+  /* Custom button styles for hero section */
   .btn-watch-gd {
-    @apply border-white text-primary bg-white hover:bg-primary hover:text-white px-8 py-4 rounded-lg font-medium transition-colors duration-200;
+    @apply bg-white text-blue-600 border border-blue-600 hover:bg-blue-600 hover:text-white px-8 py-4 rounded-lg font-semibold transition-all duration-200 ease-in-out;
   }
   
   .btn-join-gd {
-    @apply bg-success text-success-foreground hover:bg-white hover:text-primary border-2 border-transparent hover:border-primary px-8 py-4 rounded-lg font-medium transition-all duration-200;
+    @apply bg-blue-600 text-white hover:bg-white hover:text-blue-600 hover:border hover:border-blue-600 px-8 py-4 rounded-lg font-semibold transition-all duration-200 ease-in-out;
   }
 }
