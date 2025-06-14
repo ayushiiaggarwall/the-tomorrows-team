@@ -29,13 +29,18 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
+            <Link to="/" className="flex-shrink-0 flex items-center space-x-3">
+              <img 
+                src="/lovable-uploads/c7fe4466-9155-4710-8813-441ebec4a40b.png" 
+                alt="The Tomorrows Team" 
+                className="h-8 w-8"
+              />
               <span className="text-xl font-bold text-primary">The Tomorrows Team</span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -48,23 +53,23 @@ const Navigation = () => {
           </div>
 
           {/* User Actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             {user ? (
               <>
-                {isAdmin && (
-                  <Link to="/admin">
-                    <Button variant="outline" size="sm">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Admin Panel
-                    </Button>
-                  </Link>
-                )}
                 <Link to="/dashboard">
                   <Button variant="outline" size="sm">
                     <User className="w-4 h-4 mr-2" />
                     Dashboard
                   </Button>
                 </Link>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="outline" size="sm" className="bg-primary/10 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
                 <Button onClick={handleSignOut} variant="outline" size="sm">
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
@@ -106,16 +111,6 @@ const Navigation = () => {
             
             {user ? (
               <>
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Settings className="w-4 h-4 mr-2 inline" />
-                    Admin Panel
-                  </Link>
-                )}
                 <Link
                   to="/dashboard"
                   className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
@@ -124,6 +119,16 @@ const Navigation = () => {
                   <User className="w-4 h-4 mr-2 inline" />
                   Dashboard
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="text-primary hover:text-primary hover:bg-primary/10 block px-3 py-2 text-base font-medium transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Settings className="w-4 h-4 mr-2 inline" />
+                    Admin Panel
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     handleSignOut();

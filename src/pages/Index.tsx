@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
+
 const Index = () => {
   const features = [{
     icon: <Users className="w-6 h-6" />,
@@ -66,12 +67,12 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
               <Link to="/join-gd">
-                <Button size="lg" className="btn-primary text-lg px-8 py-4">
+                <Button size="lg" className="btn-join-gd text-lg">
                   Join a Group Discussion
                 </Button>
               </Link>
               <Link to="/watch-learn">
-                <Button size="lg" variant="outline" className="border-white text-lg px-8 py-4 text-blue-500 bg-slate-50">
+                <Button size="lg" className="btn-watch-gd text-lg">
                   <Play className="w-5 h-5 mr-2" />
                   Watch Past GDs
                 </Button>
@@ -204,12 +205,12 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/join-gd">
-              <Button size="lg" className="btn-primary text-lg px-8 py-4">
+              <Button size="lg" className="btn-join-gd text-lg">
                 Join Your First GD
               </Button>
             </Link>
             <Link to="/leaderboard">
-              <Button size="lg" className="btn-secondary text-lg px-8 py-4">
+              <Button size="lg" className="btn-secondary text-lg">
                 See Rewards & Leaderboard
               </Button>
             </Link>
