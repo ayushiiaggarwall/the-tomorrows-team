@@ -10,9 +10,11 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">TT</span>
-              </div>
+              <img 
+                src="/lovable-uploads/42d05df8-abbe-449d-89f5-9549f7993132.png" 
+                alt="The Tomorrows Team" 
+                className="h-8 w-auto"
+              />
               <span className="text-xl font-bold text-foreground">The Tomorrows Team</span>
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">

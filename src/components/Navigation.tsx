@@ -31,7 +31,7 @@ const Navigation = () => {
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center space-x-3">
               <img 
-                src="/lovable-uploads/c7fe4466-9155-4710-8813-441ebec4a40b.png" 
+                src="/lovable-uploads/42d05df8-abbe-449d-89f5-9549f7993132.png" 
                 alt="The Tomorrows Team" 
                 className="h-10 w-auto"
               />
@@ -52,7 +52,7 @@ const Navigation = () => {
             ))}
           </div>
 
-          {/* User Actions - Simplified for Admin */}
+          {/* User Actions */}
           <div className="hidden lg:flex items-center space-x-3">
             {user ? (
               <div className="flex items-center space-x-2">
