@@ -29,13 +29,12 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center space-x-3">
+            <Link to="/" className="flex-shrink-0 flex items-center">
               <img 
                 src="/lovable-uploads/42d05df8-abbe-449d-89f5-9549f7993132.png" 
                 alt="The Tomorrows Team" 
                 className="h-10 w-auto"
               />
-              <span className="text-xl font-bold text-primary">The Tomorrows Team</span>
             </Link>
           </div>
 
