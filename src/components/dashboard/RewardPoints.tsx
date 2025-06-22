@@ -5,11 +5,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 const RewardPoints = () => {
   const { user } = useAuth();
 
-  const { data: pointsData, isLoading } = useQuery({
+  const { data: pointsData, isLoading, refetch } = useQuery({
     queryKey: ['user-reward-points', user?.id],
     queryFn: async () => {
       if (!user?.id) return { totalPoints: 0, history: [] };
@@ -38,6 +39,31 @@ const RewardPoints = () => {
     },
     enabled: !!user?.id
   });
+
+  // Set up real-time subscription for reward points
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('reward-points-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reward_points',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetch]);
 
   if (isLoading) {
     return (

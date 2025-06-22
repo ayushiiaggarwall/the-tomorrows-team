@@ -185,29 +185,59 @@ export type Database = {
         }
         Relationships: []
       }
+      predefined_tags: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
+          date_of_birth: string | null
           email: string
           full_name: string | null
           id: string
           is_admin: boolean | null
+          profile_picture_url: string | null
+          tags: string[] | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          date_of_birth?: string | null
           email: string
           full_name?: string | null
           id: string
           is_admin?: boolean | null
+          profile_picture_url?: string | null
+          tags?: string[] | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          date_of_birth?: string | null
           email?: string
           full_name?: string | null
           id?: string
           is_admin?: boolean | null
+          profile_picture_url?: string | null
+          tags?: string[] | null
           updated_at?: string | null
         }
         Relationships: []

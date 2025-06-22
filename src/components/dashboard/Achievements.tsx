@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 const Achievements = () => {
   const { user } = useAuth();
 
-  const { data: achievements, isLoading } = useQuery({
+  const { data: achievements, isLoading, refetch } = useQuery({
     queryKey: ['user-achievements', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -68,6 +69,31 @@ const Achievements = () => {
     },
     enabled: !!user?.id
   });
+
+  // Set up real-time subscription for achievements (based on reward points changes)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('achievements-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reward_points',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetch]);
 
   if (isLoading) {
     return (
