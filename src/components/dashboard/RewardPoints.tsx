@@ -15,9 +15,17 @@ const RewardPoints = () => {
     queryFn: async () => {
       if (!user?.id) return { totalPoints: 0, history: [] };
 
+      // Get reward points with awarded_by user information
       const { data: rewardPoints } = await supabase
         .from('reward_points')
-        .select('points, reason, created_at, type')
+        .select(`
+          points, 
+          reason, 
+          created_at, 
+          type,
+          awarded_by,
+          gd_date
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -26,14 +34,34 @@ const RewardPoints = () => {
 
       const totalPoints = rewardPoints.reduce((sum, entry) => sum + entry.points, 0);
       
-      const history = rewardPoints.map(entry => ({
-        date: new Date(entry.created_at).toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric' 
-        }),
-        activity: entry.reason,
-        points: `+${entry.points}`
-      }));
+      // Get unique awarded_by user IDs to fetch their profiles
+      const awardedByIds = [...new Set(rewardPoints.map(entry => entry.awarded_by).filter(Boolean))];
+      
+      let awardedByProfiles: any[] = [];
+      if (awardedByIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', awardedByIds);
+        
+        awardedByProfiles = profiles || [];
+      }
+
+      const history = rewardPoints.map(entry => {
+        const awardedByProfile = awardedByProfiles.find(profile => profile.id === entry.awarded_by);
+        const awardedByName = awardedByProfile?.full_name || awardedByProfile?.email?.split('@')[0] || 'System';
+        
+        return {
+          date: new Date(entry.created_at).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          }),
+          activity: entry.reason,
+          points: `+${entry.points}`,
+          awardedBy: awardedByName,
+          type: entry.type
+        };
+      });
 
       return { totalPoints, history };
     },
@@ -121,6 +149,7 @@ const RewardPoints = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Activity</TableHead>
+                  <TableHead>Awarded By</TableHead>
                   <TableHead className="text-right">Points</TableHead>
                 </TableRow>
               </TableHeader>
@@ -129,6 +158,7 @@ const RewardPoints = () => {
                   <TableRow key={index}>
                     <TableCell className="font-medium">{entry.date}</TableCell>
                     <TableCell>{entry.activity}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{entry.awardedBy}</TableCell>
                     <TableCell className="text-right text-success font-medium">
                       {entry.points}
                     </TableCell>
@@ -137,9 +167,15 @@ const RewardPoints = () => {
               </TableBody>
             </Table>
             
-            <div className="mt-4">
-              <Button variant="outline" disabled>
+            <div className="mt-6 flex flex-col gap-3">
+              <Button variant="outline" disabled className="w-full">
                 📤 Redeem Rewards (Coming Soon)
+              </Button>
+              <Button variant="outline" disabled className="w-full">
+                🏆 View All Achievements
+              </Button>
+              <Button variant="outline" disabled className="w-full">
+                📊 Detailed Analytics
               </Button>
             </div>
           </>
