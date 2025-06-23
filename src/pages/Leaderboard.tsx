@@ -1,10 +1,9 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Award, Users, Share, User } from 'lucide-react';
+import { Trophy, Medal, Award, Users, Share } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -277,13 +276,6 @@ const Leaderboard = () => {
                 <Share className="w-4 h-4 mr-2" />
                 Refer a Friend
               </Button>
-              
-              <Link to="/dashboard">
-                <Button className="w-full btn-outline">
-                  <User className="w-4 h-4 mr-2" />
-                  View My Dashboard
-                </Button>
-              </Link>
             </div>
 
             {/* Monthly Recognition */}
