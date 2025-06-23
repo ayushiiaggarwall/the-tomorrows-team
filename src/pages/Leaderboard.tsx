@@ -6,90 +6,109 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Award, Users, Share, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Leaderboard = () => {
-  const topParticipants = [
-    {
-      rank: 1,
-      name: 'Arjun Mehta',
-      points: 485,
-      badges: ['Best Speaker', 'Most Consistent'],
-      gdsAttended: 24,
-      institution: 'IIM Bangalore'
-    },
-    {
-      rank: 2,
-      name: 'Priya Sharma',
-      points: 470,
-      badges: ['Early Bird', 'Team Player'],
-      gdsAttended: 22,
-      institution: 'BITS Pilani'
-    },
-    {
-      rank: 3,
-      name: 'Rahul Gupta',
-      points: 445,
-      badges: ['Moderator', 'Critical Thinker'],
-      gdsAttended: 21,
-      institution: 'NIT Trichy'
-    },
-    {
-      rank: 4,
-      name: 'Sneha Patel',
-      points: 420,
-      badges: ['Best Speaker'],
-      gdsAttended: 20,
-      institution: 'Delhi University'
-    },
-    {
-      rank: 5,
-      name: 'Vikram Singh',
-      points: 395,
-      badges: ['Most Consistent', 'Early Bird'],
-      gdsAttended: 19,
-      institution: 'IIT Delhi'
-    },
-    {
-      rank: 6,
-      name: 'Ananya Reddy',
-      points: 380,
-      badges: ['Team Player'],
-      gdsAttended: 18,
-      institution: 'IIIT Hyderabad'
-    },
-    {
-      rank: 7,
-      name: 'Karthik Nair',
-      points: 365,
-      badges: ['Critical Thinker'],
-      gdsAttended: 17,
-      institution: 'VIT Vellore'
-    },
-    {
-      rank: 8,
-      name: 'Divya Joshi',
-      points: 350,
-      badges: ['Moderator'],
-      gdsAttended: 16,
-      institution: 'Pune University'
-    },
-    {
-      rank: 9,
-      name: 'Rohit Kumar',
-      points: 335,
-      badges: ['Early Bird'],
-      gdsAttended: 15,
-      institution: 'Jadavpur University'
-    },
-    {
-      rank: 10,
-      name: 'Meera Agarwal',
-      points: 320,
-      badges: ['Team Player'],
-      gdsAttended: 14,
-      institution: 'Christ University'
+  const { data: topParticipants, isLoading } = useQuery({
+    queryKey: ['leaderboard-data'],
+    queryFn: async () => {
+      console.log('Fetching leaderboard data...');
+      
+      // Get all users with their total points
+      const { data: rewardData, error: rewardError } = await supabase
+        .from('reward_points')
+        .select(`
+          user_id,
+          points,
+          type,
+          profiles!inner(
+            id,
+            full_name,
+            email
+          )
+        `);
+
+      if (rewardError) {
+        console.error('Error fetching reward data:', rewardError);
+        return [];
+      }
+
+      if (!rewardData || rewardData.length === 0) {
+        console.log('No reward data found');
+        return [];
+      }
+
+      // Group by user and calculate totals
+      const userStats = rewardData.reduce((acc: any, curr: any) => {
+        const userId = curr.user_id;
+        const profile = curr.profiles;
+        
+        if (!acc[userId]) {
+          acc[userId] = {
+            user_id: userId,
+            name: profile.full_name || profile.email?.split('@')[0] || 'Unknown User',
+            email: profile.email,
+            totalPoints: 0,
+            gdsAttended: 0,
+            bestSpeakerAwards: 0,
+            badges: []
+          };
+        }
+        
+        acc[userId].totalPoints += curr.points;
+        
+        if (curr.type === 'attendance') {
+          acc[userId].gdsAttended += 1;
+        }
+        
+        if (curr.type === 'best_speaker') {
+          acc[userId].bestSpeakerAwards += 1;
+        }
+        
+        return acc;
+      }, {});
+
+      // Convert to array and add badges
+      const participants = Object.values(userStats).map((user: any) => {
+        const badges = [];
+        
+        if (user.bestSpeakerAwards > 0) {
+          badges.push('Best Speaker');
+        }
+        
+        if (user.gdsAttended >= 10) {
+          badges.push('Most Consistent');
+        }
+        
+        if (user.gdsAttended >= 5) {
+          badges.push('Early Bird');
+        }
+        
+        if (user.totalPoints >= 100) {
+          badges.push('Team Player');
+        }
+        
+        return {
+          ...user,
+          badges,
+          institution: 'University' // Default since we don't have institution data
+        };
+      });
+
+      // Sort by total points and add rank
+      const rankedParticipants = participants
+        .sort((a, b) => b.totalPoints - a.totalPoints)
+        .slice(0, 10)
+        .map((participant, index) => ({
+          ...participant,
+          rank: index + 1
+        }));
+
+      console.log('Leaderboard data processed:', rankedParticipants);
+      return rankedParticipants;
     }
-  ];
+  });
 
   const pointsSystem = [
     { activity: 'Attend GD', points: 10, icon: <Users className="w-4 h-4" /> },
@@ -149,37 +168,62 @@ const Leaderboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {topParticipants.map((participant) => (
-                    <div key={participant.rank} className="flex items-center space-x-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center justify-center w-12 h-12">
-                        {getRankIcon(participant.rank)}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-1">
-                          <h3 className="font-semibold">{participant.name}</h3>
-                          <span className="text-sm text-muted-foreground">{participant.institution}</span>
+                {isLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4 p-4 border border-border rounded-lg animate-pulse">
+                        <div className="w-12 h-12 bg-muted rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
+                          <div className="h-3 bg-muted rounded w-1/2"></div>
                         </div>
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {participant.badges.map((badge) => (
-                            <Badge key={badge} variant="secondary" className={`text-xs ${badgeColors[badge] || 'bg-gray-100 text-gray-800'}`}>
-                              {badge}
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {participant.gdsAttended} GDs attended
-                        </div>
+                        <div className="w-16 h-8 bg-muted rounded"></div>
                       </div>
-                      
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-primary">{participant.points}</div>
-                        <div className="text-sm text-muted-foreground">points</div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {!topParticipants || topParticipants.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">🏆</div>
+                        <h3 className="text-lg font-semibold mb-2">No Participants Yet</h3>
+                        <p className="text-muted-foreground">
+                          Be the first to participate and earn points!
+                        </p>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      topParticipants.map((participant) => (
+                        <div key={participant.user_id} className="flex items-center space-x-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-center w-12 h-12">
+                            {getRankIcon(participant.rank)}
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-1">
+                              <h3 className="font-semibold">{participant.name}</h3>
+                              <span className="text-sm text-muted-foreground">{participant.institution}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {participant.badges.map((badge) => (
+                                <Badge key={badge} variant="secondary" className={`text-xs ${badgeColors[badge] || 'bg-gray-100 text-gray-800'}`}>
+                                  {badge}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {participant.gdsAttended} GDs attended
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-primary">{participant.totalPoints}</div>
+                            <div className="text-sm text-muted-foreground">points</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

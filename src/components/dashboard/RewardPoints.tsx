@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -194,7 +195,7 @@ const RewardPoints = () => {
               </TableBody>
             </Table>
             
-            <div className="mt-6 flex flex-col space-y-3">
+            <div className="mt-6 flex flex-col gap-3">
               <Button variant="outline" disabled className="w-full">
                 📤 Redeem Rewards (Coming Soon)
               </Button>
