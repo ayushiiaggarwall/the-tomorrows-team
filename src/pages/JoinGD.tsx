@@ -9,45 +9,73 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
 import { Calendar, Clock, Users, ChevronDown, CheckCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const JoinGD = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState('');
+  const { toast } = useToast();
 
-  const upcomingSlots = [
-    {
-      id: '1',
-      date: 'January 11, 2025',
-      time: '7:00 PM IST',
-      topic: 'AI in Education: Boon or Bane?',
-      spotsLeft: 12,
-      totalSpots: 20
-    },
-    {
-      id: '2',
-      date: 'January 12, 2025',
-      time: '8:00 PM IST',
-      topic: 'Mental Health Awareness in Workplaces',
-      spotsLeft: 8,
-      totalSpots: 20
-    },
-    {
-      id: '3',
-      date: 'January 13, 2025',
-      time: '6:30 PM IST',
-      topic: 'Sustainable Living: Individual vs Corporate Responsibility',
-      spotsLeft: 15,
-      totalSpots: 20
-    },
-    {
-      id: '4',
-      date: 'January 14, 2025',
-      time: '7:30 PM IST',
-      topic: 'Social Media: Connecting or Isolating Society?',
-      spotsLeft: 18,
-      totalSpots: 20
+  const { data: upcomingSlots, isLoading } = useQuery({
+    queryKey: ['upcoming-gds-for-registration'],
+    queryFn: async () => {
+      // Get upcoming active GDs
+      const { data: gds, error } = await supabase
+        .from('group_discussions')
+        .select(`
+          id,
+          topic_name,
+          scheduled_date,
+          slot_capacity,
+          description
+        `)
+        .eq('is_active', true)
+        .gte('scheduled_date', new Date().toISOString())
+        .order('scheduled_date', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching GDs:', error);
+        return [];
+      }
+
+      if (!gds) return [];
+
+      // Get registration counts for each GD
+      const gdsWithCounts = await Promise.all(
+        gds.map(async (gd) => {
+          const { count } = await supabase
+            .from('gd_registrations')
+            .select('*', { count: 'exact' })
+            .eq('gd_id', gd.id);
+
+          const registrationsCount = count || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+
+          return {
+            id: gd.id,
+            date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
+              month: 'long', 
+              day: 'numeric',
+              year: 'numeric'
+            }),
+            time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit', 
+              hour12: true 
+            }),
+            topic: gd.topic_name,
+            spotsLeft,
+            totalSpots: gd.slot_capacity,
+            description: gd.description
+          };
+        })
+      );
+
+      return gdsWithCounts;
     }
-  ];
+  });
 
   const gdRules = [
     "Be respectful and listen to others' viewpoints",
@@ -63,7 +91,10 @@ const JoinGD = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission
-    console.log('Form submitted');
+    toast({
+      title: "Registration Submitted",
+      description: "Your registration has been submitted successfully!"
+    });
   };
 
   return (
@@ -119,7 +150,7 @@ const JoinGD = () => {
                         <SelectValue placeholder="Select a time slot" />
                       </SelectTrigger>
                       <SelectContent>
-                        {upcomingSlots.map((slot) => (
+                        {upcomingSlots?.map((slot) => (
                           <SelectItem key={slot.id} value={slot.id}>
                             {slot.date} at {slot.time} - {slot.topic}
                           </SelectItem>
@@ -144,33 +175,49 @@ const JoinGD = () => {
                 <CardTitle className="text-xl font-bold">Available Slots</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {upcomingSlots.map((slot) => (
-                  <div key={slot.id} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-primary" />
-                        <span className="font-medium">{slot.date}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{slot.time}</span>
-                      </div>
-                    </div>
-                    <h4 className="font-medium mb-2">{slot.topic}</h4>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                        <Users className="w-4 h-4" />
-                        <span>{slot.spotsLeft}/{slot.totalSpots} spots available</span>
-                      </div>
-                      <div className="w-24 bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${((slot.totalSpots - slot.spotsLeft) / slot.totalSpots) * 100}%` }}
-                        ></div>
-                      </div>
-                    </div>
+                {isLoading ? (
+                  <div className="animate-pulse space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-20 bg-muted/50 rounded-lg"></div>
+                    ))}
                   </div>
-                ))}
+                ) : !upcomingSlots?.length ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">📅</div>
+                    <h3 className="text-lg font-semibold mb-2">No Upcoming Slots</h3>
+                    <p className="text-muted-foreground">
+                      There are no group discussions scheduled at the moment. Check back soon!
+                    </p>
+                  </div>
+                ) : (
+                  upcomingSlots.map((slot) => (
+                    <div key={slot.id} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="w-4 h-4 text-primary" />
+                          <span className="font-medium">{slot.date}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Clock className="w-4 h-4 text-primary" />
+                          <span className="text-sm">{slot.time}</span>
+                        </div>
+                      </div>
+                      <h4 className="font-medium mb-2">{slot.topic}</h4>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                          <Users className="w-4 h-4" />
+                          <span>{slot.spotsLeft}/{slot.totalSpots} spots available</span>
+                        </div>
+                        <div className="w-24 bg-muted rounded-full h-2">
+                          <div 
+                            className="bg-primary h-2 rounded-full transition-all"
+                            style={{ width: `${((slot.totalSpots - slot.spotsLeft) / slot.totalSpots) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
 
