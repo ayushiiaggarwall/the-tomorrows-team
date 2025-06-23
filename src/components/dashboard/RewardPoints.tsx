@@ -15,8 +15,10 @@ const RewardPoints = () => {
     queryFn: async () => {
       if (!user?.id) return { totalPoints: 0, history: [] };
 
+      console.log('Fetching reward points for user:', user.id);
+
       // Get reward points with awarded_by user information
-      const { data: rewardPoints } = await supabase
+      const { data: rewardPoints, error: rewardError } = await supabase
         .from('reward_points')
         .select(`
           points, 
@@ -30,7 +32,17 @@ const RewardPoints = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (!rewardPoints) return { totalPoints: 0, history: [] };
+      if (rewardError) {
+        console.error('Error fetching reward points:', rewardError);
+        return { totalPoints: 0, history: [] };
+      }
+
+      if (!rewardPoints || rewardPoints.length === 0) {
+        console.log('No reward points found for user');
+        return { totalPoints: 0, history: [] };
+      }
+
+      console.log('Reward points fetched:', rewardPoints);
 
       const totalPoints = rewardPoints.reduce((sum, entry) => sum + entry.points, 0);
       
@@ -39,17 +51,27 @@ const RewardPoints = () => {
       
       let awardedByProfiles: any[] = [];
       if (awardedByIds.length > 0) {
-        const { data: profiles } = await supabase
+        console.log('Fetching profiles for awarded_by IDs:', awardedByIds);
+        const { data: profiles, error: profileError } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', awardedByIds);
         
-        awardedByProfiles = profiles || [];
+        if (profileError) {
+          console.error('Error fetching profiles:', profileError);
+        } else {
+          console.log('Profiles fetched:', profiles);
+          awardedByProfiles = profiles || [];
+        }
       }
 
       const history = rewardPoints.map(entry => {
         const awardedByProfile = awardedByProfiles.find(profile => profile.id === entry.awarded_by);
-        const awardedByName = awardedByProfile?.full_name || awardedByProfile?.email?.split('@')[0] || 'System';
+        const awardedByName = awardedByProfile?.full_name || 
+                              awardedByProfile?.email?.split('@')[0] || 
+                              (entry.awarded_by ? 'Unknown User' : 'System');
+        
+        console.log(`Entry ${entry.id}: awarded_by=${entry.awarded_by}, profile found=${!!awardedByProfile}, name=${awardedByName}`);
         
         return {
           date: new Date(entry.created_at).toLocaleDateString('en-US', { 
@@ -63,6 +85,7 @@ const RewardPoints = () => {
         };
       });
 
+      console.log('Final history data:', history);
       return { totalPoints, history };
     },
     enabled: !!user?.id
@@ -71,6 +94,8 @@ const RewardPoints = () => {
   // Set up real-time subscription for reward points
   useEffect(() => {
     if (!user?.id) return;
+
+    console.log('Setting up real-time subscription for user:', user.id);
 
     const channel = supabase
       .channel('reward-points-changes')
@@ -82,13 +107,15 @@ const RewardPoints = () => {
           table: 'reward_points',
           filter: `user_id=eq.${user.id}`
         },
-        () => {
+        (payload) => {
+          console.log('Real-time reward points change:', payload);
           refetch();
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, refetch]);
@@ -167,7 +194,7 @@ const RewardPoints = () => {
               </TableBody>
             </Table>
             
-            <div className="mt-6 flex flex-col gap-3">
+            <div className="mt-6 flex flex-col space-y-3">
               <Button variant="outline" disabled className="w-full">
                 📤 Redeem Rewards (Coming Soon)
               </Button>
