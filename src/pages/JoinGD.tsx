@@ -1,36 +1,34 @@
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, ChevronDown, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, Clock, Users, MapPin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/Footer';
 
 const JoinGD = () => {
-  const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState('');
-  const [timeUntilReveal, setTimeUntilReveal] = useState<string>('');
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    age: '',
-    institution: ''
+    phone: '',
+    college: '',
+    year: '',
+    selectedGdId: null as number | null
   });
-  
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   // Fetch upcoming GDs with registration counts
-  const { data: upcomingSlots, isLoading } = useQuery({
-    queryKey: ['upcoming-gds-for-registration', user?.id],
+  const { data: upcomingGDs, isLoading } = useQuery({
+    queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
       const { data: gds, error } = await supabase
         .from('group_discussions')
@@ -39,16 +37,11 @@ const JoinGD = () => {
         .gte('scheduled_date', new Date().toISOString())
         .order('scheduled_date', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching GDs:', error);
-        return [];
-      }
+      if (error) throw error;
 
-      if (!gds) return [];
-
-      // Get registration counts and user's registrations
+      // Get registration counts for each GD
       const gdsWithCounts = await Promise.all(
-        gds.map(async (gd) => {
+        (gds || []).map(async (gd) => {
           const { count } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact' })
@@ -57,435 +50,343 @@ const JoinGD = () => {
           const registrationsCount = count || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
 
-          // Check if current user is registered
-          let isUserRegistered = false;
-          if (user?.id) {
-            const { data: userReg } = await supabase
-              .from('gd_registrations')
-              .select('id')
-              .eq('gd_id', gd.id)
-              .eq('user_id', user.id)
-              .single();
-            
-            isUserRegistered = !!userReg;
-          }
-
           return {
-            id: gd.id,
-            date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
-              month: 'long', 
-              day: 'numeric',
-              year: 'numeric'
-            }),
-            time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit', 
-              hour12: true 
-            }),
-            topic: gd.topic_name,
-            spotsLeft,
-            totalSpots: gd.slot_capacity,
-            description: gd.description,
-            isUserRegistered
+            ...gd,
+            registrationsCount,
+            spotsLeft
           };
         })
       );
 
       return gdsWithCounts;
-    },
-    enabled: !!user?.id
+    }
   });
 
-  // Registration mutation
+  // Register for GD mutation
   const registerMutation = useMutation({
-    mutationFn: async (gdId: string) => {
-      if (!user?.id) {
-        throw new Error('You must be logged in to register for group discussions');
-      }
-
-      console.log('Attempting to register user:', user.id, 'for GD:', gdId);
-
-      // Check if already registered
-      const { data: existingRegistration, error: checkError } = await supabase
-        .from('gd_registrations')
-        .select('id')
-        .eq('gd_id', gdId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking existing registration:', checkError);
-        throw new Error('Failed to check registration status');
-      }
-
-      if (existingRegistration) {
-        throw new Error('You are already registered for this GD');
-      }
-
-      // Register for the GD
+    mutationFn: async (registrationData: any) => {
       const { data, error } = await supabase
         .from('gd_registrations')
         .insert({
-          gd_id: gdId,
-          user_id: user.id
+          gd_id: registrationData.gdId,
+          user_id: registrationData.userId,
+          participant_name: registrationData.name,
+          participant_email: registrationData.email,
+          participant_phone: registrationData.phone,
+          college_name: registrationData.college,
+          year_of_study: registrationData.year
         })
         .select()
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        console.error('Registration error:', error);
-        throw new Error(error.message || 'Failed to register for the GD');
-      }
-
-      console.log('Registration successful:', data);
+      if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      console.log('Registration mutation successful:', data);
+    onSuccess: () => {
       toast({
         title: "Registration Successful!",
         description: "You have been registered for the group discussion.",
       });
       
-      // Invalidate and refetch all relevant queries
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-      
       // Reset form
-      setSelectedSlot('');
-      setFormData({ name: '', email: '', age: '', institution: '' });
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        college: '',
+        year: '',
+        selectedGdId: null
+      });
+      
+      // Invalidate and refetch queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['upcoming-gds-for-registration'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['upcoming-gds', user?.id] 
+      });
     },
     onError: (error: any) => {
-      console.error('Registration mutation error:', error);
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to register. Please try again.",
-        variant: "destructive",
-      });
+      if (error.code === '23505') {
+        toast({
+          title: "Already Registered",
+          description: "You are already registered for this group discussion.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   });
 
-  // Calculate time until next topic reveal (3 hours before GD)
-  useEffect(() => {
-    const calculateTimeUntilReveal = () => {
-      if (!upcomingSlots || upcomingSlots.length === 0) {
-        setTimeUntilReveal('Coming Soon...');
-        return;
-      }
-
-      const nextGD = upcomingSlots[0];
-      if (!nextGD) {
-        setTimeUntilReveal('Coming Soon...');
-        return;
-      }
-
-      const gdDateTime = new Date(nextGD.date + ' ' + nextGD.time);
-      const revealTime = new Date(gdDateTime.getTime() - (3 * 60 * 60 * 1000));
-      const now = new Date();
-      
-      if (now >= revealTime) {
-        setTimeUntilReveal('Topic Revealed!');
-        return;
-      }
-
-      const timeDiff = revealTime.getTime() - now.getTime();
-      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-      
-      if (hours > 0) {
-        setTimeUntilReveal(`${hours}h ${minutes}m`);
-      } else {
-        setTimeUntilReveal(`${minutes}m`);
-      }
-    };
-
-    calculateTimeUntilReveal();
-    const interval = setInterval(calculateTimeUntilReveal, 60000);
-
-    return () => clearInterval(interval);
-  }, [upcomingSlots]);
-
-  const gdRules = [
-    "Be respectful and listen to others' viewpoints",
-    "Keep your arguments relevant to the topic",
-    "Avoid personal attacks or offensive language",
-    "Give everyone a chance to speak",
-    "Back your points with examples or data when possible",
-    "Join the session 5 minutes before start time",
-    "Ensure a stable internet connection and quiet environment",
-    "Keep your camera on throughout the discussion"
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) {
       toast({
         title: "Authentication Required",
         description: "Please log in to register for group discussions.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
 
-    if (!selectedSlot) {
+    if (!formData.selectedGdId) {
       toast({
-        title: "Please Select a Slot",
-        description: "You must select a GD slot to register.",
-        variant: "destructive",
+        title: "No GD Selected",
+        description: "Please select a group discussion to register for.",
+        variant: "destructive"
       });
       return;
     }
 
-    console.log('Form submitted with slot:', selectedSlot);
-    registerMutation.mutate(selectedSlot);
+    // Check if user is already registered for this GD
+    const { data: existingRegistration } = await supabase
+      .from('gd_registrations')
+      .select('id')
+      .eq('gd_id', formData.selectedGdId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingRegistration) {
+      toast({
+        title: "Already Registered",
+        description: "You are already registered for this group discussion.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    registerMutation.mutate({
+      gdId: formData.selectedGdId,
+      userId: user.id,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      college: formData.college,
+      year: formData.year
+    });
   };
 
-  const handleRegisterDirect = (gdId: string) => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to register for group discussions.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    console.log('Direct registration for GD:', gdId);
-    registerMutation.mutate(gdId);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-            Be Heard. Be Counted.
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Our group discussions happen every weekend. Sign up below to reserve your spot — it's free, fun, and you'll meet incredible minds from across India.
-          </p>
-        </div>
-      </section>
-
-      <div className="max-w-6xl mx-auto px-4 pb-20">
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Registration Form */}
-          <div>
-            <Card className="feature-card">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold">Register for a GD</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!user ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">
-                      Please log in to register for group discussions.
-                    </p>
-                    <Button asChild>
-                      <a href="/auth">Login / Sign Up</a>
-                    </Button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name *</Label>
-                      <Input 
-                        id="name" 
-                        placeholder="Enter your full name" 
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address *</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder="your@email.com" 
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="age">Age *</Label>
-                      <Input 
-                        id="age" 
-                        type="number" 
-                        placeholder="25" 
-                        min="16" 
-                        max="35" 
-                        value={formData.age}
-                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                        required 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="institution">College/Company (Optional)</Label>
-                      <Input 
-                        id="institution" 
-                        placeholder="e.g., IIT Delhi, Google India" 
-                        value={formData.institution}
-                        onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="gdSlot">Choose a GD Slot *</Label>
-                      <Select value={selectedSlot} onValueChange={setSelectedSlot} required>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a time slot" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {upcomingSlots?.map((slot) => (
-                            <SelectItem 
-                              key={slot.id} 
-                              value={slot.id}
-                              disabled={slot.spotsLeft === 0 || slot.isUserRegistered}
-                            >
-                              {slot.date} at {slot.time} - {slot.topic} 
-                              {slot.isUserRegistered ? " (Already Registered)" : 
-                               slot.spotsLeft === 0 ? " (Full)" : 
-                               ` (${slot.spotsLeft} spots left)`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full btn-primary text-lg py-3"
-                      disabled={registerMutation.isPending || !selectedSlot}
-                    >
-                      {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
-                    </Button>
-                  </form>
-                )}
-              </CardContent>
-            </Card>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Join a Group Discussion
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Select a session below and register to participate
+            </p>
           </div>
 
-          {/* Available Slots & Rules */}
-          <div className="space-y-8">
-            {/* Available Slots */}
-            <Card className="feature-card">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold">Available Slots</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isLoading ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-20 bg-muted/50 rounded-lg"></div>
-                    ))}
-                  </div>
-                ) : !upcomingSlots?.length ? (
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-4">📅</div>
-                    <h3 className="text-lg font-semibold mb-2">No Upcoming Slots</h3>
-                    <p className="text-muted-foreground">
-                      There are no group discussions scheduled at the moment. Check back soon!
-                    </p>
-                  </div>
-                ) : (
-                  upcomingSlots.map((slot) => (
-                    <div key={slot.id} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-primary" />
-                          <span className="font-medium">{slot.date}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4 text-primary" />
-                          <span className="text-sm">{slot.time}</span>
-                        </div>
-                      </div>
-                      <h4 className="font-medium mb-2">{slot.topic}</h4>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                          <Users className="w-4 h-4" />
-                          <span>{slot.spotsLeft}/{slot.totalSpots} spots available</span>
-                        </div>
-                        <div className="w-24 bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${((slot.totalSpots - slot.spotsLeft) / slot.totalSpots) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      {user && (
-                        <div className="flex justify-end">
-                          {slot.isUserRegistered ? (
-                            <Button size="sm" disabled>
-                              ✅ Registered
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleRegisterDirect(slot.id)}
-                              disabled={registerMutation.isPending || slot.spotsLeft === 0}
-                            >
-                              {registerMutation.isPending ? 'Registering...' : 
-                               slot.spotsLeft === 0 ? 'Full' : 'Quick Register'}
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-
-            {/* GD Rules */}
-            <Card className="feature-card">
-              <CardHeader>
-                <Collapsible open={isRulesOpen} onOpenChange={setIsRulesOpen}>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <CardTitle className="text-xl font-bold">GD Rules & Guidelines</CardTitle>
-                    <ChevronDown className={`w-5 h-5 transition-transform ${isRulesOpen ? 'rotate-180' : ''}`} />
-                  </CollapsibleTrigger>
-                </Collapsible>
-              </CardHeader>
-              <Collapsible open={isRulesOpen} onOpenChange={setIsRulesOpen}>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {gdRules.map((rule, index) => (
-                        <div key={index} className="flex items-start space-x-3">
-                          <CheckCircle className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-                          <span className="text-muted-foreground">{rule}</span>
-                        </div>
-                      ))}
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+                      <div className="h-8 bg-muted/50 rounded w-full"></div>
                     </div>
                   </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-
-            {/* Next Topic Reveal Timer */}
-            <Card className="feature-card bg-gradient-to-r from-primary/10 to-accent/10">
-              <CardContent className="p-6 text-center">
-                <h3 className="text-lg font-semibold mb-2">Next Topic Reveals In</h3>
-                <div className="text-3xl font-bold text-primary mb-2">{timeUntilReveal}</div>
-                <p className="text-sm text-muted-foreground">
-                  {upcomingSlots && upcomingSlots.length > 0 
-                    ? "Topics are announced 3 hours before each session"
-                    : "New group discussions will be scheduled soon"
-                  }
+                </Card>
+              ))}
+            </div>
+          ) : !upcomingGDs?.length ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <div className="text-4xl mb-4">📅</div>
+                <h3 className="text-lg font-semibold mb-2">No Upcoming Sessions</h3>
+                <p className="text-muted-foreground">
+                  New group discussions will be scheduled soon. Check back later!
                 </p>
               </CardContent>
             </Card>
-          </div>
+          ) : (
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Available GDs */}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold">Available Sessions</h2>
+                {upcomingGDs.filter(gd => gd.spotsLeft > 0).map((gd) => (
+                  <Card 
+                    key={gd.id} 
+                    className={`cursor-pointer transition-all ${
+                      formData.selectedGdId === gd.id 
+                        ? 'ring-2 ring-primary bg-primary/5' 
+                        : 'hover:shadow-md'
+                    }`}
+                    onClick={() => setFormData(prev => ({ ...prev, selectedGdId: gd.id }))}
+                  >
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
+                        <Badge variant="secondary">{gd.spotsLeft} spots left</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(gd.scheduled_date)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatTime(gd.scheduled_date)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>{gd.slot_capacity} total slots</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{gd.meeting_link ? 'Online' : 'Location TBD'}</span>
+                        </div>
+                      </div>
+                      {gd.description && (
+                        <p className="mt-3 text-sm">{gd.description}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                
+                {upcomingGDs.filter(gd => gd.spotsLeft === 0).length > 0 && (
+                  <>
+                    <h3 className="text-lg font-medium text-muted-foreground mt-8">Full Sessions</h3>
+                    {upcomingGDs.filter(gd => gd.spotsLeft === 0).map((gd) => (
+                      <Card key={gd.id} className="opacity-60">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
+                            <Badge variant="destructive">Full</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              <span>{formatDate(gd.scheduled_date)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              <span>{formatTime(gd.scheduled_date)}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* Registration Form */}
+              <div className="lg:sticky lg:top-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Registration Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {!formData.selectedGdId ? (
+                      <p className="text-muted-foreground text-center py-8">
+                        Select a group discussion to register
+                      </p>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Full Name *</Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            required
+                            placeholder="Enter your full name"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            required
+                            placeholder="Enter your email"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone Number *</Label>
+                          <Input
+                            id="phone"
+                            value={formData.phone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            required
+                            placeholder="Enter your phone number"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="college">College/University *</Label>
+                          <Input
+                            id="college"
+                            value={formData.college}
+                            onChange={(e) => setFormData(prev => ({ ...prev, college: e.target.value }))}
+                            required
+                            placeholder="Enter your college name"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="year">Year of Study *</Label>
+                          <Input
+                            id="year"
+                            value={formData.year}
+                            onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
+                            required
+                            placeholder="e.g., 3rd Year, Final Year"
+                          />
+                        </div>
+
+                        <Button 
+                          type="submit" 
+                          className="w-full"
+                          disabled={registerMutation.isPending}
+                        >
+                          {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
+                        </Button>
+                      </form>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

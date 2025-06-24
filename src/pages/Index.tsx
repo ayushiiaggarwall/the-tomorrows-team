@@ -1,6 +1,7 @@
-
+import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import TestimonialForm from '@/components/TestimonialForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
@@ -9,6 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
+  const [showTestimonialForm, setShowTestimonialForm] = useState(false);
+
   const features = [{
     icon: <Users className="w-6 h-6" />,
     title: "Group Discussions",
@@ -301,9 +304,12 @@ const Index = () => {
                 <p className="text-muted-foreground mb-4">
                   Be the first to share your experience with our community!
                 </p>
-                <Link to="/dashboard">
-                  <Button className="btn-primary">Share Your Review</Button>
-                </Link>
+                <Button 
+                  className="btn-primary"
+                  onClick={() => setShowTestimonialForm(true)}
+                >
+                  Share Your Review
+                </Button>
               </div>
             ) : (
               testimonials.map((testimonial) => <Card key={testimonial.id} className="feature-card">
@@ -324,6 +330,17 @@ const Index = () => {
                 </Card>)
             )}
           </div>
+
+          {testimonials?.length ? (
+            <div className="text-center mt-8">
+              <Button 
+                className="btn-secondary"
+                onClick={() => setShowTestimonialForm(true)}
+              >
+                Share Your Review
+              </Button>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -350,6 +367,11 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <TestimonialForm 
+        open={showTestimonialForm}
+        onOpenChange={setShowTestimonialForm}
+      />
 
       <Footer />
     </div>;
