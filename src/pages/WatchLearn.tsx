@@ -1,4 +1,3 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,7 @@ const WatchLearn = () => {
         return [];
       }
 
+      console.log('Fetched GD Videos:', data);
       return data || [];
     }
   });
@@ -50,6 +50,7 @@ const WatchLearn = () => {
         return [];
       }
 
+      console.log('Fetched Podcast Episodes:', data);
       return data || [];
     }
   });
@@ -65,6 +66,9 @@ const WatchLearn = () => {
     podcast.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     podcast.description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
+
+  console.log('Filtered Videos:', filteredVideos);
+  console.log('Videos Loading:', videosLoading);
 
   return (
     <div className="min-h-screen bg-background">
@@ -139,7 +143,10 @@ const WatchLearn = () => {
                 <div className="text-4xl mb-4">🎥</div>
                 <h3 className="text-lg font-semibold mb-2">No Videos Available</h3>
                 <p className="text-muted-foreground">
-                  No group discussion videos have been published yet. Check back soon!
+                  {gdVideos && gdVideos.length > 0 
+                    ? `Found ${gdVideos.length} videos in database, but none match your search.`
+                    : 'No group discussion videos have been published yet. Check back soon!'
+                  }
                 </p>
               </div>
             ) : (
@@ -161,6 +168,9 @@ const WatchLearn = () => {
                           {video.video_duration}
                         </div>
                       )}
+                      <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded">
+                        {video.media_type === 'past_gd' ? 'Past GD' : 'Video'}
+                      </div>
                     </div>
                     
                     <CardContent className="p-4">
