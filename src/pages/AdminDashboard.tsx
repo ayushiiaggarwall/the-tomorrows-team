@@ -43,6 +43,8 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('rewards');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  console.log('🏠 AdminDashboard rendering with activeTab:', activeTab);
+
   const adminName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin';
 
   const handleTabError = (tabName: string, error: string) => {
@@ -59,12 +61,15 @@ const AdminDashboard = () => {
   };
 
   const renderTabContent = (tabName: string, Component: React.ComponentType) => {
+    console.log(`🎯 Rendering tab content for: ${tabName}`);
+    
     const TabComponent = () => {
       try {
+        console.log(`✅ Successfully rendering ${tabName} component`);
         return <Component />;
       } catch (error) {
-        console.error(`Error rendering ${tabName}:`, error);
-        handleTabError(tabName, `Failed to load ${tabName} content`);
+        console.error(`❌ Error rendering ${tabName}:`, error);
+        handleTabError(tabName, `Failed to load ${tabName} content: ${error}`);
         return null;
       }
     };
@@ -73,15 +78,19 @@ const AdminDashboard = () => {
       <ErrorBoundary 
         error={errors[tabName]} 
         onRetry={() => {
+          console.log(`🔄 Retrying ${tabName} tab`);
           clearTabError(tabName);
-          // Force re-render by changing key
-          window.location.reload();
+          // Force component re-render
+          setActiveTab('');
+          setTimeout(() => setActiveTab(tabName), 100);
         }}
       >
         <TabComponent />
       </ErrorBoundary>
     );
   };
+
+  console.log('🎨 About to render AdminDashboard UI');
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,7 +111,21 @@ const AdminDashboard = () => {
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {/* Debug info */}
+          <Card className="mb-6 border-green-200 bg-green-50">
+            <CardContent className="py-4">
+              <p className="text-sm text-green-800">
+                <strong>Debug:</strong> Active Tab: {activeTab} | 
+                Errors: {Object.keys(errors).length} | 
+                Time: {new Date().toLocaleTimeString()}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Tabs value={activeTab} onValueChange={(value) => {
+            console.log('🔄 Tab changed to:', value);
+            setActiveTab(value);
+          }} className="space-y-6">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="rewards" className="flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
@@ -135,6 +158,7 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="discussions">
+              {console.log('📝 Rendering discussions tab content')}
               {renderTabContent('discussions', GroupDiscussionManager)}
             </TabsContent>
 

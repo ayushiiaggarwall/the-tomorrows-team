@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,12 +32,15 @@ interface Moderator {
 }
 
 const GroupDiscussionManager = () => {
+  console.log('🎯 GroupDiscussionManager component rendering...');
+  
   const [discussions, setDiscussions] = useState<GroupDiscussion[]>([]);
   const [moderators, setModerators] = useState<Moderator[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('Component initialized');
   const [formData, setFormData] = useState({
     topic_name: '',
     description: '',
@@ -49,9 +51,18 @@ const GroupDiscussionManager = () => {
   });
   const { toast } = useToast();
 
+  console.log('🎯 Current state:', { 
+    loading, 
+    error, 
+    discussionsCount: discussions.length, 
+    moderatorsCount: moderators.length,
+    debugInfo 
+  });
+
   const fetchDiscussions = async () => {
     try {
-      console.log('Fetching discussions...');
+      console.log('🔄 Starting fetchDiscussions...');
+      setDebugInfo('Fetching discussions...');
       setError(null);
       
       const { data: gdData, error: gdError } = await supabase
@@ -59,15 +70,20 @@ const GroupDiscussionManager = () => {
         .select('*')
         .order('scheduled_date', { ascending: false });
 
+      console.log('📊 Discussions query result:', { gdData, gdError });
+
       if (gdError) {
-        console.error('Error fetching discussions:', gdError);
+        console.error('❌ Error fetching discussions:', gdError);
+        setDebugInfo(`Error fetching discussions: ${gdError.message}`);
         throw gdError;
       }
 
-      console.log('Discussions fetched:', gdData?.length || 0);
+      console.log('✅ Discussions fetched:', gdData?.length || 0);
+      setDebugInfo(`Fetched ${gdData?.length || 0} discussions`);
 
       if (!gdData) {
         setDiscussions([]);
+        setDebugInfo('No discussions data returned');
         return;
       }
 
@@ -75,6 +91,8 @@ const GroupDiscussionManager = () => {
       const discussionsWithDetails = await Promise.all(
         gdData.map(async (discussion) => {
           try {
+            console.log(`🔍 Processing discussion: ${discussion.id}`);
+            
             // Get moderator details if moderator_id exists
             let moderatorData = null;
             if (discussion.moderator_id) {
@@ -84,6 +102,7 @@ const GroupDiscussionManager = () => {
                 .eq('id', discussion.moderator_id)
                 .single();
               moderatorData = data;
+              console.log(`👤 Moderator data for ${discussion.id}:`, moderatorData);
             }
 
             // Get registration count
@@ -92,6 +111,8 @@ const GroupDiscussionManager = () => {
               .select('*', { count: 'exact' })
               .eq('gd_id', discussion.id);
             
+            console.log(`📊 Registration count for ${discussion.id}:`, count);
+            
             return {
               ...discussion,
               moderator_name: moderatorData?.full_name || '',
@@ -99,7 +120,8 @@ const GroupDiscussionManager = () => {
               registrations_count: count || 0
             };
           } catch (error) {
-            console.error('Error processing discussion:', discussion.id, error);
+            console.error('❌ Error processing discussion:', discussion.id, error);
+            setDebugInfo(`Error processing discussion ${discussion.id}: ${error}`);
             return {
               ...discussion,
               moderator_name: '',
@@ -110,10 +132,13 @@ const GroupDiscussionManager = () => {
         })
       );
 
+      console.log('✅ All discussions processed:', discussionsWithDetails.length);
+      setDebugInfo(`Processed ${discussionsWithDetails.length} discussions successfully`);
       setDiscussions(discussionsWithDetails);
     } catch (error) {
-      console.error('Error in fetchDiscussions:', error);
-      setError('Failed to fetch group discussions');
+      console.error('❌ Fatal error in fetchDiscussions:', error);
+      setError(`Failed to fetch group discussions: ${error}`);
+      setDebugInfo(`Fatal error: ${error}`);
       toast({
         title: "Error",
         description: "Failed to fetch group discussions",
@@ -124,24 +149,29 @@ const GroupDiscussionManager = () => {
 
   const fetchModerators = async () => {
     try {
-      console.log('Fetching moderators...');
+      console.log('🔄 Starting fetchModerators...');
+      setDebugInfo('Fetching moderators...');
       
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .eq('is_admin', true);
 
+      console.log('👥 Moderators query result:', { data, error });
+
       if (error) {
-        console.error('Error fetching moderators:', error);
-        // Don't throw error for moderators as it's not critical
+        console.error('❌ Error fetching moderators:', error);
+        setDebugInfo(`Error fetching moderators: ${error.message}`);
         setModerators([]);
         return;
       }
 
-      console.log('Moderators fetched:', data?.length || 0);
+      console.log('✅ Moderators fetched:', data?.length || 0);
+      setDebugInfo(`Fetched ${data?.length || 0} moderators`);
       setModerators(data || []);
     } catch (error) {
-      console.error('Error in fetchModerators:', error);
+      console.error('❌ Error in fetchModerators:', error);
+      setDebugInfo(`Error in fetchModerators: ${error}`);
       setModerators([]);
     }
   };
@@ -149,18 +179,22 @@ const GroupDiscussionManager = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('🚀 Starting data load...');
         setLoading(true);
         setError(null);
-        console.log('Starting to load GD data...');
+        setDebugInfo('Initializing data load...');
         
         await Promise.all([fetchDiscussions(), fetchModerators()]);
         
-        console.log('GD data loaded successfully');
+        console.log('🎉 Data load completed successfully');
+        setDebugInfo('Data load completed successfully');
       } catch (error) {
-        console.error('Error loading GD data:', error);
-        setError('Failed to load data');
+        console.error('❌ Error loading data:', error);
+        setError(`Failed to load data: ${error}`);
+        setDebugInfo(`Failed to load data: ${error}`);
       } finally {
         setLoading(false);
+        console.log('🏁 Loading finished');
       }
     };
 
@@ -283,34 +317,62 @@ const GroupDiscussionManager = () => {
     });
   };
 
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
-            <h3 className="text-lg font-medium mb-2">Error Loading Group Discussions</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()}>
-              Refresh Page
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  console.log('🎨 About to render component with:', { loading, error, debugInfo });
 
-  if (loading) {
+  // Early return with debug info in development
+  if (error) {
+    console.log('🚨 Rendering error state');
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading group discussions...</span>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
+              <h3 className="text-lg font-medium mb-2">Error Loading Group Discussions</h3>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <p className="text-xs text-muted-foreground mb-4">Debug: {debugInfo}</p>
+              <Button onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  if (loading) {
+    console.log('⏳ Rendering loading state');
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+              <span className="text-lg">Loading group discussions...</span>
+              <p className="text-xs text-muted-foreground mt-2">Debug: {debugInfo}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  console.log('✅ Rendering main component');
+
   return (
     <div className="space-y-6">
+      {/* Debug info card - remove in production */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="py-4">
+          <p className="text-sm text-blue-800">
+            <strong>Debug Info:</strong> {debugInfo} | 
+            Discussions: {discussions.length} | 
+            Moderators: {moderators.length}
+          </p>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
