@@ -158,7 +158,6 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="discussions">
-              {console.log('📝 Rendering discussions tab content')}
               {renderTabContent('discussions', GroupDiscussionManager)}
             </TabsContent>
 
