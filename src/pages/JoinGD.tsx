@@ -1,4 +1,3 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -9,29 +8,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, ChevronDown, CheckCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const JoinGD = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState('');
   const [timeUntilReveal, setTimeUntilReveal] = useState<string>('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    age: '',
+    institution: ''
+  });
+  
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
+  // Fetch upcoming GDs with registration counts
   const { data: upcomingSlots, isLoading } = useQuery({
     queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
-      // Get upcoming active GDs
       const { data: gds, error } = await supabase
         .from('group_discussions')
-        .select(`
-          id,
-          topic_name,
-          scheduled_date,
-          slot_capacity,
-          description
-        `)
+        .select('*')
         .eq('is_active', true)
         .gte('scheduled_date', new Date().toISOString())
         .order('scheduled_date', { ascending: true });
@@ -43,7 +46,7 @@ const JoinGD = () => {
 
       if (!gds) return [];
 
-      // Get registration counts for each GD
+      // Get registration counts and user's registrations
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
           const { count } = await supabase
@@ -53,6 +56,19 @@ const JoinGD = () => {
 
           const registrationsCount = count || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+
+          // Check if current user is registered
+          let isUserRegistered = false;
+          if (user?.id) {
+            const { data: userReg } = await supabase
+              .from('gd_registrations')
+              .select('id')
+              .eq('gd_id', gd.id)
+              .eq('user_id', user.id)
+              .single();
+            
+            isUserRegistered = !!userReg;
+          }
 
           return {
             id: gd.id,
@@ -69,12 +85,68 @@ const JoinGD = () => {
             topic: gd.topic_name,
             spotsLeft,
             totalSpots: gd.slot_capacity,
-            description: gd.description
+            description: gd.description,
+            isUserRegistered
           };
         })
       );
 
       return gdsWithCounts;
+    }
+  });
+
+  // Registration mutation
+  const registerMutation = useMutation({
+    mutationFn: async (gdId: string) => {
+      if (!user?.id) {
+        throw new Error('You must be logged in to register for group discussions');
+      }
+
+      // Check if already registered
+      const { data: existingRegistration } = await supabase
+        .from('gd_registrations')
+        .select('id')
+        .eq('gd_id', gdId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingRegistration) {
+        throw new Error('You are already registered for this GD');
+      }
+
+      // Register for the GD
+      const { data, error } = await supabase
+        .from('gd_registrations')
+        .insert([{
+          gd_id: gdId,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Registration error:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Registration Successful!",
+        description: "You have been registered for the group discussion.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+      setSelectedSlot('');
+      setFormData({ name: '', email: '', age: '', institution: '' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Failed to register. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -86,17 +158,13 @@ const JoinGD = () => {
         return;
       }
 
-      // Get the earliest scheduled GD
       const nextGD = upcomingSlots[0];
       if (!nextGD) {
         setTimeUntilReveal('Coming Soon...');
         return;
       }
 
-      // Parse the date and time back from the formatted strings
       const gdDateTime = new Date(nextGD.date + ' ' + nextGD.time);
-      
-      // Topic reveals 3 hours before the GD
       const revealTime = new Date(gdDateTime.getTime() - (3 * 60 * 60 * 1000));
       const now = new Date();
       
@@ -117,7 +185,7 @@ const JoinGD = () => {
     };
 
     calculateTimeUntilReveal();
-    const interval = setInterval(calculateTimeUntilReveal, 60000); // Update every minute
+    const interval = setInterval(calculateTimeUntilReveal, 60000);
 
     return () => clearInterval(interval);
   }, [upcomingSlots]);
@@ -135,11 +203,39 @@ const JoinGD = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    toast({
-      title: "Registration Submitted",
-      description: "Your registration has been submitted successfully!"
-    });
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to register for group discussions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedSlot) {
+      toast({
+        title: "Please Select a Slot",
+        description: "You must select a GD slot to register.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    registerMutation.mutate(selectedSlot);
+  };
+
+  const handleRegisterDirect = (gdId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to register for group discussions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    registerMutation.mutate(gdId);
   };
 
   return (
@@ -167,47 +263,96 @@ const JoinGD = () => {
                 <CardTitle className="text-2xl font-bold">Register for a GD</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input id="name" placeholder="Enter your full name" required />
+                {!user ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground mb-4">
+                      Please log in to register for group discussions.
+                    </p>
+                    <Button asChild>
+                      <a href="/auth">Login / Sign Up</a>
+                    </Button>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input id="email" type="email" placeholder="your@email.com" required />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="age">Age *</Label>
-                    <Input id="age" type="number" placeholder="25" min="16" max="35" required />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="institution">College/Company (Optional)</Label>
-                    <Input id="institution" placeholder="e.g., IIT Delhi, Google India" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="gdSlot">Choose a GD Slot *</Label>
-                    <Select value={selectedSlot} onValueChange={setSelectedSlot} required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a time slot" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {upcomingSlots?.map((slot) => (
-                          <SelectItem key={slot.id} value={slot.id}>
-                            {slot.date} at {slot.time} - {slot.topic}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <Button type="submit" className="w-full btn-primary text-lg py-3">
-                    Register for GD
-                  </Button>
-                </form>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name *</Label>
+                      <Input 
+                        id="name" 
+                        placeholder="Enter your full name" 
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="your@email.com" 
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="age">Age *</Label>
+                      <Input 
+                        id="age" 
+                        type="number" 
+                        placeholder="25" 
+                        min="16" 
+                        max="35" 
+                        value={formData.age}
+                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                        required 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="institution">College/Company (Optional)</Label>
+                      <Input 
+                        id="institution" 
+                        placeholder="e.g., IIT Delhi, Google India" 
+                        value={formData.institution}
+                        onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="gdSlot">Choose a GD Slot *</Label>
+                      <Select value={selectedSlot} onValueChange={setSelectedSlot} required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a time slot" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {upcomingSlots?.map((slot) => (
+                            <SelectItem 
+                              key={slot.id} 
+                              value={slot.id}
+                              disabled={slot.spotsLeft === 0 || slot.isUserRegistered}
+                            >
+                              {slot.date} at {slot.time} - {slot.topic} 
+                              {slot.isUserRegistered ? " (Already Registered)" : 
+                               slot.spotsLeft === 0 ? " (Full)" : 
+                               ` (${slot.spotsLeft} spots left)`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full btn-primary text-lg py-3"
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
+                    </Button>
+                  </form>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -248,7 +393,7 @@ const JoinGD = () => {
                         </div>
                       </div>
                       <h4 className="font-medium mb-2">{slot.topic}</h4>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-1 text-sm text-muted-foreground">
                           <Users className="w-4 h-4" />
                           <span>{slot.spotsLeft}/{slot.totalSpots} spots available</span>
@@ -260,6 +405,24 @@ const JoinGD = () => {
                           ></div>
                         </div>
                       </div>
+                      {user && (
+                        <div className="flex justify-end">
+                          {slot.isUserRegistered ? (
+                            <Button size="sm" disabled>
+                              ✅ Registered
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleRegisterDirect(slot.id)}
+                              disabled={registerMutation.isPending || slot.spotsLeft === 0}
+                            >
+                              {registerMutation.isPending ? 'Registering...' : 
+                               slot.spotsLeft === 0 ? 'Full' : 'Quick Register'}
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

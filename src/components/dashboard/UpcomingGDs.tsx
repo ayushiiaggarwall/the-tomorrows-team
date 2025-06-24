@@ -2,13 +2,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds', user?.id],
@@ -18,13 +21,7 @@ const UpcomingGDs = () => {
       // Get upcoming GDs
       const { data: gds } = await supabase
         .from('group_discussions')
-        .select(`
-          id,
-          topic_name,
-          scheduled_date,
-          slot_capacity,
-          gd_registrations!inner(user_id)
-        `)
+        .select('*')
         .eq('is_active', true)
         .gte('scheduled_date', new Date().toISOString())
         .order('scheduled_date', { ascending: true });
@@ -39,29 +36,98 @@ const UpcomingGDs = () => {
 
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);
 
-      return gds.map(gd => {
-        const registrationsCount = gd.gd_registrations?.length || 0;
-        const isUserRegistered = userRegisteredGdIds.has(gd.id);
-        
-        return {
-          id: gd.id,
-          topic: gd.topic_name,
-          date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
-            month: 'long', 
-            day: 'numeric' 
-          }),
-          time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true 
-          }),
-          spotsLeft: Math.max(0, gd.slot_capacity - registrationsCount),
-          isRegistered: isUserRegistered
-        };
-      }).slice(0, 3); // Show only next 3 GDs
+      // Get registration counts for each GD
+      const gdsWithCounts = await Promise.all(
+        gds.map(async (gd) => {
+          const { count } = await supabase
+            .from('gd_registrations')
+            .select('*', { count: 'exact' })
+            .eq('gd_id', gd.id);
+
+          const registrationsCount = count || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+          const isUserRegistered = userRegisteredGdIds.has(gd.id);
+          
+          return {
+            id: gd.id,
+            topic: gd.topic_name,
+            date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit', 
+              hour12: true 
+            }),
+            spotsLeft,
+            totalSpots: gd.slot_capacity,
+            isRegistered: isUserRegistered,
+            meetLink: gd.meet_link
+          };
+        })
+      );
+
+      return gdsWithCounts.slice(0, 5); // Show top 5 upcoming GDs
     },
     enabled: !!user?.id
   });
+
+  // Registration mutation
+  const registerMutation = useMutation({
+    mutationFn: async (gdId: string) => {
+      if (!user?.id) {
+        throw new Error('User must be authenticated to register');
+      }
+
+      // Check if already registered
+      const { data: existingRegistration } = await supabase
+        .from('gd_registrations')
+        .select('id')
+        .eq('gd_id', gdId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingRegistration) {
+        throw new Error('You are already registered for this GD');
+      }
+
+      // Register for the GD
+      const { data, error } = await supabase
+        .from('gd_registrations')
+        .insert([{
+          gd_id: gdId,
+          user_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Registration error:', error);
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Successfully registered for the GD!",
+      });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Failed to register for the GD. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleRegister = (gdId: string) => {
+    registerMutation.mutate(gdId);
+  };
 
   if (isLoading) {
     return (
@@ -73,7 +139,7 @@ const UpcomingGDs = () => {
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
-            {[...Array(2)].map((_, i) => (
+            {[...Array(3)].map((_, i) => (
               <div key={i} className="h-20 bg-muted/50 rounded-lg"></div>
             ))}
           </div>
@@ -89,7 +155,7 @@ const UpcomingGDs = () => {
           🗓️ Upcoming Group Discussions
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          {upcomingGDs?.length ? "You're registered for the following GDs:" : "No upcoming GDs found"}
+          {upcomingGDs?.length ? "Next scheduled sessions:" : "No upcoming GDs found"}
         </p>
       </CardHeader>
       <CardContent>
@@ -120,25 +186,37 @@ const UpcomingGDs = () => {
                       {gd.date} at {gd.time}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {gd.spotsLeft} spots left
+                      {gd.spotsLeft} spots left out of {gd.totalSpots}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge 
-                      variant={gd.isRegistered ? 'default' : 'destructive'}
+                      variant={gd.isRegistered ? 'default' : 'secondary'}
                     >
-                      {gd.isRegistered ? 'Registered ✅' : 'Not Registered ❌'}
+                      {gd.isRegistered ? 'Registered ✅' : 'Available'}
                     </Badge>
                     {gd.isRegistered ? (
-                      <Button size="sm" className="btn-primary">
-                        📩 Join Meeting
-                      </Button>
-                    ) : (
-                      <Link to="/join-gd">
-                        <Button size="sm" variant="outline">
-                          Register Now
+                      gd.meetLink ? (
+                        <Button size="sm" className="btn-primary" asChild>
+                          <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
+                            📩 Join Meeting
+                          </a>
                         </Button>
-                      </Link>
+                      ) : (
+                        <Button size="sm" disabled>
+                          Link Coming Soon
+                        </Button>
+                      )
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleRegister(gd.id)}
+                        disabled={registerMutation.isPending || gd.spotsLeft === 0}
+                      >
+                        {registerMutation.isPending ? 'Registering...' : 
+                         gd.spotsLeft === 0 ? 'Full' : 'Register'}
+                      </Button>
                     )}
                   </div>
                 </div>
