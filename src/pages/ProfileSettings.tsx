@@ -21,10 +21,6 @@ interface PredefinedTag {
 }
 
 const ProfileSettings = () => {
-  useEffect(() => {
-    document.title = 'Profile Settings - The Tomorrows Team';
-  }, []);
-
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();

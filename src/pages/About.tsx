@@ -1,14 +1,10 @@
-import { useEffect } from 'react';
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Target, Users } from 'lucide-react';
 
 const About = () => {
-  useEffect(() => {
-    document.title = 'About - The Tomorrows Team';
-  }, []);
-
   const values = [
     {
       icon: <Heart className="w-8 h-8" />,

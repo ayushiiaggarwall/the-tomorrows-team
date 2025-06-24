@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import TestimonialForm from '@/components/TestimonialForm';
@@ -10,10 +10,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  useEffect(() => {
-    document.title = 'Home - The Tomorrows Team';
-  }, []);
-
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
 
   const features = [{

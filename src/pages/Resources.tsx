@@ -1,16 +1,12 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, CheckCircle, Lightbulb, MessageSquare, Download, ExternalLink } from 'lucide-react';
-import { useEffect } from 'react';
 
 const Resources = () => {
-  useEffect(() => {
-    document.title = 'Resources - The Tomorrows Team';
-  }, []);
-
   const gdDosDonts = {
     dos: [
       "Listen actively to other participants",
