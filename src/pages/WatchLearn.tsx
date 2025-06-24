@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const WatchLearn = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTopics, setSelectedTopics] = useState<string[]>(['All']);
 
   // Fetch all media content
   const { data: allMedia, isLoading: mediaLoading } = useQuery({
@@ -34,12 +35,33 @@ const WatchLearn = () => {
 
   const topics = ["All", "AI", "Technology", "Society", "Career", "Mental Health", "Environment", "Education"];
 
-  // Filter content based on search term
-  const filteredAllMedia = allMedia?.filter(item => 
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const handleTopicClick = (topic: string) => {
+    if (topic === 'All') {
+      setSelectedTopics(['All']);
+    } else {
+      setSelectedTopics(prev => {
+        const newTopics = prev.filter(t => t !== 'All');
+        if (newTopics.includes(topic)) {
+          const filtered = newTopics.filter(t => t !== topic);
+          return filtered.length === 0 ? ['All'] : filtered;
+        } else {
+          return [...newTopics, topic];
+        }
+      });
+    }
+  };
+
+  // Filter content based on search term and selected topics
+  const filteredAllMedia = allMedia?.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesTopics = selectedTopics.includes('All') || 
+      item.tags?.some((tag: string) => selectedTopics.includes(tag));
+
+    return matchesSearch && matchesTopics;
+  }) || [];
 
   // Separate content by type
   const groupDiscussions = filteredAllMedia.filter(item => 
@@ -194,8 +216,9 @@ const WatchLearn = () => {
             {topics.map((topic) => (
               <Badge
                 key={topic}
-                variant="secondary"
+                variant={selectedTopics.includes(topic) ? "default" : "secondary"}
                 className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                onClick={() => handleTopicClick(topic)}
               >
                 {topic}
               </Badge>
@@ -235,7 +258,7 @@ const WatchLearn = () => {
                 <div className="text-4xl mb-4">📚</div>
                 <h3 className="text-lg font-semibold mb-2">No Content Available</h3>
                 <p className="text-muted-foreground">
-                  No content has been published yet. Check back soon!
+                  No content matches your selected filters. Try adjusting your search or topic selection.
                 </p>
               </div>
             ) : (
