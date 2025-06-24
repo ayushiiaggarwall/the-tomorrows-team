@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +49,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
           rating: testimonialData.rating,
           user_name: testimonialData.userName,
           user_role: testimonialData.userRole,
-          is_approved: false // Admin needs to approve
+          is_approved: true // Auto-approve testimonials
         })
         .select()
         .single();
@@ -66,7 +65,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
     onSuccess: () => {
       toast({
         title: "Review Submitted!",
-        description: "Thank you for your feedback. Your review will be published after approval.",
+        description: "Thank you for your feedback. Your review has been published.",
       });
       
       // Reset form
