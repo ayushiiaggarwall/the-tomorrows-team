@@ -1,3 +1,4 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -13,62 +14,141 @@ import { supabase } from '@/integrations/supabase/client';
 const WatchLearn = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch GD videos from media_content table (including both video and past_gd types)
-  const { data: gdVideos, isLoading: videosLoading } = useQuery({
-    queryKey: ['gd-videos'],
+  // Fetch all media content
+  const { data: allMedia, isLoading: mediaLoading } = useQuery({
+    queryKey: ['all-media'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('media_content')
         .select('*')
-        .in('media_type', ['video', 'past_gd'])
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching videos:', error);
+        console.error('Error fetching media:', error);
         return [];
       }
 
-      console.log('Fetched GD Videos:', data);
-      return data || [];
-    }
-  });
-
-  // Fetch podcast episodes from media_content table
-  const { data: podcastEpisodes, isLoading: podcastsLoading } = useQuery({
-    queryKey: ['podcast-episodes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('media_content')
-        .select('*')
-        .eq('media_type', 'podcast')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching podcasts:', error);
-        return [];
-      }
-
-      console.log('Fetched Podcast Episodes:', data);
       return data || [];
     }
   });
 
   const topics = ["All", "AI", "Technology", "Society", "Career", "Mental Health", "Environment", "Education"];
 
-  const filteredVideos = gdVideos?.filter(video => 
-    video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    video.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Filter content based on search term
+  const filteredAllMedia = allMedia?.filter(item => 
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const filteredPodcasts = podcastEpisodes?.filter(podcast =>
-    podcast.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    podcast.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Separate content by type
+  const groupDiscussions = filteredAllMedia.filter(item => 
+    item.media_type === 'video' || item.media_type === 'past_gd'
+  );
 
-  console.log('Filtered Videos:', filteredVideos);
-  console.log('Videos Loading:', videosLoading);
+  const podcasts = filteredAllMedia.filter(item => 
+    item.media_type === 'podcast'
+  );
+
+  const renderVideoCard = (video: any) => (
+    <Card key={video.id} className="feature-card overflow-hidden">
+      <div className="relative group">
+        <div className="w-full h-48 bg-muted flex items-center justify-center">
+          <Play className="w-12 h-12 text-muted-foreground" />
+        </div>
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <Button size="sm" className="btn-primary">
+            <Play className="w-4 h-4 mr-2" />
+            Watch
+          </Button>
+        </div>
+        {video.video_duration && (
+          <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+            {video.video_duration}
+          </div>
+        )}
+        <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded">
+          Group Discussion
+        </div>
+      </div>
+      
+      <CardContent className="p-4">
+        <h3 className="font-semibold mb-2 line-clamp-2">{video.title}</h3>
+        
+        <div className="flex items-center text-sm text-muted-foreground mb-3 space-x-4">
+          <div className="flex items-center">
+            <Calendar className="w-4 h-4 mr-1" />
+            {new Date(video.created_at).toLocaleDateString()}
+          </div>
+          {video.participant_count && (
+            <div className="flex items-center">
+              <Users className="w-4 h-4 mr-1" />
+              {video.participant_count}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-1">
+          {video.tags?.map((tag: string) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderPodcastCard = (podcast: any) => (
+    <Card key={podcast.id} className="feature-card">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-lg mb-2">{podcast.title}</CardTitle>
+            <div className="flex items-center text-sm text-muted-foreground space-x-4">
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-1" />
+                {new Date(podcast.created_at).toLocaleDateString()}
+              </div>
+              {podcast.video_duration && (
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-1" />
+                  {podcast.video_duration}
+                </div>
+              )}
+            </div>
+          </div>
+          <Button size="sm" className="btn-primary ml-4">
+            <Play className="w-4 h-4 mr-2" />
+            Play
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {podcast.description && (
+          <p className="text-muted-foreground mb-4">{podcast.description}</p>
+        )}
+        <div className="flex flex-wrap gap-1">
+          {podcast.tags?.map((tag: string) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderEmptyState = (type: string) => (
+    <div className="text-center py-12">
+      <div className="text-4xl mb-4">{type === 'podcast' ? '🎧' : '🎥'}</div>
+      <h3 className="text-lg font-semibold mb-2">No {type === 'podcast' ? 'Podcasts' : 'Videos'} Available</h3>
+      <p className="text-muted-foreground">
+        No {type === 'podcast' ? 'podcast episodes' : 'group discussion videos'} have been published yet. Check back soon!
+      </p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -113,14 +193,15 @@ const WatchLearn = () => {
         </div>
 
         {/* Tabs for Content */}
-        <Tabs defaultValue="gds" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="gds">Group Discussions</TabsTrigger>
-            <TabsTrigger value="podcasts">Podcast Episodes</TabsTrigger>
+            <TabsTrigger value="podcasts">Podcasts</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="gds" className="mt-8">
-            {videosLoading ? (
+          <TabsContent value="all" className="mt-8">
+            {mediaLoading ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
                   <Card key={i} className="feature-card overflow-hidden">
@@ -138,73 +219,69 @@ const WatchLearn = () => {
                   </Card>
                 ))}
               </div>
-            ) : !filteredVideos.length ? (
+            ) : !filteredAllMedia.length ? (
               <div className="text-center py-12">
-                <div className="text-4xl mb-4">🎥</div>
-                <h3 className="text-lg font-semibold mb-2">No Videos Available</h3>
+                <div className="text-4xl mb-4">📚</div>
+                <h3 className="text-lg font-semibold mb-2">No Content Available</h3>
                 <p className="text-muted-foreground">
-                  {gdVideos && gdVideos.length > 0 
-                    ? `Found ${gdVideos.length} videos in database, but none match your search.`
-                    : 'No group discussion videos have been published yet. Check back soon!'
-                  }
+                  No content has been published yet. Check back soon!
                 </p>
               </div>
             ) : (
+              <div className="space-y-8">
+                {/* Group Discussions Section */}
+                {groupDiscussions.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">Group Discussions</h3>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {groupDiscussions.map(renderVideoCard)}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Podcasts Section */}
+                {podcasts.length > 0 && (
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">Podcasts</h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {podcasts.map(renderPodcastCard)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="gds" className="mt-8">
+            {mediaLoading ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredVideos.map((video) => (
-                  <Card key={video.id} className="feature-card overflow-hidden">
-                    <div className="relative group">
-                      <div className="w-full h-48 bg-muted flex items-center justify-center">
-                        <Play className="w-12 h-12 text-muted-foreground" />
-                      </div>
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button size="sm" className="btn-primary">
-                          <Play className="w-4 h-4 mr-2" />
-                          Watch
-                        </Button>
-                      </div>
-                      {video.video_duration && (
-                        <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                          {video.video_duration}
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="feature-card overflow-hidden">
+                    <div className="animate-pulse">
+                      <div className="w-full h-48 bg-muted/50"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+                        <div className="h-3 bg-muted/50 rounded w-1/2"></div>
+                        <div className="flex gap-2">
+                          <div className="h-6 bg-muted/50 rounded w-16"></div>
+                          <div className="h-6 bg-muted/50 rounded w-20"></div>
                         </div>
-                      )}
-                      <div className="absolute top-3 left-3 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded">
-                        {video.media_type === 'past_gd' ? 'Past GD' : 'Video'}
                       </div>
                     </div>
-                    
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold mb-2 line-clamp-2">{video.title}</h3>
-                      
-                      <div className="flex items-center text-sm text-muted-foreground mb-3 space-x-4">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {new Date(video.created_at).toLocaleDateString()}
-                        </div>
-                        {video.participant_count && (
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-1" />
-                            {video.participant_count}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1">
-                        {video.tags?.map((tag: string) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
                   </Card>
                 ))}
+              </div>
+            ) : !groupDiscussions.length ? (
+              renderEmptyState('video')
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {groupDiscussions.map(renderVideoCard)}
               </div>
             )}
           </TabsContent>
           
           <TabsContent value="podcasts" className="mt-8">
-            {podcastsLoading ? (
+            {mediaLoading ? (
               <div className="grid md:grid-cols-2 gap-6">
                 {[...Array(4)].map((_, i) => (
                   <Card key={i} className="feature-card">
@@ -220,55 +297,11 @@ const WatchLearn = () => {
                   </Card>
                 ))}
               </div>
-            ) : !filteredPodcasts.length ? (
-              <div className="text-center py-12">
-                <div className="text-4xl mb-4">🎧</div>
-                <h3 className="text-lg font-semibold mb-2">No Podcasts Available</h3>
-                <p className="text-muted-foreground">
-                  No podcast episodes have been published yet. Check back soon!
-                </p>
-              </div>
+            ) : !podcasts.length ? (
+              renderEmptyState('podcast')
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
-                {filteredPodcasts.map((podcast) => (
-                  <Card key={podcast.id} className="feature-card">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg mb-2">{podcast.title}</CardTitle>
-                          <div className="flex items-center text-sm text-muted-foreground space-x-4">
-                            <div className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {new Date(podcast.created_at).toLocaleDateString()}
-                            </div>
-                            {podcast.video_duration && (
-                              <div className="flex items-center">
-                                <Clock className="w-4 h-4 mr-1" />
-                                {podcast.video_duration}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <Button size="sm" className="btn-primary ml-4">
-                          <Play className="w-4 h-4 mr-2" />
-                          Play
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {podcast.description && (
-                        <p className="text-muted-foreground mb-4">{podcast.description}</p>
-                      )}
-                      <div className="flex flex-wrap gap-1">
-                        {podcast.tags?.map((tag: string) => (
-                          <Badge key={tag} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {podcasts.map(renderPodcastCard)}
               </div>
             )}
           </TabsContent>
