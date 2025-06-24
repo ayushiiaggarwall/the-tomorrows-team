@@ -1,4 +1,3 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
@@ -53,9 +52,17 @@ const WatchLearn = () => {
 
   const renderVideoCard = (video: any) => (
     <Card key={video.id} className="feature-card overflow-hidden">
-      <div className="relative group">
-        <div className="w-full h-48 bg-muted flex items-center justify-center">
-          <Play className="w-12 h-12 text-muted-foreground" />
+      <div className="relative group cursor-pointer" onClick={() => window.open(video.media_url, '_blank')}>
+        <div className="w-full h-48 bg-muted flex items-center justify-center overflow-hidden">
+          {video.thumbnail_url ? (
+            <img 
+              src={video.thumbnail_url} 
+              alt={video.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Play className="w-12 h-12 text-muted-foreground" />
+          )}
         </div>
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <Button size="sm" className="btn-primary">
@@ -119,7 +126,11 @@ const WatchLearn = () => {
               )}
             </div>
           </div>
-          <Button size="sm" className="btn-primary ml-4">
+          <Button 
+            size="sm" 
+            className="btn-primary ml-4"
+            onClick={() => window.open(podcast.media_url, '_blank')}
+          >
             <Play className="w-4 h-4 mr-2" />
             Play
           </Button>

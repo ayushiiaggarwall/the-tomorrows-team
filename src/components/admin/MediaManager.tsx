@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Mic, Plus, Edit, Trash, Video } from 'lucide-react';
+import { Mic, Plus, Edit, Trash, Video, Upload, Image } from 'lucide-react';
 
 interface MediaContent {
   id: string;
@@ -22,12 +21,14 @@ interface MediaContent {
   tags: string[] | null;
   is_published: boolean;
   created_at: string;
+  thumbnail_url: string | null;
 }
 
 const MediaManager = () => {
   const [mediaContent, setMediaContent] = useState<MediaContent[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -36,7 +37,8 @@ const MediaManager = () => {
     tags: '',
     is_published: false,
     add_to_podcast: false,
-    add_to_past_gd: false
+    add_to_past_gd: false,
+    thumbnail_url: ''
   });
   const { toast } = useToast();
 
@@ -58,6 +60,44 @@ const MediaManager = () => {
     fetchMediaContent();
   }, []);
 
+  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingThumbnail(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `thumbnails/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('media-thumbnails')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('media-thumbnails')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, thumbnail_url: publicUrl }));
+
+      toast({
+        title: "Success",
+        description: "Thumbnail uploaded successfully"
+      });
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload thumbnail",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -73,7 +113,8 @@ const MediaManager = () => {
         media_url: formData.media_url,
         media_type: mediaType,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : null,
-        is_published: formData.is_published
+        is_published: formData.is_published,
+        thumbnail_url: formData.thumbnail_url || null
       };
 
       if (editingId) {
@@ -110,7 +151,8 @@ const MediaManager = () => {
         tags: '',
         is_published: false,
         add_to_podcast: false,
-        add_to_past_gd: false
+        add_to_past_gd: false,
+        thumbnail_url: ''
       });
       setEditingId(null);
       fetchMediaContent();
@@ -135,7 +177,8 @@ const MediaManager = () => {
       tags: media.tags?.join(', ') || '',
       is_published: media.is_published,
       add_to_podcast: media.media_type === 'podcast',
-      add_to_past_gd: media.media_type === 'past_gd'
+      add_to_past_gd: media.media_type === 'past_gd',
+      thumbnail_url: media.thumbnail_url || ''
     });
     setEditingId(media.id);
   };
@@ -225,6 +268,48 @@ const MediaManager = () => {
             </div>
             
             <div>
+              <Label htmlFor="thumbnail">Thumbnail Image</Label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="thumbnail-file"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailUpload}
+                    disabled={uploadingThumbnail}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('thumbnail-file')?.click()}
+                    disabled={uploadingThumbnail}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploadingThumbnail ? 'Uploading...' : 'Upload Thumbnail'}
+                  </Button>
+                </div>
+                {formData.thumbnail_url && (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={formData.thumbnail_url} 
+                      alt="Thumbnail preview" 
+                      className="w-20 h-12 object-cover rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFormData(prev => ({ ...prev, thumbnail_url: '' }))}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -309,7 +394,8 @@ const MediaManager = () => {
                       tags: '',
                       is_published: false,
                       add_to_podcast: false,
-                      add_to_past_gd: false
+                      add_to_past_gd: false,
+                      thumbnail_url: ''
                     });
                   }}
                 >
