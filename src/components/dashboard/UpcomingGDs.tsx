@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,23 +47,23 @@ const UpcomingGDs = () => {
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);
       console.log('User registered GD IDs:', userRegisteredGdIds);
 
-      // Get registration counts for each GD
+      // Get registration counts for each GD - Fixed to get actual count
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
-          const { count, error: countError } = await supabase
+          const { data: registrations, error: countError } = await supabase
             .from('gd_registrations')
-            .select('*', { count: 'exact' })
+            .select('id')
             .eq('gd_id', gd.id);
 
           if (countError) {
             console.error('Error counting registrations for GD:', gd.id, countError);
           }
 
-          const registrationsCount = count || 0;
+          const registrationsCount = registrations?.length || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
           const isUserRegistered = userRegisteredGdIds.has(gd.id);
           
-          console.log(`GD ${gd.id}: registered=${isUserRegistered}, spots=${spotsLeft}/${gd.slot_capacity}`);
+          console.log(`GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${registrationsCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
           return {
             id: gd.id,

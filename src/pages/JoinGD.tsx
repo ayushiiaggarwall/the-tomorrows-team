@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,16 +38,22 @@ const JoinGD = () => {
 
       if (error) throw error;
 
-      // Get registration counts for each GD
+      // Get registration counts for each GD - Fixed to get actual count
       const gdsWithCounts = await Promise.all(
         (gds || []).map(async (gd) => {
-          const { count } = await supabase
+          const { data: registrations, error: countError } = await supabase
             .from('gd_registrations')
-            .select('*', { count: 'exact' })
+            .select('id')
             .eq('gd_id', gd.id);
 
-          const registrationsCount = count || 0;
+          if (countError) {
+            console.error('Error fetching registrations for GD:', gd.id, countError);
+          }
+
+          const registrationsCount = registrations?.length || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+
+          console.log(`JoinGD - GD ${gd.id}: totalRegistrations=${registrationsCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
           return {
             ...gd,
