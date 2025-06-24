@@ -181,6 +181,24 @@ const Leaderboard = () => {
                 </CardContent>
               </Card>
 
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3">
+                <Button 
+                  size="lg" 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Join Next GD
+                </Button>
+                <Button 
+                  size="lg" 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Refer a Friend
+                </Button>
+              </div>
+
               {/* Monthly Champion Countdown */}
               <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg shadow-sm">
                 <CardHeader className="pb-4">
@@ -200,24 +218,6 @@ const Leaderboard = () => {
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium flex items-center justify-center"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Join Next GD
-            </Button>
-            <Button 
-              size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium flex items-center justify-center"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Refer a Friend
-            </Button>
           </div>
         </div>
       </section>
