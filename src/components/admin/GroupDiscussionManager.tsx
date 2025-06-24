@@ -23,7 +23,6 @@ const GroupDiscussionManager = () => {
     topic_name: '',
     description: '',
     scheduled_date: '',
-    duration_minutes: 60,
     slot_capacity: 10,
     is_active: true
   });
@@ -81,7 +80,6 @@ const GroupDiscussionManager = () => {
         topic_name: '',
         description: '',
         scheduled_date: '',
-        duration_minutes: 60,
         slot_capacity: 10,
         is_active: true
       });
@@ -310,17 +308,6 @@ const GroupDiscussionManager = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="duration">Duration (minutes)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={newGD.duration_minutes}
-                    onChange={(e) => setNewGD({ ...newGD, duration_minutes: parseInt(e.target.value) })}
-                    min="30"
-                    max="180"
-                  />
-                </div>
-                <div>
                   <Label htmlFor="capacity">Slot Capacity</Label>
                   <Input
                     id="capacity"
@@ -380,17 +367,6 @@ const GroupDiscussionManager = () => {
                     value={editingGD.scheduled_date?.slice(0, 16)}
                     onChange={(e) => setEditingGD({ ...editingGD, scheduled_date: e.target.value })}
                     required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit_duration">Duration (minutes)</Label>
-                  <Input
-                    id="edit_duration"
-                    type="number"
-                    value={editingGD.duration_minutes}
-                    onChange={(e) => setEditingGD({ ...editingGD, duration_minutes: parseInt(e.target.value) })}
-                    min="30"
-                    max="180"
                   />
                 </div>
                 <div>
@@ -461,7 +437,7 @@ const GroupDiscussionManager = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        {new Date(discussion.scheduled_date).toLocaleTimeString()} ({discussion.duration_minutes} min)
+                        {new Date(discussion.scheduled_date).toLocaleTimeString()}
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
