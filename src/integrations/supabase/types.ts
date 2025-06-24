@@ -113,27 +113,51 @@ export type Database = {
           attended: boolean | null
           gd_id: string
           id: string
+          participant_email: string | null
+          participant_name: string | null
           participant_occupation: string | null
           participant_occupation_other: string | null
+          participant_phone: string | null
+          professional_company: string | null
+          professional_role: string | null
           registered_at: string | null
+          self_employed_profession: string | null
+          student_institution: string | null
+          student_year: string | null
           user_id: string
         }
         Insert: {
           attended?: boolean | null
           gd_id: string
           id?: string
+          participant_email?: string | null
+          participant_name?: string | null
           participant_occupation?: string | null
           participant_occupation_other?: string | null
+          participant_phone?: string | null
+          professional_company?: string | null
+          professional_role?: string | null
           registered_at?: string | null
+          self_employed_profession?: string | null
+          student_institution?: string | null
+          student_year?: string | null
           user_id: string
         }
         Update: {
           attended?: boolean | null
           gd_id?: string
           id?: string
+          participant_email?: string | null
+          participant_name?: string | null
           participant_occupation?: string | null
           participant_occupation_other?: string | null
+          participant_phone?: string | null
+          professional_company?: string | null
+          professional_role?: string | null
           registered_at?: string | null
+          self_employed_profession?: string | null
+          student_institution?: string | null
+          student_year?: string | null
           user_id?: string
         }
         Relationships: [

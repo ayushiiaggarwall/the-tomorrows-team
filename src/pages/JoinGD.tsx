@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,10 +20,14 @@ const JoinGD = () => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
     phone: '',
     occupation: '',
     occupationOther: '',
+    studentInstitution: '',
+    studentYear: '',
+    professionalCompany: '',
+    professionalRole: '',
+    selfEmployedProfession: '',
     selectedGdId: null as string | null
   });
 
@@ -80,7 +85,12 @@ const JoinGD = () => {
           participant_email: registrationData.email,
           participant_phone: registrationData.phone,
           participant_occupation: registrationData.occupation,
-          participant_occupation_other: registrationData.occupationOther
+          participant_occupation_other: registrationData.occupationOther,
+          student_institution: registrationData.studentInstitution,
+          student_year: registrationData.studentYear,
+          professional_company: registrationData.professionalCompany,
+          professional_role: registrationData.professionalRole,
+          self_employed_profession: registrationData.selfEmployedProfession
         })
         .select()
         .maybeSingle();
@@ -97,10 +107,14 @@ const JoinGD = () => {
       // Reset form
       setFormData({
         name: '',
-        email: '',
         phone: '',
         occupation: '',
         occupationOther: '',
+        studentInstitution: '',
+        studentYear: '',
+        professionalCompany: '',
+        professionalRole: '',
+        selfEmployedProfession: '',
         selectedGdId: null
       });
       
@@ -168,6 +182,34 @@ const JoinGD = () => {
       return;
     }
 
+    // Validation for occupation-specific fields
+    if (formData.occupation === 'Student' && (!formData.studentInstitution.trim() || !formData.studentYear.trim())) {
+      toast({
+        title: "Student Details Required",
+        description: "Please provide your institution and year of study.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.occupation === 'Working Professional' && (!formData.professionalCompany.trim() || !formData.professionalRole.trim())) {
+      toast({
+        title: "Professional Details Required",
+        description: "Please provide your company and role.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.occupation === 'Self Employed' && !formData.selfEmployedProfession.trim()) {
+      toast({
+        title: "Profession Required",
+        description: "Please specify your profession.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Check if user is already registered for this GD
     const { data: existingRegistration } = await supabase
       .from('gd_registrations')
@@ -189,10 +231,15 @@ const JoinGD = () => {
       gdId: formData.selectedGdId,
       userId: user.id,
       name: formData.name,
-      email: formData.email,
+      email: user.email, // Get email from user profile
       phone: formData.phone,
       occupation: formData.occupation,
-      occupationOther: formData.occupation === 'Others' ? formData.occupationOther : null
+      occupationOther: formData.occupation === 'Others' ? formData.occupationOther : null,
+      studentInstitution: formData.occupation === 'Student' ? formData.studentInstitution : null,
+      studentYear: formData.occupation === 'Student' ? formData.studentYear : null,
+      professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : null,
+      professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : null,
+      selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : null
     });
   };
 
@@ -211,6 +258,89 @@ const JoinGD = () => {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const renderOccupationSpecificFields = () => {
+    switch (formData.occupation) {
+      case 'Student':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="studentInstitution">College/School *</Label>
+              <Input
+                id="studentInstitution"
+                value={formData.studentInstitution}
+                onChange={(e) => setFormData(prev => ({ ...prev, studentInstitution: e.target.value }))}
+                required
+                placeholder="Enter your institution name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studentYear">Year of Study *</Label>
+              <Input
+                id="studentYear"
+                value={formData.studentYear}
+                onChange={(e) => setFormData(prev => ({ ...prev, studentYear: e.target.value }))}
+                required
+                placeholder="e.g., 1st Year, 2nd Year, Final Year"
+              />
+            </div>
+          </>
+        );
+      case 'Working Professional':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="professionalCompany">Company *</Label>
+              <Input
+                id="professionalCompany"
+                value={formData.professionalCompany}
+                onChange={(e) => setFormData(prev => ({ ...prev, professionalCompany: e.target.value }))}
+                required
+                placeholder="Enter your company name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="professionalRole">Role *</Label>
+              <Input
+                id="professionalRole"
+                value={formData.professionalRole}
+                onChange={(e) => setFormData(prev => ({ ...prev, professionalRole: e.target.value }))}
+                required
+                placeholder="Enter your job role"
+              />
+            </div>
+          </>
+        );
+      case 'Self Employed':
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="selfEmployedProfession">What do you do? *</Label>
+            <Input
+              id="selfEmployedProfession"
+              value={formData.selfEmployedProfession}
+              onChange={(e) => setFormData(prev => ({ ...prev, selfEmployedProfession: e.target.value }))}
+              required
+              placeholder="Describe your profession"
+            />
+          </div>
+        );
+      case 'Others':
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="occupationOther">Please specify *</Label>
+            <Input
+              id="occupationOther"
+              value={formData.occupationOther}
+              onChange={(e) => setFormData(prev => ({ ...prev, occupationOther: e.target.value }))}
+              required
+              placeholder="Please specify your occupation"
+            />
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -353,18 +483,6 @@ const JoinGD = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="email">Email *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                            required
-                            placeholder="Enter your email"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
                           <Label htmlFor="phone">Phone Number *</Label>
                           <Input
                             id="phone"
@@ -382,7 +500,13 @@ const JoinGD = () => {
                             onValueChange={(value) => setFormData(prev => ({ 
                               ...prev, 
                               occupation: value,
-                              occupationOther: value !== 'Others' ? '' : prev.occupationOther
+                              // Reset occupation-specific fields when changing occupation
+                              occupationOther: '',
+                              studentInstitution: '',
+                              studentYear: '',
+                              professionalCompany: '',
+                              professionalRole: '',
+                              selfEmployedProfession: ''
                             }))}
                           >
                             <SelectTrigger>
@@ -397,18 +521,7 @@ const JoinGD = () => {
                           </Select>
                         </div>
 
-                        {formData.occupation === 'Others' && (
-                          <div className="space-y-2">
-                            <Label htmlFor="occupationOther">Please specify *</Label>
-                            <Input
-                              id="occupationOther"
-                              value={formData.occupationOther}
-                              onChange={(e) => setFormData(prev => ({ ...prev, occupationOther: e.target.value }))}
-                              required
-                              placeholder="Please specify your occupation"
-                            />
-                          </div>
-                        )}
+                        {renderOccupationSpecificFields()}
 
                         <Button 
                           type="submit" 
