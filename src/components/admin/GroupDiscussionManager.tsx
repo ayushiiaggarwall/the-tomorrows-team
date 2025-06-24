@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Plus, Edit, Trash, Loader2 } from 'lucide-react';
+import { Calendar, Plus, Edit, Trash, Loader2, AlertCircle } from 'lucide-react';
 
 interface GroupDiscussion {
   id: string;
@@ -38,6 +38,7 @@ const GroupDiscussionManager = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     topic_name: '',
     description: '',
@@ -51,8 +52,8 @@ const GroupDiscussionManager = () => {
   const fetchDiscussions = async () => {
     try {
       console.log('Fetching discussions...');
+      setError(null);
       
-      // First get discussions
       const { data: gdData, error: gdError } = await supabase
         .from('group_discussions')
         .select('*')
@@ -63,40 +64,56 @@ const GroupDiscussionManager = () => {
         throw gdError;
       }
 
-      console.log('Discussions fetched:', gdData);
+      console.log('Discussions fetched:', gdData?.length || 0);
 
-      // Then get moderator details and registration counts for each discussion
+      if (!gdData) {
+        setDiscussions([]);
+        return;
+      }
+
+      // Get moderator details and registration counts
       const discussionsWithDetails = await Promise.all(
-        (gdData || []).map(async (discussion) => {
-          // Get moderator details if moderator_id exists
-          let moderatorData = null;
-          if (discussion.moderator_id) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('full_name, email')
-              .eq('id', discussion.moderator_id)
-              .single();
-            moderatorData = data;
-          }
+        gdData.map(async (discussion) => {
+          try {
+            // Get moderator details if moderator_id exists
+            let moderatorData = null;
+            if (discussion.moderator_id) {
+              const { data } = await supabase
+                .from('profiles')
+                .select('full_name, email')
+                .eq('id', discussion.moderator_id)
+                .single();
+              moderatorData = data;
+            }
 
-          // Get registration count
-          const { count } = await supabase
-            .from('gd_registrations')
-            .select('*', { count: 'exact' })
-            .eq('gd_id', discussion.id);
-          
-          return {
-            ...discussion,
-            moderator_name: moderatorData?.full_name || '',
-            moderator_email: moderatorData?.email || '',
-            registrations_count: count || 0
-          };
+            // Get registration count
+            const { count } = await supabase
+              .from('gd_registrations')
+              .select('*', { count: 'exact' })
+              .eq('gd_id', discussion.id);
+            
+            return {
+              ...discussion,
+              moderator_name: moderatorData?.full_name || '',
+              moderator_email: moderatorData?.email || '',
+              registrations_count: count || 0
+            };
+          } catch (error) {
+            console.error('Error processing discussion:', discussion.id, error);
+            return {
+              ...discussion,
+              moderator_name: '',
+              moderator_email: '',
+              registrations_count: 0
+            };
+          }
         })
       );
 
       setDiscussions(discussionsWithDetails);
     } catch (error) {
       console.error('Error in fetchDiscussions:', error);
+      setError('Failed to fetch group discussions');
       toast({
         title: "Error",
         description: "Failed to fetch group discussions",
@@ -116,28 +133,32 @@ const GroupDiscussionManager = () => {
 
       if (error) {
         console.error('Error fetching moderators:', error);
-        throw error;
+        // Don't throw error for moderators as it's not critical
+        setModerators([]);
+        return;
       }
 
-      console.log('Moderators fetched:', data);
+      console.log('Moderators fetched:', data?.length || 0);
       setModerators(data || []);
     } catch (error) {
       console.error('Error in fetchModerators:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch moderators",
-        variant: "destructive"
-      });
+      setModerators([]);
     }
   };
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
       try {
+        setLoading(true);
+        setError(null);
+        console.log('Starting to load GD data...');
+        
         await Promise.all([fetchDiscussions(), fetchModerators()]);
+        
+        console.log('GD data loaded successfully');
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading GD data:', error);
+        setError('Failed to load data');
       } finally {
         setLoading(false);
       }
@@ -261,6 +282,23 @@ const GroupDiscussionManager = () => {
       moderator_id: ''
     });
   };
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
+            <h3 className="text-lg font-medium mb-2">Error Loading Group Discussions</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (
@@ -390,54 +428,56 @@ const GroupDiscussionManager = () => {
               <p className="text-muted-foreground">Create your first group discussion using the form above.</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Topic</TableHead>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Registered</TableHead>
-                  <TableHead>Moderator</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {discussions.map((discussion) => (
-                  <TableRow key={discussion.id}>
-                    <TableCell className="font-medium">{discussion.topic_name}</TableCell>
-                    <TableCell>{new Date(discussion.scheduled_date).toLocaleString()}</TableCell>
-                    <TableCell>{discussion.slot_capacity}</TableCell>
-                    <TableCell>{discussion.registrations_count || 0}</TableCell>
-                    <TableCell>{discussion.moderator_name || 'None'}</TableCell>
-                    <TableCell>
-                      <Badge variant={discussion.is_active ? "default" : "secondary"}>
-                        {discussion.is_active ? 'Active' : 'Cancelled'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(discussion)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(discussion.id)}
-                          disabled={!discussion.is_active}
-                        >
-                          <Trash className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Topic</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Capacity</TableHead>
+                    <TableHead>Registered</TableHead>
+                    <TableHead>Moderator</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {discussions.map((discussion) => (
+                    <TableRow key={discussion.id}>
+                      <TableCell className="font-medium">{discussion.topic_name}</TableCell>
+                      <TableCell>{new Date(discussion.scheduled_date).toLocaleString()}</TableCell>
+                      <TableCell>{discussion.slot_capacity}</TableCell>
+                      <TableCell>{discussion.registrations_count || 0}</TableCell>
+                      <TableCell>{discussion.moderator_name || 'None'}</TableCell>
+                      <TableCell>
+                        <Badge variant={discussion.is_active ? "default" : "secondary"}>
+                          {discussion.is_active ? 'Active' : 'Cancelled'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(discussion)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(discussion.id)}
+                            disabled={!discussion.is_active}
+                          >
+                            <Trash className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

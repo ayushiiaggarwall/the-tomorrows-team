@@ -13,7 +13,7 @@ import ParticipantOverview from '@/components/admin/ParticipantOverview';
 import AdminSettings from '@/components/admin/AdminSettings';
 import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle } from 'lucide-react';
 
-const ErrorBoundary = ({ children, error }: { children: React.ReactNode; error?: string }) => {
+const ErrorBoundary = ({ children, error, onRetry }: { children: React.ReactNode; error?: string; onRetry?: () => void }) => {
   if (error) {
     return (
       <Card>
@@ -21,7 +21,15 @@ const ErrorBoundary = ({ children, error }: { children: React.ReactNode; error?:
           <div className="text-center">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
             <h3 className="text-lg font-medium mb-2">Something went wrong</h3>
-            <p className="text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            {onRetry && (
+              <button 
+                onClick={onRetry}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Try Again
+              </button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -38,25 +46,41 @@ const AdminDashboard = () => {
   const adminName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin';
 
   const handleTabError = (tabName: string, error: string) => {
+    console.error(`Error in ${tabName} tab:`, error);
     setErrors(prev => ({ ...prev, [tabName]: error }));
   };
 
+  const clearTabError = (tabName: string) => {
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[tabName];
+      return newErrors;
+    });
+  };
+
   const renderTabContent = (tabName: string, Component: React.ComponentType) => {
-    try {
-      return (
-        <ErrorBoundary error={errors[tabName]}>
-          <Component />
-        </ErrorBoundary>
-      );
-    } catch (error) {
-      console.error(`Error in ${tabName} tab:`, error);
-      handleTabError(tabName, `Failed to load ${tabName} content`);
-      return (
-        <ErrorBoundary error={`Failed to load ${tabName} content`}>
-          <div />
-        </ErrorBoundary>
-      );
-    }
+    const TabComponent = () => {
+      try {
+        return <Component />;
+      } catch (error) {
+        console.error(`Error rendering ${tabName}:`, error);
+        handleTabError(tabName, `Failed to load ${tabName} content`);
+        return null;
+      }
+    };
+
+    return (
+      <ErrorBoundary 
+        error={errors[tabName]} 
+        onRetry={() => {
+          clearTabError(tabName);
+          // Force re-render by changing key
+          window.location.reload();
+        }}
+      >
+        <TabComponent />
+      </ErrorBoundary>
+    );
   };
 
   return (
