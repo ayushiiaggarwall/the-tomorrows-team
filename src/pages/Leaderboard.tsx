@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -6,20 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target } from 'lucide-react';
+import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 
 const Leaderboard = () => {
   useEffect(() => {
     document.title = 'Leaderboard - The Tomorrows Team';
   }, []);
 
-  // Mock data for top performers (this would come from your database)
-  const topPerformers = [
-    { name: "Arjun Sharma", points: 185 },
-    { name: "Priya Patel", points: 165 },
-    { name: "Rahul Kumar", points: 145 },
-    { name: "Sneha Gupta", points: 120 },
-    { name: "Vikram Singh", points: 95 },
-  ];
+  const { data: topPerformers = [], isLoading, error } = useLeaderboardData();
 
   // Calculate days left in current month
   const today = new Date();
@@ -67,9 +60,22 @@ const Leaderboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {topPerformers.length > 0 ? (
+                  {isLoading ? (
+                    <div className="text-center py-16">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading leaderboard...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-16">
+                      <Trophy className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to Load Data</h3>
+                      <p className="text-gray-600">
+                        Please try refreshing the page or check back later.
+                      </p>
+                    </div>
+                  ) : topPerformers.length > 0 ? (
                     <div className="space-y-3">
-                      {topPerformers.slice(0, 5).map((performer, index) => (
+                      {topPerformers.map((performer, index) => (
                         <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
                           <div className="flex items-center space-x-3">
                             <span className="text-2xl">{getMedalEmoji(index)}</span>
