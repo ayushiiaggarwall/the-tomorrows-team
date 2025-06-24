@@ -35,10 +35,17 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
 
   const submitTestimonial = useMutation({
     mutationFn: async (testimonialData: any) => {
+      console.log('Submitting testimonial with data:', testimonialData);
+      console.log('Current user:', user);
+      
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase
         .from('testimonials')
         .insert({
-          user_id: testimonialData.userId,
+          user_id: user.id,
           content: testimonialData.content,
           rating: testimonialData.rating,
           user_name: testimonialData.userName,
@@ -48,7 +55,12 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('Insert result:', { data, error });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
@@ -71,6 +83,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
       queryClient.invalidateQueries({ queryKey: ['home-testimonials'] });
     },
     onError: (error: any) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Submission Failed",
         description: error.message || "Something went wrong. Please try again.",
@@ -81,6 +94,8 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Form submitted, user:', user);
     
     if (!user) {
       toast({
@@ -101,7 +116,6 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
     }
 
     submitTestimonial.mutate({
-      userId: user.id,
       content: formData.content,
       rating: formData.rating,
       userName: formData.userName,
