@@ -6,6 +6,7 @@ const Login = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
+    document.title = 'Login - The Tomorrows Team';
     navigate('/login', { replace: true });
   }, [navigate]);
   
