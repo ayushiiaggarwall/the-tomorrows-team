@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -9,11 +8,8 @@ import { Link } from 'react-router-dom';
 import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
-  const { user } = useAuth();
-
   useEffect(() => {
     document.title = 'Home - The Tomorrows Team';
   }, []);
@@ -128,28 +124,6 @@ const Index = () => {
 
       return data || [];
     }
-  });
-
-  // Check if current user has existing testimonial
-  const { data: userTestimonial } = useQuery({
-    queryKey: ['user-testimonial', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('testimonials')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user testimonial:', error);
-        return null;
-      }
-
-      return data;
-    },
-    enabled: !!user?.id
   });
 
   return <div className="min-h-screen bg-background">
@@ -367,7 +341,7 @@ const Index = () => {
                 className="btn-secondary"
                 onClick={() => setShowTestimonialForm(true)}
               >
-                {userTestimonial ? 'Edit Your Review' : 'Share Your Review'}
+                Share Your Review
               </Button>
             </div>
           ) : null}

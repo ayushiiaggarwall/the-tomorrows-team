@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Star } from 'lucide-react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -32,128 +31,60 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
     userName: '',
     userRole: ''
   });
-  const [isEditing, setIsEditing] = useState(false);
-  const [existingTestimonialId, setExistingTestimonialId] = useState<string | null>(null);
 
-  // Check if user has existing testimonial
-  const { data: existingTestimonial } = useQuery({
-    queryKey: ['user-testimonial', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
+  const submitTestimonial = useMutation({
+    mutationFn: async (testimonialData: any) => {
+      console.log('Submitting testimonial with data:', testimonialData);
+      console.log('Current user:', user);
       
-      const { data, error } = await supabase
-        .from('testimonials')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user testimonial:', error);
-        return null;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
       }
 
+      const { data, error } = await supabase
+        .from('testimonials')
+        .insert({
+          user_id: user.id,
+          content: testimonialData.content,
+          rating: testimonialData.rating,
+          user_name: testimonialData.userName,
+          user_role: testimonialData.userRole,
+          is_approved: true // Auto-approve testimonials
+        })
+        .select()
+        .single();
+
+      console.log('Insert result:', { data, error });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       return data;
     },
-    enabled: !!user?.id && open
-  });
-
-  // Update form when dialog opens or existing testimonial is loaded
-  useEffect(() => {
-    if (open && existingTestimonial) {
-      setFormData({
-        content: existingTestimonial.content,
-        rating: existingTestimonial.rating,
-        userName: existingTestimonial.user_name,
-        userRole: existingTestimonial.user_role || ''
+    onSuccess: () => {
+      toast({
+        title: "Review Submitted!",
+        description: "Thank you for your feedback. Your review has been published.",
       });
-      setIsEditing(true);
-      setExistingTestimonialId(existingTestimonial.id);
-    } else if (open && !existingTestimonial) {
+      
+      // Reset form
       setFormData({
         content: '',
         rating: 0,
         userName: '',
         userRole: ''
       });
-      setIsEditing(false);
-      setExistingTestimonialId(null);
-    }
-  }, [open, existingTestimonial]);
-
-  const submitTestimonial = useMutation({
-    mutationFn: async (testimonialData: any) => {
-      console.log('Submitting testimonial with data:', testimonialData);
-      console.log('Current user:', user);
-      console.log('Is editing:', isEditing);
-      
-      if (!user || !user.id) {
-        throw new Error('User not authenticated');
-      }
-
-      if (isEditing && existingTestimonialId) {
-        // Update existing testimonial
-        const { data, error } = await supabase
-          .from('testimonials')
-          .update({
-            content: testimonialData.content,
-            rating: testimonialData.rating,
-            user_name: testimonialData.userName,
-            user_role: testimonialData.userRole,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingTestimonialId)
-          .select()
-          .single();
-
-        console.log('Update result:', { data, error });
-
-        if (error) {
-          console.error('Supabase update error:', error);
-          throw error;
-        }
-        return data;
-      } else {
-        // Create new testimonial
-        const { data, error } = await supabase
-          .from('testimonials')
-          .insert({
-            user_id: user.id,
-            content: testimonialData.content,
-            rating: testimonialData.rating,
-            user_name: testimonialData.userName,
-            user_role: testimonialData.userRole,
-            is_approved: true // Auto-approve testimonials
-          })
-          .select()
-          .single();
-
-        console.log('Insert result:', { data, error });
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-        return data;
-      }
-    },
-    onSuccess: () => {
-      toast({
-        title: isEditing ? "Review Updated!" : "Review Submitted!",
-        description: isEditing 
-          ? "Your review has been successfully updated." 
-          : "Thank you for your feedback. Your review has been published.",
-      });
       
       onOpenChange(false);
       
-      // Invalidate testimonials queries
+      // Invalidate testimonials query
       queryClient.invalidateQueries({ queryKey: ['home-testimonials'] });
-      queryClient.invalidateQueries({ queryKey: ['user-testimonial'] });
     },
     onError: (error: any) => {
       console.error('Mutation error:', error);
       toast({
-        title: isEditing ? "Update Failed" : "Submission Failed",
+        title: "Submission Failed",
         description: error.message || "Something went wrong. Please try again.",
         variant: "destructive"
       });
@@ -199,14 +130,9 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Your Review' : 'Share Your Review'}
-          </DialogTitle>
+          <DialogTitle>Share Your Review</DialogTitle>
           <DialogDescription>
-            {isEditing 
-              ? 'Update your experience with our group discussions.'
-              : 'Tell us about your experience with our group discussions.'
-            }
+            Tell us about your experience with our group discussions.
           </DialogDescription>
         </DialogHeader>
         
@@ -275,10 +201,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
               disabled={submitTestimonial.isPending}
               className="flex-1"
             >
-              {submitTestimonial.isPending 
-                ? (isEditing ? 'Updating...' : 'Submitting...') 
-                : (isEditing ? 'Update Review' : 'Submit Review')
-              }
+              {submitTestimonial.isPending ? 'Submitting...' : 'Submit Review'}
             </Button>
           </div>
         </form>
