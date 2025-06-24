@@ -1,6 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { validateInput } from '@/utils/securityValidation';
 
 export const useLeaderboardData = () => {
   return useQuery({
@@ -8,51 +9,79 @@ export const useLeaderboardData = () => {
     queryFn: async () => {
       console.log('Fetching leaderboard data...');
       
-      // Get user points with profile information
-      const { data: userPoints, error } = await supabase
-        .from('reward_points')
-        .select(`
-          user_id,
-          points,
-          profiles!reward_points_user_id_fkey(full_name)
-        `);
+      try {
+        // Get user points with profile information
+        const { data: userPoints, error } = await supabase
+          .from('reward_points')
+          .select(`
+            user_id,
+            points,
+            profiles!reward_points_user_id_fkey(full_name)
+          `);
 
-      if (error) {
-        console.error('Error fetching leaderboard data:', error);
+        if (error) {
+          console.error('Error fetching leaderboard data:', error);
+          throw error;
+        }
+
+        console.log('Raw reward points data:', userPoints);
+
+        // If no reward points exist, return empty array
+        if (!userPoints || userPoints.length === 0) {
+          console.log('No reward points found in database');
+          return [];
+        }
+
+        // Aggregate points by user with security validation
+        const userPointsMap = new Map<string, { name: string; points: number }>();
+        
+        userPoints.forEach((entry) => {
+          const userId = entry.user_id;
+          const rawName = (entry.profiles as any)?.full_name || 'Anonymous User';
+          
+          // Sanitize user name to prevent XSS
+          const userName = validateInput.sanitizeHtml(rawName);
+          const points = entry.points;
+          
+          // Validate points are within expected range
+          if (!validateInput.validatePoints(points)) {
+            console.warn(`Invalid points value detected: ${points} for user ${userId}`);
+            return; // Skip invalid entries
+          }
+          
+          if (userPointsMap.has(userId)) {
+            const currentPoints = userPointsMap.get(userId)!.points;
+            const totalPoints = currentPoints + points;
+            
+            // Validate total doesn't exceed maximum
+            if (validateInput.validatePoints(totalPoints)) {
+              userPointsMap.get(userId)!.points = totalPoints;
+            }
+          } else {
+            userPointsMap.set(userId, { name: userName, points });
+          }
+        });
+
+        // Convert to array and sort by points
+        const topPerformers = Array.from(userPointsMap.values())
+          .sort((a, b) => b.points - a.points)
+          .slice(0, 5);
+
+        console.log('Processed top performers:', topPerformers);
+        return topPerformers;
+      } catch (error) {
+        console.error('Failed to fetch leaderboard data:', error);
         throw error;
       }
-
-      console.log('Raw reward points data:', userPoints);
-
-      // If no reward points exist, return empty array
-      if (!userPoints || userPoints.length === 0) {
-        console.log('No reward points found in database');
-        return [];
-      }
-
-      // Aggregate points by user
-      const userPointsMap = new Map<string, { name: string; points: number }>();
-      
-      userPoints.forEach((entry) => {
-        const userId = entry.user_id;
-        const userName = (entry.profiles as any)?.full_name || 'Anonymous User';
-        const points = entry.points;
-        
-        if (userPointsMap.has(userId)) {
-          userPointsMap.get(userId)!.points += points;
-        } else {
-          userPointsMap.set(userId, { name: userName, points });
-        }
-      });
-
-      // Convert to array and sort by points
-      const topPerformers = Array.from(userPointsMap.values())
-        .sort((a, b) => b.points - a.points)
-        .slice(0, 5);
-
-      console.log('Processed top performers:', topPerformers);
-      return topPerformers;
     },
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    retry: (failureCount, error) => {
+      // Don't retry on authentication errors
+      if (error?.message?.includes('JWT')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    staleTime: 10000, // Consider data stale after 10 seconds
   });
 };
