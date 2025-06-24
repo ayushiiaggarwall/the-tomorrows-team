@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, ChevronDown, CheckCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 const JoinGD = () => {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState('');
+  const [timeUntilReveal, setTimeUntilReveal] = useState<string>('');
   const { toast } = useToast();
 
   const { data: upcomingSlots, isLoading } = useQuery({
@@ -76,6 +77,50 @@ const JoinGD = () => {
       return gdsWithCounts;
     }
   });
+
+  // Calculate time until next topic reveal (3 hours before GD)
+  useEffect(() => {
+    const calculateTimeUntilReveal = () => {
+      if (!upcomingSlots || upcomingSlots.length === 0) {
+        setTimeUntilReveal('Coming Soon...');
+        return;
+      }
+
+      // Get the earliest scheduled GD
+      const nextGD = upcomingSlots[0];
+      if (!nextGD) {
+        setTimeUntilReveal('Coming Soon...');
+        return;
+      }
+
+      // Parse the date and time back from the formatted strings
+      const gdDateTime = new Date(nextGD.date + ' ' + nextGD.time);
+      
+      // Topic reveals 3 hours before the GD
+      const revealTime = new Date(gdDateTime.getTime() - (3 * 60 * 60 * 1000));
+      const now = new Date();
+      
+      if (now >= revealTime) {
+        setTimeUntilReveal('Topic Revealed!');
+        return;
+      }
+
+      const timeDiff = revealTime.getTime() - now.getTime();
+      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        setTimeUntilReveal(`${hours}h ${minutes}m`);
+      } else {
+        setTimeUntilReveal(`${minutes}m`);
+      }
+    };
+
+    calculateTimeUntilReveal();
+    const interval = setInterval(calculateTimeUntilReveal, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [upcomingSlots]);
 
   const gdRules = [
     "Be respectful and listen to others' viewpoints",
@@ -251,9 +296,12 @@ const JoinGD = () => {
             <Card className="feature-card bg-gradient-to-r from-primary/10 to-accent/10">
               <CardContent className="p-6 text-center">
                 <h3 className="text-lg font-semibold mb-2">Next Topic Reveals In</h3>
-                <div className="text-3xl font-bold text-primary mb-2">2h 45m</div>
+                <div className="text-3xl font-bold text-primary mb-2">{timeUntilReveal}</div>
                 <p className="text-sm text-muted-foreground">
-                  Topics are announced 3 hours before each session
+                  {upcomingSlots && upcomingSlots.length > 0 
+                    ? "Topics are announced 3 hours before each session"
+                    : "New group discussions will be scheduled soon"
+                  }
                 </p>
               </CardContent>
             </Card>
