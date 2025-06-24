@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,6 +41,10 @@ const AdminDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('rewards');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    document.title = 'Admin Dashboard - The Tomorrows Team';
+  }, []);
 
   console.log('🏠 AdminDashboard rendering with activeTab:', activeTab);
 

@@ -11,6 +11,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 const WatchLearn = () => {
+  useEffect(() => {
+    document.title = 'Watch & Learn - The Tomorrows Team';
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTopics, setSelectedTopics] = useState<string[]>(['All']);
 

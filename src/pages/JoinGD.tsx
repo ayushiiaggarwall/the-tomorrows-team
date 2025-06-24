@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +14,10 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
 const JoinGD = () => {
+  useEffect(() => {
+    document.title = 'Join Group Discussion - The Tomorrows Team';
+  }, []);
+
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
