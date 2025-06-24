@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -267,45 +268,70 @@ const MediaManager = () => {
               />
             </div>
             
-            <div>
-              <Label htmlFor="thumbnail">Thumbnail Image</Label>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="thumbnail-file"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleThumbnailUpload}
-                    disabled={uploadingThumbnail}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('thumbnail-file')?.click()}
-                    disabled={uploadingThumbnail}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {uploadingThumbnail ? 'Uploading...' : 'Upload Thumbnail'}
-                  </Button>
-                </div>
-                {formData.thumbnail_url && (
-                  <div className="flex items-center gap-2">
-                    <img 
-                      src={formData.thumbnail_url} 
-                      alt="Thumbnail preview" 
-                      className="w-20 h-12 object-cover rounded border"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData(prev => ({ ...prev, thumbnail_url: '' }))}
-                    >
-                      Remove
-                    </Button>
+            <div className="space-y-3">
+              <Label htmlFor="thumbnail" className="text-base font-medium">Video Thumbnail</Label>
+              <p className="text-sm text-muted-foreground">Upload a custom thumbnail image for your video</p>
+              
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                {formData.thumbnail_url ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center">
+                      <img 
+                        src={formData.thumbnail_url} 
+                        alt="Thumbnail preview" 
+                        className="max-w-xs max-h-32 object-cover rounded border shadow-sm"
+                      />
+                    </div>
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('thumbnail-file')?.click()}
+                        disabled={uploadingThumbnail}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Change Thumbnail
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFormData(prev => ({ ...prev, thumbnail_url: '' }))}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-4">
+                    <div className="mx-auto w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                      <Image className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('thumbnail-file')?.click()}
+                        disabled={uploadingThumbnail}
+                        className="mb-2"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingThumbnail ? 'Uploading...' : 'Upload Thumbnail'}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">PNG, JPG, or WebP (Max 5MB)</p>
+                    </div>
                   </div>
                 )}
+                
+                <Input
+                  id="thumbnail-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailUpload}
+                  disabled={uploadingThumbnail}
+                  className="hidden"
+                />
               </div>
             </div>
             
