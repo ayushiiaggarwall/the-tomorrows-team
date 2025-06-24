@@ -11,13 +11,53 @@ import BlogManager from '@/components/admin/BlogManager';
 import MediaManager from '@/components/admin/MediaManager';
 import ParticipantOverview from '@/components/admin/ParticipantOverview';
 import AdminSettings from '@/components/admin/AdminSettings';
-import { Users, Calendar, Trophy, BookOpen, Mic, Settings } from 'lucide-react';
+import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle } from 'lucide-react';
+
+const ErrorBoundary = ({ children, error }: { children: React.ReactNode; error?: string }) => {
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
+            <h3 className="text-lg font-medium mb-2">Something went wrong</h3>
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  return <>{children}</>;
+};
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('rewards');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const adminName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin';
+
+  const handleTabError = (tabName: string, error: string) => {
+    setErrors(prev => ({ ...prev, [tabName]: error }));
+  };
+
+  const renderTabContent = (tabName: string, Component: React.ComponentType) => {
+    try {
+      return (
+        <ErrorBoundary error={errors[tabName]}>
+          <Component />
+        </ErrorBoundary>
+      );
+    } catch (error) {
+      console.error(`Error in ${tabName} tab:`, error);
+      handleTabError(tabName, `Failed to load ${tabName} content`);
+      return (
+        <ErrorBoundary error={`Failed to load ${tabName} content`}>
+          <div />
+        </ErrorBoundary>
+      );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,27 +107,27 @@ const AdminDashboard = () => {
             </TabsList>
 
             <TabsContent value="rewards">
-              <RewardPointsManager />
+              {renderTabContent('rewards', RewardPointsManager)}
             </TabsContent>
 
             <TabsContent value="discussions">
-              <GroupDiscussionManager />
+              {renderTabContent('discussions', GroupDiscussionManager)}
             </TabsContent>
 
             <TabsContent value="blogs">
-              <BlogManager />
+              {renderTabContent('blogs', BlogManager)}
             </TabsContent>
 
             <TabsContent value="media">
-              <MediaManager />
+              {renderTabContent('media', MediaManager)}
             </TabsContent>
 
             <TabsContent value="participants">
-              <ParticipantOverview />
+              {renderTabContent('participants', ParticipantOverview)}
             </TabsContent>
 
             <TabsContent value="settings">
-              <AdminSettings />
+              {renderTabContent('settings', AdminSettings)}
             </TabsContent>
           </Tabs>
         </div>
