@@ -168,7 +168,6 @@ const RewardPoints = () => {
             <p className="text-muted-foreground mb-4">
               Participate in group discussions, vote for best speakers, and refer friends to start earning points!
             </p>
-            <Button className="btn-primary">Join Your First GD</Button>
           </div>
         ) : (
           <>

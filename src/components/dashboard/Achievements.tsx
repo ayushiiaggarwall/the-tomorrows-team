@@ -134,7 +134,6 @@ const Achievements = () => {
             <p className="text-muted-foreground mb-4">
               Participate in group discussions, earn points, and refer friends to unlock achievements!
             </p>
-            <Button className="btn-primary">Join Your First GD</Button>
           </div>
         ) : (
           <>
