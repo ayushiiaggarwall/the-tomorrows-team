@@ -194,6 +194,7 @@ export type Database = {
           media_url: string
           participant_count: number | null
           tags: string[] | null
+          thumbnail_url: string | null
           title: string
           updated_at: string | null
           video_duration: string | null
@@ -209,6 +210,7 @@ export type Database = {
           media_url: string
           participant_count?: number | null
           tags?: string[] | null
+          thumbnail_url?: string | null
           title: string
           updated_at?: string | null
           video_duration?: string | null
@@ -224,6 +226,7 @@ export type Database = {
           media_url?: string
           participant_count?: number | null
           tags?: string[] | null
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string | null
           video_duration?: string | null
