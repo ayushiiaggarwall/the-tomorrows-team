@@ -236,11 +236,13 @@ const Index = () => {
             )}
           </div>
           
-          <div className="text-center mt-8">
-            <Link to="/join-gd">
-              <Button className="btn-secondary">View All Sessions</Button>
-            </Link>
-          </div>
+          {upcomingGDs?.length ? (
+            <div className="text-center mt-8">
+              <Link to="/join-gd">
+                <Button className="btn-secondary">View All Sessions</Button>
+              </Link>
+            </div>
+          ) : null}
         </div>
       </section>
 
