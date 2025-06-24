@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Clock, Users, MapPin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,8 +21,8 @@ const JoinGD = () => {
     name: '',
     email: '',
     phone: '',
-    college: '',
-    year: '',
+    occupation: '',
+    occupationOther: '',
     selectedGdId: null as string | null
   });
 
@@ -78,8 +79,8 @@ const JoinGD = () => {
           participant_name: registrationData.name,
           participant_email: registrationData.email,
           participant_phone: registrationData.phone,
-          college_name: registrationData.college,
-          year_of_study: registrationData.year
+          participant_occupation: registrationData.occupation,
+          participant_occupation_other: registrationData.occupationOther
         })
         .select()
         .maybeSingle();
@@ -98,8 +99,8 @@ const JoinGD = () => {
         name: '',
         email: '',
         phone: '',
-        college: '',
-        year: '',
+        occupation: '',
+        occupationOther: '',
         selectedGdId: null
       });
       
@@ -149,6 +150,24 @@ const JoinGD = () => {
       return;
     }
 
+    if (!formData.occupation) {
+      toast({
+        title: "Occupation Required",
+        description: "Please select your occupation.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.occupation === 'Others' && !formData.occupationOther.trim()) {
+      toast({
+        title: "Please Specify",
+        description: "Please specify your occupation in the text field.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Check if user is already registered for this GD
     const { data: existingRegistration } = await supabase
       .from('gd_registrations')
@@ -172,8 +191,8 @@ const JoinGD = () => {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
-      college: formData.college,
-      year: formData.year
+      occupation: formData.occupation,
+      occupationOther: formData.occupation === 'Others' ? formData.occupationOther : null
     });
   };
 
@@ -357,26 +376,39 @@ const JoinGD = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="college">College/University *</Label>
-                          <Input
-                            id="college"
-                            value={formData.college}
-                            onChange={(e) => setFormData(prev => ({ ...prev, college: e.target.value }))}
-                            required
-                            placeholder="Enter your college name"
-                          />
+                          <Label htmlFor="occupation">What do you do? *</Label>
+                          <Select
+                            value={formData.occupation}
+                            onValueChange={(value) => setFormData(prev => ({ 
+                              ...prev, 
+                              occupation: value,
+                              occupationOther: value !== 'Others' ? '' : prev.occupationOther
+                            }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your occupation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Student">Student</SelectItem>
+                              <SelectItem value="Working Professional">Working Professional</SelectItem>
+                              <SelectItem value="Self Employed">Self Employed</SelectItem>
+                              <SelectItem value="Others">Others</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="year">Year of Study *</Label>
-                          <Input
-                            id="year"
-                            value={formData.year}
-                            onChange={(e) => setFormData(prev => ({ ...prev, year: e.target.value }))}
-                            required
-                            placeholder="e.g., 3rd Year, Final Year"
-                          />
-                        </div>
+                        {formData.occupation === 'Others' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="occupationOther">Please specify *</Label>
+                            <Input
+                              id="occupationOther"
+                              value={formData.occupationOther}
+                              onChange={(e) => setFormData(prev => ({ ...prev, occupationOther: e.target.value }))}
+                              required
+                              placeholder="Please specify your occupation"
+                            />
+                          </div>
+                        )}
 
                         <Button 
                           type="submit" 

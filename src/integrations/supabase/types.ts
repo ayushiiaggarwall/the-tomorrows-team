@@ -113,6 +113,8 @@ export type Database = {
           attended: boolean | null
           gd_id: string
           id: string
+          participant_occupation: string | null
+          participant_occupation_other: string | null
           registered_at: string | null
           user_id: string
         }
@@ -120,6 +122,8 @@ export type Database = {
           attended?: boolean | null
           gd_id: string
           id?: string
+          participant_occupation?: string | null
+          participant_occupation_other?: string | null
           registered_at?: string | null
           user_id: string
         }
@@ -127,6 +131,8 @@ export type Database = {
           attended?: boolean | null
           gd_id?: string
           id?: string
+          participant_occupation?: string | null
+          participant_occupation_other?: string | null
           registered_at?: string | null
           user_id?: string
         }
