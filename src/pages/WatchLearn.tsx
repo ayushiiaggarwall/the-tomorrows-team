@@ -14,14 +14,14 @@ import { supabase } from '@/integrations/supabase/client';
 const WatchLearn = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch GD videos from media_content table
+  // Fetch GD videos from media_content table (including both video and past_gd types)
   const { data: gdVideos, isLoading: videosLoading } = useQuery({
     queryKey: ['gd-videos'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('media_content')
         .select('*')
-        .eq('media_type', 'video')
+        .in('media_type', ['video', 'past_gd'])
         .eq('is_published', true)
         .order('created_at', { ascending: false });
 
