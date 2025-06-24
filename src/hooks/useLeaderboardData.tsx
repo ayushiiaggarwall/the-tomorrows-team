@@ -12,9 +12,8 @@ export const useLeaderboardData = () => {
         .select(`
           user_id,
           points,
-          profiles!inner(full_name)
-        `)
-        .order('points', { ascending: false });
+          profiles!reward_points_user_id_fkey(full_name)
+        `);
 
       if (error) {
         console.error('Error fetching leaderboard data:', error);
@@ -26,7 +25,7 @@ export const useLeaderboardData = () => {
       
       userPoints?.forEach((entry) => {
         const userId = entry.user_id;
-        const userName = entry.profiles?.full_name || 'Anonymous User';
+        const userName = (entry.profiles as any)?.full_name || 'Anonymous User';
         const points = entry.points;
         
         if (userPointsMap.has(userId)) {
