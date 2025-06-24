@@ -8,113 +8,63 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Play, Search, Calendar, Clock, Users } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const WatchLearn = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const gdVideos = [
-    {
-      id: 1,
-      title: "AI in Education: Boon or Bane?",
-      date: "Jan 5, 2025",
-      duration: "45 min",
-      participants: 18,
-      tags: ["AI", "Education", "Technology"],
-      thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&w=400&h=225"
-    },
-    {
-      id: 2,
-      title: "Mental Health in Modern Workplaces",
-      date: "Dec 29, 2024",
-      duration: "52 min",
-      participants: 16,
-      tags: ["Mental Health", "Career", "Society"],
-      thumbnail: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=400&h=225"
-    },
-    {
-      id: 3,
-      title: "Social Media: Connecting or Isolating?",
-      date: "Dec 22, 2024",
-      duration: "38 min",
-      participants: 20,
-      tags: ["Social Media", "Society", "Technology"],
-      thumbnail: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&w=400&h=225"
-    },
-    {
-      id: 4,
-      title: "Climate Change: Individual vs Corporate Action",
-      date: "Dec 15, 2024",
-      duration: "48 min",
-      participants: 19,
-      tags: ["Environment", "Society", "Policy"],
-      thumbnail: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=400&h=225"
-    },
-    {
-      id: 5,
-      title: "The Future of Remote Work",
-      date: "Dec 8, 2024",
-      duration: "42 min",
-      participants: 17,
-      tags: ["Career", "Technology", "Society"],
-      thumbnail: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=400&h=225"
-    },
-    {
-      id: 6,
-      title: "Cryptocurrency: Revolution or Bubble?",
-      date: "Dec 1, 2024",
-      duration: "55 min",
-      participants: 15,
-      tags: ["Finance", "Technology", "Economy"],
-      thumbnail: "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?auto=format&fit=crop&w=400&h=225"
-    }
-  ];
+  // Fetch GD videos from media_content table
+  const { data: gdVideos, isLoading: videosLoading } = useQuery({
+    queryKey: ['gd-videos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('media_content')
+        .select('*')
+        .eq('media_type', 'video')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
 
-  const podcastEpisodes = [
-    {
-      id: 1,
-      title: "Mastering the Art of Persuasion",
-      date: "Jan 3, 2025",
-      duration: "28 min",
-      description: "Learn techniques to make your arguments more compelling and persuasive.",
-      tags: ["Communication", "Skills"]
-    },
-    {
-      id: 2,
-      title: "Overcoming Speaking Anxiety",
-      date: "Dec 27, 2024",
-      duration: "24 min",
-      description: "Practical tips to build confidence and reduce nervousness in group discussions.",
-      tags: ["Confidence", "Mental Health"]
-    },
-    {
-      id: 3,
-      title: "The Power of Active Listening",
-      date: "Dec 20, 2024",
-      duration: "32 min",
-      description: "Why listening is just as important as speaking in effective communication.",
-      tags: ["Listening", "Communication"]
-    },
-    {
-      id: 4,
-      title: "Building Logical Arguments",
-      date: "Dec 13, 2024",
-      duration: "35 min",
-      description: "Structure your thoughts and present evidence-based arguments effectively.",
-      tags: ["Logic", "Critical Thinking"]
+      if (error) {
+        console.error('Error fetching videos:', error);
+        return [];
+      }
+
+      return data || [];
     }
-  ];
+  });
+
+  // Fetch podcast episodes from media_content table
+  const { data: podcastEpisodes, isLoading: podcastsLoading } = useQuery({
+    queryKey: ['podcast-episodes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('media_content')
+        .select('*')
+        .eq('media_type', 'podcast')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching podcasts:', error);
+        return [];
+      }
+
+      return data || [];
+    }
+  });
 
   const topics = ["All", "AI", "Technology", "Society", "Career", "Mental Health", "Environment", "Education"];
 
-  const filteredVideos = gdVideos.filter(video => 
+  const filteredVideos = gdVideos?.filter(video => 
     video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    video.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+    video.tags?.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  ) || [];
 
-  const filteredPodcasts = podcastEpisodes.filter(podcast =>
+  const filteredPodcasts = podcastEpisodes?.filter(podcast =>
     podcast.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    podcast.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    podcast.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,91 +116,151 @@ const WatchLearn = () => {
           </TabsList>
           
           <TabsContent value="gds" className="mt-8">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVideos.map((video) => (
-                <Card key={video.id} className="feature-card overflow-hidden">
-                  <div className="relative group">
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button size="sm" className="btn-primary">
-                        <Play className="w-4 h-4 mr-2" />
-                        Watch
-                      </Button>
-                    </div>
-                    <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      {video.duration}
-                    </div>
-                  </div>
-                  
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">{video.title}</h3>
-                    
-                    <div className="flex items-center text-sm text-muted-foreground mb-3 space-x-4">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {video.date}
-                      </div>
-                      <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-1" />
-                        {video.participants}
+            {videosLoading ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="feature-card overflow-hidden">
+                    <div className="animate-pulse">
+                      <div className="w-full h-48 bg-muted/50"></div>
+                      <div className="p-4 space-y-3">
+                        <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+                        <div className="h-3 bg-muted/50 rounded w-1/2"></div>
+                        <div className="flex gap-2">
+                          <div className="h-6 bg-muted/50 rounded w-16"></div>
+                          <div className="h-6 bg-muted/50 rounded w-20"></div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex flex-wrap gap-1">
-                      {video.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                  </Card>
+                ))}
+              </div>
+            ) : !filteredVideos.length ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">🎥</div>
+                <h3 className="text-lg font-semibold mb-2">No Videos Available</h3>
+                <p className="text-muted-foreground">
+                  No group discussion videos have been published yet. Check back soon!
+                </p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredVideos.map((video) => (
+                  <Card key={video.id} className="feature-card overflow-hidden">
+                    <div className="relative group">
+                      <div className="w-full h-48 bg-muted flex items-center justify-center">
+                        <Play className="w-12 h-12 text-muted-foreground" />
+                      </div>
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button size="sm" className="btn-primary">
+                          <Play className="w-4 h-4 mr-2" />
+                          Watch
+                        </Button>
+                      </div>
+                      {video.video_duration && (
+                        <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          {video.video_duration}
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold mb-2 line-clamp-2">{video.title}</h3>
+                      
+                      <div className="flex items-center text-sm text-muted-foreground mb-3 space-x-4">
+                        <div className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {new Date(video.created_at).toLocaleDateString()}
+                        </div>
+                        {video.participant_count && (
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-1" />
+                            {video.participant_count}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-1">
+                        {video.tags?.map((tag: string) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="podcasts" className="mt-8">
-            <div className="grid md:grid-cols-2 gap-6">
-              {filteredPodcasts.map((podcast) => (
-                <Card key={podcast.id} className="feature-card">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg mb-2">{podcast.title}</CardTitle>
-                        <div className="flex items-center text-sm text-muted-foreground space-x-4">
-                          <div className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {podcast.date}
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {podcast.duration}
+            {podcastsLoading ? (
+              <div className="grid md:grid-cols-2 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <Card key={i} className="feature-card">
+                    <div className="animate-pulse p-6 space-y-4">
+                      <div className="h-6 bg-muted/50 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+                      <div className="h-16 bg-muted/50 rounded w-full"></div>
+                      <div className="flex gap-2">
+                        <div className="h-6 bg-muted/50 rounded w-16"></div>
+                        <div className="h-6 bg-muted/50 rounded w-20"></div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : !filteredPodcasts.length ? (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-4">🎧</div>
+                <h3 className="text-lg font-semibold mb-2">No Podcasts Available</h3>
+                <p className="text-muted-foreground">
+                  No podcast episodes have been published yet. Check back soon!
+                </p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {filteredPodcasts.map((podcast) => (
+                  <Card key={podcast.id} className="feature-card">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg mb-2">{podcast.title}</CardTitle>
+                          <div className="flex items-center text-sm text-muted-foreground space-x-4">
+                            <div className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              {new Date(podcast.created_at).toLocaleDateString()}
+                            </div>
+                            {podcast.video_duration && (
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1" />
+                                {podcast.video_duration}
+                              </div>
+                            )}
                           </div>
                         </div>
+                        <Button size="sm" className="btn-primary ml-4">
+                          <Play className="w-4 h-4 mr-2" />
+                          Play
+                        </Button>
                       </div>
-                      <Button size="sm" className="btn-primary ml-4">
-                        <Play className="w-4 h-4 mr-2" />
-                        Play
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground mb-4">{podcast.description}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {podcast.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardHeader>
+                    <CardContent>
+                      {podcast.description && (
+                        <p className="text-muted-foreground mb-4">{podcast.description}</p>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {podcast.tags?.map((tag: string) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

@@ -1,9 +1,12 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const features = [{
@@ -19,38 +22,103 @@ const Index = () => {
     title: "Rewards & Recognition",
     description: "Earn points, climb the leaderboard, and get recognized for your participation."
   }];
-  const upcomingGDs = [{
-    date: "Jan 11, 2025",
-    time: "7:00 PM IST",
-    topic: "AI in Education: Boon or Bane?",
-    spots: 12
-  }, {
-    date: "Jan 12, 2025",
-    time: "8:00 PM IST",
-    topic: "Mental Health Awareness in Workplaces",
-    spots: 8
-  }, {
-    date: "Jan 13, 2025",
-    time: "6:30 PM IST",
-    topic: "Sustainable Living: Individual vs Corporate Responsibility",
-    spots: 15
-  }];
-  const testimonials = [{
-    name: "Priya Sharma",
-    role: "MBA Student, IIM Bangalore",
-    content: "The GDs here helped me ace my job interviews. The real-time feedback is incredible!",
-    rating: 5
-  }, {
-    name: "Arjun Patel",
-    role: "Software Engineer, Bangalore",
-    content: "I went from being the quiet one to leading discussions. Best investment in myself!",
-    rating: 5
-  }, {
-    name: "Sneha Gupta",
-    role: "College Student, Delhi University",
-    content: "Amazing community! I've made friends while improving my communication skills.",
-    rating: 5
-  }];
+
+  // Fetch real upcoming GDs from database
+  const { data: upcomingGDs, isLoading: upcomingLoading } = useQuery({
+    queryKey: ['home-upcoming-gds'],
+    queryFn: async () => {
+      const { data: gds, error } = await supabase
+        .from('group_discussions')
+        .select(`
+          id,
+          topic_name,
+          scheduled_date,
+          slot_capacity
+        `)
+        .eq('is_active', true)
+        .gte('scheduled_date', new Date().toISOString())
+        .order('scheduled_date', { ascending: true })
+        .limit(3);
+
+      if (error) {
+        console.error('Error fetching GDs:', error);
+        return [];
+      }
+
+      if (!gds) return [];
+
+      // Get registration counts for each GD
+      const gdsWithCounts = await Promise.all(
+        gds.map(async (gd) => {
+          const { count } = await supabase
+            .from('gd_registrations')
+            .select('*', { count: 'exact' })
+            .eq('gd_id', gd.id);
+
+          const registrationsCount = count || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+
+          return {
+            date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric' 
+            }),
+            time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit', 
+              hour12: true 
+            }),
+            topic: gd.topic_name,
+            spots: spotsLeft
+          };
+        })
+      );
+
+      return gdsWithCounts;
+    }
+  });
+
+  // Fetch featured video for sample GD section
+  const { data: featuredVideo } = useQuery({
+    queryKey: ['featured-video'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('featured_videos')
+        .select('*')
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching featured video:', error);
+        return null;
+      }
+
+      return data;
+    }
+  });
+
+  // Fetch real testimonials from database
+  const { data: testimonials } = useQuery({
+    queryKey: ['home-testimonials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('Error fetching testimonials:', error);
+        return [];
+      }
+
+      return data || [];
+    }
+  });
+
   return <div className="min-h-screen bg-background">
       <Navigation />
       
@@ -121,21 +189,51 @@ const Index = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-6">
-            {upcomingGDs.map((gd, index) => <Card key={index} className="feature-card">
-                <CardContent className="p-6">
-                  <div className="flex items-center mb-3">
-                    <Calendar className="w-5 h-5 text-primary mr-2" />
-                    <span className="text-sm font-medium text-primary">{gd.date} • {gd.time}</span>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">{gd.spots} spots left</span>
-                    <Link to="/join-gd">
-                      <Button size="sm" className="btn-primary">Register</Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>)}
+            {upcomingLoading ? (
+              // Loading skeleton
+              [...Array(3)].map((_, i) => (
+                <Card key={i} className="feature-card">
+                  <CardContent className="p-6">
+                    <div className="animate-pulse space-y-4">
+                      <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+                      <div className="h-8 bg-muted/50 rounded w-full"></div>
+                      <div className="flex justify-between">
+                        <div className="h-4 bg-muted/50 rounded w-1/3"></div>
+                        <div className="h-8 bg-muted/50 rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : !upcomingGDs?.length ? (
+              <div className="col-span-full text-center py-12">
+                <div className="text-4xl mb-4">📅</div>
+                <h3 className="text-lg font-semibold mb-2">No Upcoming Sessions</h3>
+                <p className="text-muted-foreground mb-4">
+                  New group discussions will be scheduled soon. Check back later!
+                </p>
+                <Link to="/join-gd">
+                  <Button className="btn-primary">Check All Sessions</Button>
+                </Link>
+              </div>
+            ) : (
+              upcomingGDs.map((gd, index) => <Card key={index} className="feature-card">
+                  <CardContent className="p-6">
+                    <div className="flex items-center mb-3">
+                      <Calendar className="w-5 h-5 text-primary mr-2" />
+                      <span className="text-sm font-medium text-primary">{gd.date} • {gd.time}</span>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">{gd.spots} spots left</span>
+                      <Link to="/join-gd">
+                        <Button size="sm" className="btn-primary">Register</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>)
+            )}
           </div>
           
           <div className="text-center mt-8">
@@ -152,9 +250,27 @@ const Index = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
             Watch a Sample GD
           </h2>
-          <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">
-            <iframe width="100%" height="100%" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="Sample Group Discussion" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
-          </div>
+          {featuredVideo ? (
+            <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src={featuredVideo.video_url} 
+                title={featuredVideo.title} 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted flex items-center justify-center">
+              <div className="text-center">
+                <Play className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No featured video available</p>
+                <p className="text-sm text-muted-foreground mt-2">Admin can add videos from the dashboard</p>
+              </div>
+            </div>
+          )}
           <div className="mt-8">
             <Link to="/watch-learn">
               <Button className="btn-secondary">Explore More Videos</Button>
@@ -176,20 +292,35 @@ const Index = () => {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => <Card key={index} className="feature-card">
-                <CardContent className="p-6">
-                  <div className="flex mb-3">
-                    {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
-                  </div>
-                  <p className="text-muted-foreground mb-4 italic">
-                    "{testimonial.content}"
-                  </p>
-                  <div>
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                  </div>
-                </CardContent>
-              </Card>)}
+            {!testimonials?.length ? (
+              <div className="col-span-full text-center py-12">
+                <div className="text-4xl mb-4">💬</div>
+                <h3 className="text-lg font-semibold mb-2">No Reviews Yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Be the first to share your experience with our community!
+                </p>
+                <Link to="/dashboard">
+                  <Button className="btn-primary">Share Your Review</Button>
+                </Link>
+              </div>
+            ) : (
+              testimonials.map((testimonial) => <Card key={testimonial.id} className="feature-card">
+                  <CardContent className="p-6">
+                    <div className="flex mb-3">
+                      {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
+                    </div>
+                    <p className="text-muted-foreground mb-4 italic">
+                      "{testimonial.content}"
+                    </p>
+                    <div>
+                      <p className="font-semibold">{testimonial.user_name}</p>
+                      {testimonial.user_role && (
+                        <p className="text-sm text-muted-foreground">{testimonial.user_role}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>)
+            )}
           </div>
         </div>
       </section>

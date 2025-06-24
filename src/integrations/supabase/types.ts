@@ -72,6 +72,42 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_videos: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_featured: boolean | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       gd_registrations: {
         Row: {
           attended: boolean | null
@@ -152,36 +188,45 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          is_featured: boolean | null
           is_published: boolean | null
           media_type: string
           media_url: string
+          participant_count: number | null
           tags: string[] | null
           title: string
           updated_at: string | null
+          video_duration: string | null
         }
         Insert: {
           created_at?: string | null
           created_by: string
           description?: string | null
           id?: string
+          is_featured?: boolean | null
           is_published?: boolean | null
           media_type: string
           media_url: string
+          participant_count?: number | null
           tags?: string[] | null
           title: string
           updated_at?: string | null
+          video_duration?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string
           description?: string | null
           id?: string
+          is_featured?: boolean | null
           is_published?: boolean | null
           media_type?: string
           media_url?: string
+          participant_count?: number | null
           tags?: string[] | null
           title?: string
           updated_at?: string | null
+          video_duration?: string | null
         }
         Relationships: []
       }
@@ -272,6 +317,42 @@ export type Database = {
           reason?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_approved: boolean | null
+          rating: number
+          updated_at: string
+          user_id: string
+          user_name: string
+          user_role: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          rating: number
+          updated_at?: string
+          user_id: string
+          user_name: string
+          user_role?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          rating?: number
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+          user_role?: string | null
         }
         Relationships: []
       }
