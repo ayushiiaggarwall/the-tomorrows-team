@@ -214,7 +214,7 @@ const Index = () => {
                   New group discussions will be scheduled soon. Check back later!
                 </p>
                 <Link to="/join-gd">
-                  <Button className="btn-primary">Check All Sessions</Button>
+                  <Button className="btn-primary">View All Sessions</Button>
                 </Link>
               </div>
             ) : (
