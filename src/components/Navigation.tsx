@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Menu, X, User, LogOut, Settings } from 'lucide-react';
@@ -9,6 +9,7 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -23,6 +24,13 @@ const Navigation = () => {
     { name: 'Watch & Learn', href: '/watch-learn' },
     { name: 'Resources', href: '/resources' },
   ];
+
+  const isActiveRoute = (href: string) => {
+    if (href === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(href);
+  };
 
   return (
     <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b border-border/40">
@@ -44,7 +52,11 @@ const Navigation = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className="text-foreground/80 hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
+                className={`text-foreground/80 hover:text-foreground px-3 py-2 text-sm font-medium transition-colors relative ${
+                  isActiveRoute(item.href) 
+                    ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-primary after:rounded-full' 
+                    : ''
+                }`}
               >
                 {item.name}
               </Link>
@@ -101,7 +113,11 @@ const Navigation = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
+                className={`hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors ${
+                  isActiveRoute(item.href)
+                    ? 'text-foreground bg-muted border-l-4 border-primary'
+                    : 'text-foreground/80'
+                }`}
                 onClick={() => setIsOpen(false)}
               >
                 {item.name}
