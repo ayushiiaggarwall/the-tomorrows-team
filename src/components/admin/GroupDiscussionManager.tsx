@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Calendar, Clock, Users, Plus, Edit, Trash2, Search } from 'lucide-react
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const GroupDiscussionManager = () => {
   console.log('🎯 GroupDiscussionManager component mounting');
@@ -29,6 +29,7 @@ const GroupDiscussionManager = () => {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   console.log('🔍 Current state:', { searchTerm, filterStatus, showCreateForm, editingGD });
 
@@ -58,9 +59,20 @@ const GroupDiscussionManager = () => {
   const createMutation = useMutation({
     mutationFn: async (gdData: any) => {
       console.log('➕ Creating new GD:', gdData);
+      
+      if (!user?.id) {
+        throw new Error('User must be authenticated to create group discussions');
+      }
+
+      // Add the current user's ID as the creator
+      const gdDataWithCreator = {
+        ...gdData,
+        created_by: user.id
+      };
+
       const { data, error } = await supabase
         .from('group_discussions')
-        .insert([gdData])
+        .insert([gdDataWithCreator])
         .select()
         .single();
 
@@ -173,6 +185,16 @@ const GroupDiscussionManager = () => {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('🚀 Submitting create form:', newGD);
+    
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create group discussions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createMutation.mutate(newGD);
   };
 
