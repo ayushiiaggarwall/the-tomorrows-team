@@ -23,7 +23,7 @@ const JoinGD = () => {
     phone: '',
     college: '',
     year: '',
-    selectedGdId: null as number | null
+    selectedGdId: null as string | null
   });
 
   // Fetch upcoming GDs with registration counts
@@ -265,7 +265,7 @@ const JoinGD = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
-                          <span>{gd.meeting_link ? 'Online' : 'Location TBD'}</span>
+                          <span>{gd.meet_link ? 'Online' : 'Location TBD'}</span>
                         </div>
                       </div>
                       {gd.description && (
