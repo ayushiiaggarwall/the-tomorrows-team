@@ -1,548 +1,500 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { Calendar, Clock, Users, Plus, Edit, Trash2, Search } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Plus, Edit, Trash, Loader2, AlertCircle } from 'lucide-react';
-
-interface GroupDiscussion {
-  id: string;
-  topic_name: string;
-  description: string;
-  scheduled_date: string;
-  meet_link: string;
-  slot_capacity: number;
-  is_active: boolean;
-  created_at: string;
-  moderator_name?: string;
-  moderator_email?: string;
-  registrations_count: number;
-}
-
-interface Moderator {
-  id: string;
-  full_name: string;
-  email: string;
-}
+import { useToast } from '@/hooks/use-toast';
 
 const GroupDiscussionManager = () => {
-  console.log('🎯 GroupDiscussionManager component rendering...');
+  console.log('🎯 GroupDiscussionManager component mounting');
   
-  const [discussions, setDiscussions] = useState<GroupDiscussion[]>([]);
-  const [moderators, setModerators] = useState<Moderator[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('Component initialized');
-  const [formData, setFormData] = useState({
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingGD, setEditingGD] = useState<any>(null);
+  const [newGD, setNewGD] = useState({
     topic_name: '',
     description: '',
     scheduled_date: '',
-    meet_link: '',
-    slot_capacity: '20',
-    moderator_id: ''
+    duration_minutes: 60,
+    slot_capacity: 10,
+    is_active: true
   });
+
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  console.log('🎯 Current state:', { 
-    loading, 
-    error, 
-    discussionsCount: discussions.length, 
-    moderatorsCount: moderators.length,
-    debugInfo 
-  });
+  console.log('🔍 Current state:', { searchTerm, filterStatus, showCreateForm, editingGD });
 
-  const fetchDiscussions = async () => {
-    try {
-      console.log('🔄 Starting fetchDiscussions...');
-      setDebugInfo('Fetching discussions...');
-      setError(null);
-      
-      const { data: gdData, error: gdError } = await supabase
+  // Fetch group discussions
+  const { data: discussions, isLoading, error } = useQuery({
+    queryKey: ['admin-group-discussions'],
+    queryFn: async () => {
+      console.log('📊 Fetching group discussions...');
+      const { data, error } = await supabase
         .from('group_discussions')
         .select('*')
         .order('scheduled_date', { ascending: false });
 
-      console.log('📊 Discussions query result:', { gdData, gdError });
-
-      if (gdError) {
-        console.error('❌ Error fetching discussions:', gdError);
-        setDebugInfo(`Error fetching discussions: ${gdError.message}`);
-        throw gdError;
+      if (error) {
+        console.error('❌ Error fetching discussions:', error);
+        throw error;
       }
 
-      console.log('✅ Discussions fetched:', gdData?.length || 0);
-      setDebugInfo(`Fetched ${gdData?.length || 0} discussions`);
-
-      if (!gdData) {
-        setDiscussions([]);
-        setDebugInfo('No discussions data returned');
-        return;
-      }
-
-      // Get moderator details and registration counts
-      const discussionsWithDetails = await Promise.all(
-        gdData.map(async (discussion) => {
-          try {
-            console.log(`🔍 Processing discussion: ${discussion.id}`);
-            
-            // Get moderator details if moderator_id exists
-            let moderatorData = null;
-            if (discussion.moderator_id) {
-              const { data } = await supabase
-                .from('profiles')
-                .select('full_name, email')
-                .eq('id', discussion.moderator_id)
-                .single();
-              moderatorData = data;
-              console.log(`👤 Moderator data for ${discussion.id}:`, moderatorData);
-            }
-
-            // Get registration count
-            const { count } = await supabase
-              .from('gd_registrations')
-              .select('*', { count: 'exact' })
-              .eq('gd_id', discussion.id);
-            
-            console.log(`📊 Registration count for ${discussion.id}:`, count);
-            
-            return {
-              ...discussion,
-              moderator_name: moderatorData?.full_name || '',
-              moderator_email: moderatorData?.email || '',
-              registrations_count: count || 0
-            };
-          } catch (error) {
-            console.error('❌ Error processing discussion:', discussion.id, error);
-            setDebugInfo(`Error processing discussion ${discussion.id}: ${error}`);
-            return {
-              ...discussion,
-              moderator_name: '',
-              moderator_email: '',
-              registrations_count: 0
-            };
-          }
-        })
-      );
-
-      console.log('✅ All discussions processed:', discussionsWithDetails.length);
-      setDebugInfo(`Processed ${discussionsWithDetails.length} discussions successfully`);
-      setDiscussions(discussionsWithDetails);
-    } catch (error) {
-      console.error('❌ Fatal error in fetchDiscussions:', error);
-      setError(`Failed to fetch group discussions: ${error}`);
-      setDebugInfo(`Fatal error: ${error}`);
-      toast({
-        title: "Error",
-        description: "Failed to fetch group discussions",
-        variant: "destructive"
-      });
+      console.log('✅ Fetched discussions:', data);
+      return data || [];
     }
-  };
+  });
 
-  const fetchModerators = async () => {
-    try {
-      console.log('🔄 Starting fetchModerators...');
-      setDebugInfo('Fetching moderators...');
-      
+  console.log('📋 Query results:', { discussions, isLoading, error });
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: async (gdData: any) => {
+      console.log('➕ Creating new GD:', gdData);
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('is_admin', true);
-
-      console.log('👥 Moderators query result:', { data, error });
+        .from('group_discussions')
+        .insert([gdData])
+        .select()
+        .single();
 
       if (error) {
-        console.error('❌ Error fetching moderators:', error);
-        setDebugInfo(`Error fetching moderators: ${error.message}`);
-        setModerators([]);
-        return;
+        console.error('❌ Error creating GD:', error);
+        throw error;
       }
 
-      console.log('✅ Moderators fetched:', data?.length || 0);
-      setDebugInfo(`Fetched ${data?.length || 0} moderators`);
-      setModerators(data || []);
-    } catch (error) {
-      console.error('❌ Error in fetchModerators:', error);
-      setDebugInfo(`Error in fetchModerators: ${error}`);
-      setModerators([]);
-    }
-  };
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        console.log('🚀 Starting data load...');
-        setLoading(true);
-        setError(null);
-        setDebugInfo('Initializing data load...');
-        
-        await Promise.all([fetchDiscussions(), fetchModerators()]);
-        
-        console.log('🎉 Data load completed successfully');
-        setDebugInfo('Data load completed successfully');
-      } catch (error) {
-        console.error('❌ Error loading data:', error);
-        setError(`Failed to load data: ${error}`);
-        setDebugInfo(`Failed to load data: ${error}`);
-      } finally {
-        setLoading(false);
-        console.log('🏁 Loading finished');
-      }
-    };
-
-    loadData();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      const gdData = {
-        topic_name: formData.topic_name,
-        description: formData.description,
-        scheduled_date: formData.scheduled_date,
-        meet_link: formData.meet_link,
-        slot_capacity: parseInt(formData.slot_capacity),
-        moderator_id: formData.moderator_id || null
-      };
-
-      if (editingId) {
-        const { error } = await supabase
-          .from('group_discussions')
-          .update(gdData)
-          .eq('id', editingId);
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Group discussion updated successfully"
-        });
-      } else {
-        const { data: user } = await supabase.auth.getUser();
-        
-        const { error } = await supabase
-          .from('group_discussions')
-          .insert([{ ...gdData, created_by: user.user?.id }]);
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Group discussion created successfully"
-        });
-      }
-
-      // Reset form
-      setFormData({
+      console.log('✅ Created GD:', data);
+      return data;
+    },
+    onSuccess: () => {
+      console.log('🎉 GD created successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
+      setShowCreateForm(false);
+      setNewGD({
         topic_name: '',
         description: '',
         scheduled_date: '',
-        meet_link: '',
-        slot_capacity: '20',
-        moderator_id: ''
+        duration_minutes: 60,
+        slot_capacity: 10,
+        is_active: true
       });
-      setEditingId(null);
-      fetchDiscussions();
-
-    } catch (error) {
-      console.error('Error saving discussion:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save group discussion",
-        variant: "destructive"
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEdit = (discussion: GroupDiscussion) => {
-    setFormData({
-      topic_name: discussion.topic_name,
-      description: discussion.description || '',
-      scheduled_date: new Date(discussion.scheduled_date).toISOString().slice(0, 16),
-      meet_link: discussion.meet_link || '',
-      slot_capacity: discussion.slot_capacity.toString(),
-      moderator_id: discussion.moderator_email || ''
-    });
-    setEditingId(discussion.id);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this group discussion?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('group_discussions')
-        .update({ is_active: false })
-        .eq('id', id);
-
-      if (error) throw error;
-
       toast({
         title: "Success",
-        description: "Group discussion cancelled"
+        description: "Group discussion created successfully!",
       });
-      
-      fetchDiscussions();
-    } catch (error) {
-      console.error('Error cancelling discussion:', error);
+    },
+    onError: (error) => {
+      console.error('💥 Error creating GD:', error);
       toast({
         title: "Error",
-        description: "Failed to cancel group discussion",
-        variant: "destructive"
+        description: "Failed to create group discussion. Please try again.",
+        variant: "destructive",
       });
+    }
+  });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      console.log('📝 Updating GD:', id, updates);
+      const { data, error } = await supabase
+        .from('group_discussions')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating GD:', error);
+        throw error;
+      }
+
+      console.log('✅ Updated GD:', data);
+      return data;
+    },
+    onSuccess: () => {
+      console.log('🎉 GD updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
+      setEditingGD(null);
+      toast({
+        title: "Success",
+        description: "Group discussion updated successfully!",
+      });
+    },
+    onError: (error) => {
+      console.error('💥 Error updating GD:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update group discussion. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('🗑️ Deleting GD:', id);
+      const { error } = await supabase
+        .from('group_discussions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Error deleting GD:', error);
+        throw error;
+      }
+
+      console.log('✅ Deleted GD:', id);
+    },
+    onSuccess: () => {
+      console.log('🎉 GD deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
+      toast({
+        title: "Success",
+        description: "Group discussion deleted successfully!",
+      });
+    },
+    onError: (error) => {
+      console.error('💥 Error deleting GD:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete group discussion. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🚀 Submitting create form:', newGD);
+    createMutation.mutate(newGD);
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingGD) {
+      console.log('🚀 Submitting update form:', editingGD);
+      updateMutation.mutate({ id: editingGD.id, updates: editingGD });
     }
   };
 
-  const handleCancel = () => {
-    setEditingId(null);
-    setFormData({
-      topic_name: '',
-      description: '',
-      scheduled_date: '',
-      meet_link: '',
-      slot_capacity: '20',
-      moderator_id: ''
-    });
+  const handleDelete = (id: string) => {
+    if (confirm('Are you sure you want to delete this group discussion?')) {
+      console.log('🚀 Confirming delete:', id);
+      deleteMutation.mutate(id);
+    }
   };
 
-  console.log('🎨 About to render component with:', { loading, error, debugInfo });
+  // Filter discussions
+  const filteredDiscussions = discussions?.filter(discussion => {
+    const matchesSearch = discussion.topic_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         discussion.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = filterStatus === 'all' || 
+                         (filterStatus === 'active' && discussion.is_active) ||
+                         (filterStatus === 'inactive' && !discussion.is_active);
+    
+    return matchesSearch && matchesFilter;
+  }) || [];
 
-  // Early return with debug info in development
+  console.log('🔽 About to render UI with filtered discussions:', filteredDiscussions.length);
+
   if (error) {
-    console.log('🚨 Rendering error state');
+    console.error('🚨 Rendering error state:', error);
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
-              <h3 className="text-lg font-medium mb-2">Error Loading Group Discussions</h3>
-              <p className="text-muted-foreground mb-4">{error}</p>
-              <p className="text-xs text-muted-foreground mb-4">Debug: {debugInfo}</p>
-              <Button onClick={() => window.location.reload()}>
-                Refresh Page
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <div className="text-red-500 mb-4">❌ Error loading discussions</div>
+          <p className="text-muted-foreground">{error.message}</p>
+          <Button 
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] })}
+            className="mt-4"
+          >
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
-
-  if (loading) {
-    console.log('⏳ Rendering loading state');
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-              <span className="text-lg">Loading group discussions...</span>
-              <p className="text-xs text-muted-foreground mt-2">Debug: {debugInfo}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  console.log('✅ Rendering main component');
 
   return (
     <div className="space-y-6">
-      {/* Debug info card - remove in production */}
+      {/* Debug Info */}
       <Card className="border-blue-200 bg-blue-50">
         <CardContent className="py-4">
           <p className="text-sm text-blue-800">
-            <strong>Debug Info:</strong> {debugInfo} | 
-            Discussions: {discussions.length} | 
-            Moderators: {moderators.length}
+            <strong>Debug:</strong> Loading: {isLoading ? 'Yes' : 'No'} | 
+            Discussions: {discussions?.length || 0} | 
+            Filtered: {filteredDiscussions.length} | 
+            Time: {new Date().toLocaleTimeString()}
           </p>
         </CardContent>
       </Card>
 
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Group Discussions</h2>
+        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Create New GD
+        </Button>
+      </div>
+
+      {/* Search and Filter */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            {editingId ? 'Edit Group Discussion' : 'Add New Group Discussion'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <Label htmlFor="topic_name">Topic Name *</Label>
-              <Input
-                id="topic_name"
-                placeholder="AI in Education: Boon or Bane?"
-                value={formData.topic_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, topic_name: e.target.value }))}
-                required
-              />
+        <CardContent className="p-4">
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <Label htmlFor="search">Search Discussions</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by topic or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-            
-            <div className="md:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Brief description of the discussion topic..."
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              />
-            </div>
-            
             <div>
-              <Label htmlFor="scheduled_date">Date & Time *</Label>
-              <Input
-                id="scheduled_date"
-                type="datetime-local"
-                value={formData.scheduled_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="slot_capacity">Slot Capacity *</Label>
-              <Input
-                id="slot_capacity"
-                type="number"
-                min="1"
-                max="50"
-                value={formData.slot_capacity}
-                onChange={(e) => setFormData(prev => ({ ...prev, slot_capacity: e.target.value }))}
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="meet_link">Meet/Zoom Link</Label>
-              <Input
-                id="meet_link"
-                type="url"
-                placeholder="https://meet.google.com/..."
-                value={formData.meet_link}
-                onChange={(e) => setFormData(prev => ({ ...prev, meet_link: e.target.value }))}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="moderator_id">Moderator (Optional)</Label>
-              <Select value={formData.moderator_id} onValueChange={(value) => setFormData(prev => ({ ...prev, moderator_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select moderator" />
+              <Label htmlFor="filter">Filter by Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No moderator</SelectItem>
-                  {moderators.map((mod) => (
-                    <SelectItem key={mod.id} value={mod.id}>
-                      {mod.full_name} ({mod.email})
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="md:col-span-2 flex gap-2">
-              <Button type="submit" disabled={submitting}>
-                {submitting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
-                )}
-                {editingId ? 'Update GD' : 'Add GD'}
-              </Button>
-              {editingId && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Scheduled Group Discussions ({discussions.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {discussions.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-medium mb-2">No Group Discussions</h3>
-              <p className="text-muted-foreground">Create your first group discussion using the form above.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Topic</TableHead>
-                    <TableHead>Date & Time</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Registered</TableHead>
-                    <TableHead>Moderator</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {discussions.map((discussion) => (
-                    <TableRow key={discussion.id}>
-                      <TableCell className="font-medium">{discussion.topic_name}</TableCell>
-                      <TableCell>{new Date(discussion.scheduled_date).toLocaleString()}</TableCell>
-                      <TableCell>{discussion.slot_capacity}</TableCell>
-                      <TableCell>{discussion.registrations_count || 0}</TableCell>
-                      <TableCell>{discussion.moderator_name || 'None'}</TableCell>
-                      <TableCell>
-                        <Badge variant={discussion.is_active ? "default" : "secondary"}>
-                          {discussion.is_active ? 'Active' : 'Cancelled'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(discussion)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(discussion.id)}
-                            disabled={!discussion.is_active}
-                          >
-                            <Trash className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Create Form */}
+      {showCreateForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New Group Discussion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="topic">Topic Name</Label>
+                  <Input
+                    id="topic"
+                    value={newGD.topic_name}
+                    onChange={(e) => setNewGD({ ...newGD, topic_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="scheduled_date">Scheduled Date & Time</Label>
+                  <Input
+                    id="scheduled_date"
+                    type="datetime-local"
+                    value={newGD.scheduled_date}
+                    onChange={(e) => setNewGD({ ...newGD, scheduled_date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={newGD.duration_minutes}
+                    onChange={(e) => setNewGD({ ...newGD, duration_minutes: parseInt(e.target.value) })}
+                    min="30"
+                    max="180"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="capacity">Slot Capacity</Label>
+                  <Input
+                    id="capacity"
+                    type="number"
+                    value={newGD.slot_capacity}
+                    onChange={(e) => setNewGD({ ...newGD, slot_capacity: parseInt(e.target.value) })}
+                    min="2"
+                    max="20"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={newGD.description}
+                  onChange={(e) => setNewGD({ ...newGD, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? 'Creating...' : 'Create Discussion'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit Form */}
+      {editingGD && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit Group Discussion</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit_topic">Topic Name</Label>
+                  <Input
+                    id="edit_topic"
+                    value={editingGD.topic_name}
+                    onChange={(e) => setEditingGD({ ...editingGD, topic_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_scheduled_date">Scheduled Date & Time</Label>
+                  <Input
+                    id="edit_scheduled_date"
+                    type="datetime-local"
+                    value={editingGD.scheduled_date?.slice(0, 16)}
+                    onChange={(e) => setEditingGD({ ...editingGD, scheduled_date: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_duration">Duration (minutes)</Label>
+                  <Input
+                    id="edit_duration"
+                    type="number"
+                    value={editingGD.duration_minutes}
+                    onChange={(e) => setEditingGD({ ...editingGD, duration_minutes: parseInt(e.target.value) })}
+                    min="30"
+                    max="180"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit_capacity">Slot Capacity</Label>
+                  <Input
+                    id="edit_capacity"
+                    type="number"
+                    value={editingGD.slot_capacity}
+                    onChange={(e) => setEditingGD({ ...editingGD, slot_capacity: parseInt(e.target.value) })}
+                    min="2"
+                    max="20"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit_description">Description</Label>
+                <Textarea
+                  id="edit_description"
+                  value={editingGD.description}
+                  onChange={(e) => setEditingGD({ ...editingGD, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Updating...' : 'Update Discussion'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setEditingGD(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Discussions List */}
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-muted-foreground">⏳ Loading discussions...</div>
+          </CardContent>
+        </Card>
+      ) : filteredDiscussions.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-muted-foreground mb-4">📋 No discussions found</div>
+            {discussions?.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Create your first group discussion to get started!</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {filteredDiscussions.map((discussion) => (
+            <Card key={discussion.id}>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">{discussion.topic_name}</h3>
+                    <p className="text-muted-foreground text-sm mb-3">{discussion.description}</p>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(discussion.scheduled_date).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        {new Date(discussion.scheduled_date).toLocaleTimeString()} ({discussion.duration_minutes} min)
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        {discussion.slot_capacity} slots
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={discussion.is_active ? "default" : "secondary"}>
+                      {discussion.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingGD(discussion)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(discussion.id)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
