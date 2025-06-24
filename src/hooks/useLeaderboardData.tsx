@@ -6,6 +6,8 @@ export const useLeaderboardData = () => {
   return useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
+      console.log('Fetching leaderboard data...');
+      
       // Get user points with profile information
       const { data: userPoints, error } = await supabase
         .from('reward_points')
@@ -20,10 +22,18 @@ export const useLeaderboardData = () => {
         throw error;
       }
 
+      console.log('Raw reward points data:', userPoints);
+
+      // If no reward points exist, return empty array
+      if (!userPoints || userPoints.length === 0) {
+        console.log('No reward points found in database');
+        return [];
+      }
+
       // Aggregate points by user
       const userPointsMap = new Map<string, { name: string; points: number }>();
       
-      userPoints?.forEach((entry) => {
+      userPoints.forEach((entry) => {
         const userId = entry.user_id;
         const userName = (entry.profiles as any)?.full_name || 'Anonymous User';
         const points = entry.points;
@@ -40,6 +50,7 @@ export const useLeaderboardData = () => {
         .sort((a, b) => b.points - a.points)
         .slice(0, 5);
 
+      console.log('Processed top performers:', topPerformers);
       return topPerformers;
     },
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
