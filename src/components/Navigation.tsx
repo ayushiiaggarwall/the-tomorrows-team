@@ -3,7 +3,15 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, LayoutDashboard } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +38,13 @@ const Navigation = () => {
       return location.pathname === '/';
     }
     return location.pathname.startsWith(href);
+  };
+
+  const getUserInitials = () => {
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -67,12 +82,6 @@ const Navigation = () => {
           <div className="hidden lg:flex items-center space-x-3">
             {user ? (
               <div className="flex items-center space-x-2">
-                <Link to="/dashboard">
-                  <Button variant="outline" size="sm">
-                    <User className="w-4 h-4 mr-1" />
-                    Dashboard
-                  </Button>
-                </Link>
                 {isAdmin && (
                   <Link to="/admin">
                     <Button variant="outline" size="sm" className="bg-primary/10 border-primary text-primary hover:bg-primary hover:text-primary-foreground">
@@ -81,10 +90,38 @@ const Navigation = () => {
                     </Button>
                   </Link>
                 )}
-                <Button onClick={handleSignOut} variant="outline" size="sm">
-                  <LogOut className="w-4 h-4 mr-1" />
-                  Sign Out
-                </Button>
+                
+                {/* User Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-background border shadow-lg" align="end" forceMount>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard" className="cursor-pointer">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/dashboard/profile" className="cursor-pointer">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Sign Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Link to="/login">
@@ -131,8 +168,16 @@ const Navigation = () => {
                   className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
-                  <User className="w-4 h-4 mr-2 inline" />
+                  <LayoutDashboard className="w-4 h-4 mr-2 inline" />
                   Dashboard
+                </Link>
+                <Link
+                  to="/dashboard/profile"
+                  className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <User className="w-4 h-4 mr-2 inline" />
+                  Profile Settings
                 </Link>
                 {isAdmin && (
                   <Link
