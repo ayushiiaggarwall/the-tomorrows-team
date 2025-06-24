@@ -30,7 +30,7 @@ const JoinGD = () => {
 
   // Fetch upcoming GDs with registration counts
   const { data: upcomingSlots, isLoading } = useQuery({
-    queryKey: ['upcoming-gds-for-registration'],
+    queryKey: ['upcoming-gds-for-registration', user?.id],
     queryFn: async () => {
       const { data: gds, error } = await supabase
         .from('group_discussions')
@@ -92,7 +92,8 @@ const JoinGD = () => {
       );
 
       return gdsWithCounts;
-    }
+    },
+    enabled: !!user?.id
   });
 
   // Registration mutation
@@ -102,13 +103,20 @@ const JoinGD = () => {
         throw new Error('You must be logged in to register for group discussions');
       }
 
+      console.log('Attempting to register user:', user.id, 'for GD:', gdId);
+
       // Check if already registered
-      const { data: existingRegistration } = await supabase
+      const { data: existingRegistration, error: checkError } = await supabase
         .from('gd_registrations')
         .select('id')
         .eq('gd_id', gdId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing registration:', checkError);
+        throw new Error('Failed to check registration status');
+      }
 
       if (existingRegistration) {
         throw new Error('You are already registered for this GD');
@@ -117,31 +125,38 @@ const JoinGD = () => {
       // Register for the GD
       const { data, error } = await supabase
         .from('gd_registrations')
-        .insert([{
+        .insert({
           gd_id: gdId,
           user_id: user.id
-        }])
+        })
         .select()
         .single();
 
       if (error) {
         console.error('Registration error:', error);
-        throw error;
+        throw new Error(error.message || 'Failed to register for the GD');
       }
 
+      console.log('Registration successful:', data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Registration mutation successful:', data);
       toast({
         title: "Registration Successful!",
         description: "You have been registered for the group discussion.",
       });
+      
+      // Invalidate and refetch all relevant queries
       queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
       queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+      
+      // Reset form
       setSelectedSlot('');
       setFormData({ name: '', email: '', age: '', institution: '' });
     },
     onError: (error: any) => {
+      console.error('Registration mutation error:', error);
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to register. Please try again.",
@@ -222,6 +237,7 @@ const JoinGD = () => {
       return;
     }
 
+    console.log('Form submitted with slot:', selectedSlot);
     registerMutation.mutate(selectedSlot);
   };
 
@@ -235,6 +251,7 @@ const JoinGD = () => {
       return;
     }
     
+    console.log('Direct registration for GD:', gdId);
     registerMutation.mutate(gdId);
   };
 
@@ -347,7 +364,7 @@ const JoinGD = () => {
                     <Button 
                       type="submit" 
                       className="w-full btn-primary text-lg py-3"
-                      disabled={registerMutation.isPending}
+                      disabled={registerMutation.isPending || !selectedSlot}
                     >
                       {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
                     </Button>

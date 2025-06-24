@@ -18,35 +18,53 @@ const UpcomingGDs = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      console.log('Fetching upcoming GDs for user:', user.id);
+
       // Get upcoming GDs
-      const { data: gds } = await supabase
+      const { data: gds, error: gdsError } = await supabase
         .from('group_discussions')
         .select('*')
         .eq('is_active', true)
         .gte('scheduled_date', new Date().toISOString())
         .order('scheduled_date', { ascending: true });
 
+      if (gdsError) {
+        console.error('Error fetching GDs:', gdsError);
+        return [];
+      }
+
       if (!gds) return [];
 
       // Get user's registrations
-      const { data: userRegistrations } = await supabase
+      const { data: userRegistrations, error: regError } = await supabase
         .from('gd_registrations')
         .select('gd_id')
         .eq('user_id', user.id);
 
+      if (regError) {
+        console.error('Error fetching user registrations:', regError);
+      }
+
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);
+      console.log('User registered GD IDs:', userRegisteredGdIds);
 
       // Get registration counts for each GD
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
-          const { count } = await supabase
+          const { count, error: countError } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact' })
             .eq('gd_id', gd.id);
 
+          if (countError) {
+            console.error('Error counting registrations for GD:', gd.id, countError);
+          }
+
           const registrationsCount = count || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
           const isUserRegistered = userRegisteredGdIds.has(gd.id);
+          
+          console.log(`GD ${gd.id}: registered=${isUserRegistered}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
           return {
             id: gd.id,
@@ -70,7 +88,8 @@ const UpcomingGDs = () => {
 
       return gdsWithCounts.slice(0, 5); // Show top 5 upcoming GDs
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refetch every 30 seconds to keep data fresh
   });
 
   // Registration mutation
@@ -80,13 +99,20 @@ const UpcomingGDs = () => {
         throw new Error('User must be authenticated to register');
       }
 
+      console.log('Dashboard registration attempt for GD:', gdId);
+
       // Check if already registered
-      const { data: existingRegistration } = await supabase
+      const { data: existingRegistration, error: checkError } = await supabase
         .from('gd_registrations')
         .select('id')
         .eq('gd_id', gdId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing registration:', checkError);
+        throw new Error('Failed to check registration status');
+      }
 
       if (existingRegistration) {
         throw new Error('You are already registered for this GD');
@@ -95,18 +121,19 @@ const UpcomingGDs = () => {
       // Register for the GD
       const { data, error } = await supabase
         .from('gd_registrations')
-        .insert([{
+        .insert({
           gd_id: gdId,
           user_id: user.id
-        }])
+        })
         .select()
         .single();
 
       if (error) {
         console.error('Registration error:', error);
-        throw error;
+        throw new Error(error.message || 'Failed to register for the GD');
       }
 
+      console.log('Dashboard registration successful:', data);
       return data;
     },
     onSuccess: () => {
@@ -115,8 +142,10 @@ const UpcomingGDs = () => {
         description: "Successfully registered for the GD!",
       });
       queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
     },
     onError: (error: any) => {
+      console.error('Dashboard registration error:', error);
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to register for the GD. Please try again.",
@@ -126,6 +155,7 @@ const UpcomingGDs = () => {
   });
 
   const handleRegister = (gdId: string) => {
+    console.log('Handle register called for GD:', gdId);
     registerMutation.mutate(gdId);
   };
 
