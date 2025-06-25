@@ -26,16 +26,10 @@ export const useLeaderboardData = () => {
 
         console.log('Raw reward points data from database:', userPoints);
 
-        // If no reward points exist, return sample data for demonstration
+        // If no reward points exist, return empty array
         if (!userPoints || userPoints.length === 0) {
-          console.log('No reward points found in database, returning sample data');
-          return [
-            { name: 'Alice Johnson', points: 185 },
-            { name: 'Bob Smith', points: 162 },
-            { name: 'Carol Davis', points: 158 },
-            { name: 'David Wilson', points: 134 },
-            { name: 'Emma Brown', points: 127 }
-          ];
+          console.log('No reward points found in database, returning empty array');
+          return [];
         }
 
         // Aggregate points by user with security validation
@@ -77,16 +71,7 @@ export const useLeaderboardData = () => {
         return topPerformers;
       } catch (error) {
         console.error('Failed to fetch leaderboard data:', error);
-        
-        // Return sample data as fallback
-        console.log('Returning sample data as fallback');
-        return [
-          { name: 'Alice Johnson', points: 185 },
-          { name: 'Bob Smith', points: 162 },
-          { name: 'Carol Davis', points: 158 },
-          { name: 'David Wilson', points: 134 },
-          { name: 'Emma Brown', points: 127 }
-        ];
+        throw error; // Let the error bubble up to be handled by the UI
       }
     },
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
