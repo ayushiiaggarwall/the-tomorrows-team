@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Database, Copy, Share } from 'lucide-react';
+import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Database, Copy, Share, MessageCircle, Mail, Twitter } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useSeedData } from '@/hooks/useSeedData';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +20,7 @@ const Leaderboard = () => {
   const { toast } = useToast();
   const { seedLeaderboardData } = useSeedData();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'Leaderboard - The Tomorrows Team';
@@ -82,23 +82,40 @@ const Leaderboard = () => {
     }
   };
 
-  const shareReferral = async () => {
-    const referralLink = getReferralLink();
-    const shareData = {
-      title: 'Join The Tomorrows Team',
-      text: 'Join me in group discussions and earn points! Use my referral code to get started.',
-      url: referralLink,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        copyReferralLink();
-      }
-    } else {
-      copyReferralLink();
+  const copyReferralCode = async () => {
+    const referralCode = generateReferralCode();
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      toast({
+        title: "Code Copied!",
+        description: "Referral code copied to clipboard",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Please copy the code manually",
+        variant: "destructive"
+      });
     }
+  };
+
+  const shareToWhatsApp = () => {
+    const referralLink = getReferralLink();
+    const message = encodeURIComponent(`Join me in group discussions and earn points! Use my referral link: ${referralLink}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  const shareToTwitter = () => {
+    const referralLink = getReferralLink();
+    const message = encodeURIComponent(`Join me in group discussions and earn points! Use my referral link: ${referralLink}`);
+    window.open(`https://twitter.com/intent/tweet?text=${message}`, '_blank');
+  };
+
+  const shareViaEmail = () => {
+    const referralLink = getReferralLink();
+    const subject = encodeURIComponent('Join The Tomorrows Team');
+    const body = encodeURIComponent(`Hi!\n\nI'd like to invite you to join The Tomorrows Team for group discussions. Use my referral link to get started:\n\n${referralLink}\n\nLooking forward to seeing you there!`);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
   };
 
   return (
@@ -300,7 +317,7 @@ const Leaderboard = () => {
                     </DialogHeader>
                     <div className="space-y-4">
                       <p className="text-sm text-gray-600">
-                        Share your referral link and earn 10 points when your friend joins and attends their first GD!
+                        Share your referral code or link and earn 10 points when your friend joins and attends their first GD!
                       </p>
                       
                       <div className="space-y-2">
@@ -310,15 +327,12 @@ const Leaderboard = () => {
                             id="referral-code"
                             value={generateReferralCode()}
                             readOnly
-                            className="font-mono"
+                            className="font-mono text-center text-lg font-semibold"
                           />
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              navigator.clipboard.writeText(generateReferralCode());
-                              toast({ title: "Code copied!" });
-                            }}
+                            onClick={copyReferralCode}
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
@@ -345,14 +359,54 @@ const Leaderboard = () => {
                       </div>
 
                       <div className="flex space-x-2">
-                        <Button onClick={shareReferral} className="flex-1">
-                          <Share className="w-4 h-4 mr-2" />
-                          Share Link
-                        </Button>
-                        <Button onClick={copyReferralLink} variant="outline" className="flex-1">
-                          <Copy className="w-4 h-4 mr-2" />
-                          Copy Link
-                        </Button>
+                        <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+                          <DialogTrigger asChild>
+                            <Button className="flex-1">
+                              <Share className="w-4 h-4 mr-2" />
+                              Share Link
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-sm">
+                            <DialogHeader>
+                              <DialogTitle>Share Your Referral Link</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-3">
+                              <Button 
+                                onClick={shareToWhatsApp}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                <MessageCircle className="w-4 h-4 mr-2" />
+                                Share on WhatsApp
+                              </Button>
+                              
+                              <Button 
+                                onClick={shareToTwitter}
+                                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                              >
+                                <Twitter className="w-4 h-4 mr-2" />
+                                Share on Twitter
+                              </Button>
+                              
+                              <Button 
+                                onClick={shareViaEmail}
+                                variant="outline"
+                                className="w-full"
+                              >
+                                <Mail className="w-4 h-4 mr-2" />
+                                Share via Email
+                              </Button>
+                              
+                              <Button 
+                                onClick={copyReferralLink}
+                                variant="outline"
+                                className="w-full"
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy Link
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
 
                       <div className="bg-blue-50 p-3 rounded-lg">
