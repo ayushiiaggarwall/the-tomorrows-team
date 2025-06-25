@@ -1,17 +1,26 @@
-import { useEffect } from 'react';
+
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Database } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Database, Copy, Share } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useSeedData } from '@/hooks/useSeedData';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 const Leaderboard = () => {
-  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
+  const { toast } = useToast();
   const { seedLeaderboardData } = useSeedData();
+  const [referralModalOpen, setReferralModalOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'Leaderboard - The Tomorrows Team';
@@ -39,6 +48,57 @@ const Leaderboard = () => {
     await seedLeaderboardData();
     // Refetch the leaderboard data after seeding
     setTimeout(() => refetch(), 1000);
+  };
+
+  const handleJoinNextGD = () => {
+    navigate('/join-gd');
+  };
+
+  // Generate referral code based on user ID
+  const generateReferralCode = () => {
+    if (!user) return '';
+    return user.id.slice(0, 8).toUpperCase();
+  };
+
+  const getReferralLink = () => {
+    const referralCode = generateReferralCode();
+    return `${window.location.origin}/login?ref=${referralCode}`;
+  };
+
+  const copyReferralLink = async () => {
+    const referralLink = getReferralLink();
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      toast({
+        title: "Copied!",
+        description: "Referral link copied to clipboard",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Please copy the link manually",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const shareReferral = async () => {
+    const referralLink = getReferralLink();
+    const shareData = {
+      title: 'Join The Tomorrows Team',
+      text: 'Join me in group discussions and earn points! Use my referral code to get started.',
+      url: referralLink,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        copyReferralLink();
+      }
+    } else {
+      copyReferralLink();
+    }
   };
 
   return (
@@ -218,17 +278,91 @@ const Leaderboard = () => {
                 <Button 
                   size="lg" 
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center"
+                  onClick={handleJoinNextGD}
                 >
                   <Users className="w-4 h-4 mr-2" />
                   Join Next GD
                 </Button>
-                <Button 
-                  size="lg" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center"
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Refer a Friend
-                </Button>
+                
+                <Dialog open={referralModalOpen} onOpenChange={setReferralModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Refer a Friend
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Refer a Friend</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600">
+                        Share your referral link and earn 10 points when your friend joins and attends their first GD!
+                      </p>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="referral-code">Your Referral Code</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id="referral-code"
+                            value={generateReferralCode()}
+                            readOnly
+                            className="font-mono"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generateReferralCode());
+                              toast({ title: "Code copied!" });
+                            }}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="referral-link">Referral Link</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id="referral-link"
+                            value={getReferralLink()}
+                            readOnly
+                            className="text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={copyReferralLink}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex space-x-2">
+                        <Button onClick={shareReferral} className="flex-1">
+                          <Share className="w-4 h-4 mr-2" />
+                          Share Link
+                        </Button>
+                        <Button onClick={copyReferralLink} variant="outline" className="flex-1">
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Link
+                        </Button>
+                      </div>
+
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <strong>How it works:</strong> When someone uses your referral code to sign up and attends their first GD, you'll automatically earn 10 points!
+                        </p>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
 
               {/* Monthly Champion Countdown */}
