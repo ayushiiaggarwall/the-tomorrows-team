@@ -1,19 +1,23 @@
-
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target } from 'lucide-react';
+import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Database } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
+import { useSeedData } from '@/hooks/useSeedData';
+import { useAuth } from '@/hooks/useAuth';
 
 const Leaderboard = () => {
+  const { isAdmin } = useAuth();
+  const { seedLeaderboardData } = useSeedData();
+
   useEffect(() => {
     document.title = 'Leaderboard - The Tomorrows Team';
   }, []);
 
-  const { data: topPerformers = [], isLoading, error } = useLeaderboardData();
+  const { data: topPerformers = [], isLoading, error, refetch } = useLeaderboardData();
 
   // Calculate days left in current month
   const today = new Date();
@@ -29,6 +33,12 @@ const Leaderboard = () => {
       case 2: return "🥉";
       default: return "🏅";
     }
+  };
+
+  const handleSeedData = async () => {
+    await seedLeaderboardData();
+    // Refetch the leaderboard data after seeding
+    setTimeout(() => refetch(), 1000);
   };
 
   return (
@@ -56,9 +66,22 @@ const Leaderboard = () => {
             <div className="lg:col-span-2">
               <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
-                    🏆 Top Performers – {currentMonth}
-                  </CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
+                      🏆 Top Performers – {currentMonth}
+                    </CardTitle>
+                    {isAdmin && (
+                      <Button
+                        onClick={handleSeedData}
+                        size="sm"
+                        variant="outline"
+                        className="flex items-center gap-2"
+                      >
+                        <Database className="w-4 h-4" />
+                        Seed Sample Data
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
@@ -70,9 +93,12 @@ const Leaderboard = () => {
                     <div className="text-center py-16">
                       <Trophy className="w-16 h-16 text-red-500 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to Load Data</h3>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 mb-4">
                         Please try refreshing the page or check back later.
                       </p>
+                      <Button onClick={() => refetch()} variant="outline">
+                        Try Again
+                      </Button>
                     </div>
                   ) : topPerformers.length > 0 ? (
                     <div className="space-y-3">
@@ -96,9 +122,15 @@ const Leaderboard = () => {
                     <div className="text-center py-16">
                       <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No Participants Yet</h3>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 mb-4">
                         Be the first to participate and earn points!
                       </p>
+                      {isAdmin && (
+                        <Button onClick={handleSeedData} variant="outline">
+                          <Database className="w-4 h-4 mr-2" />
+                          Add Sample Data
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>
