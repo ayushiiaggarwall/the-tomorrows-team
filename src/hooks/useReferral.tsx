@@ -39,6 +39,8 @@ export const useReferral = () => {
 
       if (referralError) {
         console.error('Error storing referral:', referralError);
+      } else {
+        console.log('Referral relationship stored successfully');
       }
     } catch (error) {
       console.error('Error processing referral:', error);
@@ -55,7 +57,12 @@ export const useReferral = () => {
         .eq('status', 'pending')
         .maybeSingle();
 
-      if (findError || !referral) {
+      if (findError) {
+        console.error('Error finding referral:', findError);
+        return;
+      }
+
+      if (!referral) {
         console.log('No pending referral found for user:', userId);
         return;
       }
