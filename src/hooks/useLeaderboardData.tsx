@@ -10,18 +10,67 @@ export const useLeaderboardData = () => {
       console.log('Fetching leaderboard data from database...');
       
       try {
-        // Get user points with profile information
+        // Get user points with profile information using a left join approach
         const { data: userPoints, error } = await supabase
           .from('reward_points')
           .select(`
             user_id,
             points,
-            profiles!reward_points_user_id_fkey(full_name)
+            profiles(full_name)
           `);
 
         if (error) {
           console.error('Supabase error fetching leaderboard data:', error);
-          throw error;
+          // If it's a relationship error, try fetching without the join
+          if (error.code === 'PGRST200') {
+            console.log('Foreign key relationship not found, fetching reward points only...');
+            const { data: pointsOnly, error: pointsError } = await supabase
+              .from('reward_points')
+              .select('user_id, points');
+            
+            if (pointsError) {
+              console.error('Error fetching reward points:', pointsError);
+              return [];
+            }
+            
+            if (!pointsOnly || pointsOnly.length === 0) {
+              console.log('No reward points found in database, returning empty array');
+              return [];
+            }
+            
+            // Aggregate points by user without profile names
+            const userPointsMap = new Map<string, { name: string; points: number }>();
+            
+            pointsOnly.forEach((entry) => {
+              const userId = entry.user_id;
+              const points = entry.points;
+              
+              // Validate points are within expected range
+              if (!validateInput.validatePoints(points)) {
+                console.warn(`Invalid points value detected: ${points} for user ${userId}`);
+                return;
+              }
+              
+              if (userPointsMap.has(userId)) {
+                const currentPoints = userPointsMap.get(userId)!.points;
+                const totalPoints = currentPoints + points;
+                
+                if (validateInput.validatePoints(totalPoints)) {
+                  userPointsMap.get(userId)!.points = totalPoints;
+                }
+              } else {
+                userPointsMap.set(userId, { name: `User ${userId.slice(0, 8)}`, points });
+              }
+            });
+
+            const topPerformers = Array.from(userPointsMap.values())
+              .sort((a, b) => b.points - a.points)
+              .slice(0, 5);
+
+            console.log('Processed top performers without profiles:', topPerformers);
+            return topPerformers;
+          }
+          return [];
         }
 
         console.log('Raw reward points data from database:', userPoints);
@@ -37,7 +86,7 @@ export const useLeaderboardData = () => {
         
         userPoints.forEach((entry) => {
           const userId = entry.user_id;
-          const rawName = (entry.profiles as any)?.full_name || 'Anonymous User';
+          const rawName = (entry.profiles as any)?.full_name || `User ${userId.slice(0, 8)}`;
           
           // Sanitize user name to prevent XSS
           const userName = validateInput.sanitizeHtml(rawName);
@@ -71,7 +120,8 @@ export const useLeaderboardData = () => {
         return topPerformers;
       } catch (error) {
         console.error('Failed to fetch leaderboard data:', error);
-        throw error; // Let the error bubble up to be handled by the UI
+        // Return empty array instead of throwing error to show proper empty state
+        return [];
       }
     },
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
