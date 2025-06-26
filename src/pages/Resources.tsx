@@ -38,7 +38,7 @@ const Resources = () => {
         .from('blogs')
         .select(`
           *,
-          author:profiles!blogs_author_id_fkey(full_name)
+          profiles(full_name)
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
@@ -395,7 +395,7 @@ const Resources = () => {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
-                        By {post.author?.full_name || 'Anonymous'}
+                        By {post.profiles?.full_name || 'Anonymous'}
                       </span>
                       <Link to={`/blog/${post.id}`}>
                         <Button variant="outline" size="sm">
