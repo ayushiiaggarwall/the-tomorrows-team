@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -71,17 +70,23 @@ const Index = () => {
         }
       }
 
-      // Get registration counts for each GD
+      // Get registration counts for each GD - Fixed to get actual count
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
-          const { count } = await supabase
+          const { data: registrations, error: countError } = await supabase
             .from('gd_registrations')
-            .select('*', { count: 'exact' })
+            .select('id')
             .eq('gd_id', gd.id);
 
-          const registrationsCount = count || 0;
+          if (countError) {
+            console.error('Error counting registrations for GD:', gd.id, countError);
+          }
+
+          const registrationsCount = registrations?.length || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
           const isUserRegistered = userRegisteredGdIds.has(gd.id);
+
+          console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${registrationsCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
           return {
             id: gd.id,

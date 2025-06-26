@@ -128,6 +128,9 @@ const JoinGD = () => {
       queryClient.invalidateQueries({ 
         queryKey: ['upcoming-gds', user?.id] 
       });
+      queryClient.invalidateQueries({ 
+        queryKey: ['home-upcoming-gds', user?.id] 
+      });
     },
     onError: (error: any) => {
       if (error.code === '23505') {
