@@ -30,33 +30,43 @@ const Resources = () => {
     downloadResource.mutate(resourceId);
   };
 
-  // Fetch latest blog posts with better error handling
+  // Fetch latest blog posts with corrected query
   const { data: latestBlogs, isLoading: blogsLoading, error: blogsError } = useQuery({
     queryKey: ['latest-blogs'],
     queryFn: async () => {
       console.log('Fetching latest blogs...');
-      const { data, error } = await supabase
+      
+      // First get the blogs
+      const { data: blogsData, error: blogsError } = await supabase
         .from('blogs')
-        .select(`
-          id,
-          title,
-          content,
-          featured_image_url,
-          tags,
-          created_at,
-          profiles!blogs_author_id_fkey(full_name)
-        `)
+        .select('id, title, content, featured_image_url, tags, created_at, author_id')
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(6);
 
-      if (error) {
-        console.error('Error fetching latest blogs:', error);
-        throw error;
+      if (blogsError) {
+        console.error('Error fetching blogs:', blogsError);
+        throw blogsError;
       }
 
-      console.log('Fetched blogs:', data);
-      return data || [];
+      // Then get author details for each blog
+      const blogsWithAuthors = await Promise.all(
+        (blogsData || []).map(async (blog) => {
+          const { data: authorData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', blog.author_id)
+            .single();
+
+          return {
+            ...blog,
+            author_name: authorData?.full_name || 'Anonymous'
+          };
+        })
+      );
+
+      console.log('Fetched blogs with authors:', blogsWithAuthors);
+      return blogsWithAuthors;
     }
   });
 
@@ -365,7 +375,7 @@ const Resources = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Latest Blog Posts Section - Enhanced with better display */}
+        {/* Latest Blog Posts Section - Fixed */}
         <div className="mt-16">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -460,7 +470,7 @@ const Resources = () => {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
-                        By {(post.profiles as any)?.full_name || 'Anonymous'}
+                        By {post.author_name}
                       </span>
                       <Link to={`/blog/${post.id}`}>
                         <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
