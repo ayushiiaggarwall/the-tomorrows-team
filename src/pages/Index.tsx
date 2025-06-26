@@ -34,7 +34,7 @@ const Index = () => {
   }];
 
   // Fetch real upcoming GDs from database
-  const { data: upcomingGDs, isLoading: upcomingLoading } = useQuery({
+  const { data: upcomingGDs, isLoading: upcomingLoading, refetch: refetchUpcomingGDs } = useQuery({
     queryKey: ['home-upcoming-gds', user?.id],
     queryFn: async () => {
       const { data: gds, error } = await supabase
@@ -88,8 +88,8 @@ const Index = () => {
 
           console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
-          // Fix time display - use the original scheduled_date without timezone conversion
-          const scheduledDate = new Date(gd.scheduled_date);
+          // Fix time display - parse as UTC and format as local time
+          const scheduledDate = new Date(gd.scheduled_date + 'Z'); // Force UTC parsing
 
           return {
             id: gd.id,
@@ -100,8 +100,7 @@ const Index = () => {
             time: scheduledDate.toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit', 
-              hour12: true,
-              timeZone: 'UTC' // Use UTC to prevent timezone conversion issues
+              hour12: true
             }),
             topic: gd.topic_name,
             spots: spotsLeft,
@@ -112,9 +111,36 @@ const Index = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    staleTime: 5000, // Consider data stale after 5 seconds
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    staleTime: 1000, // Consider data stale after 1 second
   });
+
+  // Set up real-time subscription for registration changes on home page
+  useEffect(() => {
+    console.log('Setting up real-time subscription for home page GD registrations');
+    
+    const channel = supabase
+      .channel('home-gd-registrations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_registrations'
+        },
+        (payload) => {
+          console.log('Home page GD registration change detected:', payload);
+          // Refetch the data immediately when registrations change
+          refetchUpcomingGDs();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up home page real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [refetchUpcomingGDs]);
 
   // Fetch featured video for sample GD section
   const { data: featuredVideo } = useQuery({

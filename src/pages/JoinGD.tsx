@@ -35,7 +35,7 @@ const JoinGD = () => {
   });
 
   // Fetch upcoming GDs with registration counts
-  const { data: upcomingGDs, isLoading } = useQuery({
+  const { data: upcomingGDs, isLoading, refetch } = useQuery({
     queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
       const { data: gds, error } = await supabase
@@ -74,9 +74,36 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    staleTime: 5000, // Consider data stale after 5 seconds
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    staleTime: 1000, // Consider data stale after 1 second
   });
+
+  // Set up real-time subscription for registration changes
+  useEffect(() => {
+    console.log('Setting up real-time subscription for JoinGD registrations');
+    
+    const channel = supabase
+      .channel('join-gd-registrations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_registrations'
+        },
+        (payload) => {
+          console.log('JoinGD registration change detected:', payload);
+          // Refetch the data immediately when registrations change
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up JoinGD real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
   // Register for GD mutation
   const registerMutation = useMutation({
@@ -252,7 +279,8 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    const scheduledDate = new Date(dateString);
+    // Fix time display - parse as UTC and format as local time
+    const scheduledDate = new Date(dateString + 'Z'); // Force UTC parsing
     return scheduledDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -262,12 +290,12 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    const scheduledDate = new Date(dateString);
+    // Fix time display - parse as UTC and format as local time
+    const scheduledDate = new Date(dateString + 'Z'); // Force UTC parsing
     return scheduledDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
-      timeZone: 'UTC' // Use UTC to prevent timezone conversion issues
+      hour12: true
     });
   };
 

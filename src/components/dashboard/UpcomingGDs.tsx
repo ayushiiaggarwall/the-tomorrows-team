@@ -5,11 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
 
-  const { data: upcomingGDs, isLoading } = useQuery({
+  const { data: upcomingGDs, isLoading, refetch } = useQuery({
     queryKey: ['upcoming-gds', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -62,8 +63,8 @@ const UpcomingGDs = () => {
           
           console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
-          // Fix time display - use the original scheduled_date without timezone conversion
-          const scheduledDate = new Date(gd.scheduled_date);
+          // Fix time display - parse as UTC and format as local time
+          const scheduledDate = new Date(gd.scheduled_date + 'Z'); // Force UTC parsing
           
           return {
             id: gd.id,
@@ -75,8 +76,7 @@ const UpcomingGDs = () => {
             time: scheduledDate.toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit', 
-              hour12: true,
-              timeZone: 'UTC' // Use UTC to prevent timezone conversion issues
+              hour12: true
             }),
             spotsLeft,
             totalSpots: gd.slot_capacity,
@@ -89,9 +89,38 @@ const UpcomingGDs = () => {
       return gdsWithCounts.slice(0, 5); // Show top 5 upcoming GDs
     },
     enabled: !!user?.id,
-    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
-    staleTime: 5000, // Consider data stale after 5 seconds
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    staleTime: 1000, // Consider data stale after 1 second
   });
+
+  // Set up real-time subscription for registration changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up real-time subscription for GD registrations');
+    
+    const channel = supabase
+      .channel('gd-registrations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_registrations'
+        },
+        (payload) => {
+          console.log('GD registration change detected:', payload);
+          // Refetch the data immediately when registrations change
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetch]);
 
   if (isLoading) {
     return (
