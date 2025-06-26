@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -135,7 +136,7 @@ const Blog = () => {
             <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span>{blogPost.profiles?.full_name || 'Anonymous'}</span>
+                <span>{(blogPost.profiles as any)?.full_name || 'Anonymous'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -258,7 +259,7 @@ const Blog = () => {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
-                        By {post.profiles?.full_name || 'Anonymous'}
+                        By {(post.profiles as any)?.full_name || 'Anonymous'}
                       </span>
                       <Link to={`/blog/${post.id}`}>
                         <Button variant="outline" size="sm">

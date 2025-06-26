@@ -395,7 +395,7 @@ const Resources = () => {
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
-                        By {post.profiles?.full_name || 'Anonymous'}
+                        By {(post.profiles as any)?.full_name || 'Anonymous'}
                       </span>
                       <Link to={`/blog/${post.id}`}>
                         <Button variant="outline" size="sm">
