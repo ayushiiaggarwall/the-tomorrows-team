@@ -72,6 +72,45 @@ export type Database = {
         }
         Relationships: []
       }
+      downloadable_resources: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          download_count: number | null
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          download_count?: number | null
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          download_count?: number | null
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       featured_videos: {
         Row: {
           created_at: string
@@ -470,6 +509,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      increment_download_count: {
+        Args: { resource_id: string }
+        Returns: undefined
       }
       is_admin: {
         Args: { _user_id: string }

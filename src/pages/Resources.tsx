@@ -5,11 +5,28 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, CheckCircle, Lightbulb, MessageSquare, Download, ExternalLink } from 'lucide-react';
 import { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useDownloadableResources } from '@/hooks/useDownloadableResources';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const Resources = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { resources, downloadResource } = useDownloadableResources();
+
   useEffect(() => {
     document.title = 'Resources - The Tomorrows Team';
   }, []);
+
+  const handleDownload = (resourceId: string) => {
+    if (!user) {
+      toast.error('Please log in to download resources');
+      navigate('/login');
+      return;
+    }
+    downloadResource.mutate(resourceId);
+  };
 
   const gdDosDonts = {
     dos: [
@@ -347,20 +364,68 @@ const Resources = () => {
           </div>
         </div>
 
-        {/* Download Resources */}
-        <Card className="feature-card mt-12 bg-gradient-to-r from-primary/10 to-accent/10">
-          <CardContent className="p-8 text-center">
-            <Download className="w-12 h-12 text-primary mx-auto mb-4" />
-            <h3 className="text-2xl font-bold mb-4">Download Our Complete Guide</h3>
-            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Get our comprehensive PDF guide with all GD tips, sample answers, and speaking techniques in one convenient document.
-            </p>
-            <Button className="btn-primary">
-              <Download className="w-4 h-4 mr-2" />
-              Download Free Guide
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Download Resources Section */}
+        {resources && resources.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-3xl font-bold text-center mb-8">Download Resources</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {resources.map((resource) => (
+                <Card key={resource.id} className="feature-card">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Download className="w-8 h-8 text-primary" />
+                      <div>
+                        <h3 className="font-semibold">{resource.title}</h3>
+                        {resource.description && (
+                          <p className="text-sm text-muted-foreground">{resource.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        {resource.download_count} downloads
+                      </span>
+                      <Button 
+                        onClick={() => handleDownload(resource.id)}
+                        disabled={downloadResource.isPending}
+                        size="sm"
+                      >
+                        {downloadResource.isPending ? 'Downloading...' : 'Download'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Default Download Guide (fallback when no resources are uploaded) */}
+        {(!resources || resources.length === 0) && (
+          <Card className="feature-card mt-12 bg-gradient-to-r from-primary/10 to-accent/10">
+            <CardContent className="p-8 text-center">
+              <Download className="w-12 h-12 text-primary mx-auto mb-4" />
+              <h3 className="text-2xl font-bold mb-4">Download Our Complete Guide</h3>
+              <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+                Get our comprehensive PDF guide with all GD tips, sample answers, and speaking techniques in one convenient document.
+              </p>
+              <Button 
+                className="btn-primary"
+                onClick={() => {
+                  if (!user) {
+                    toast.error('Please log in to download resources');
+                    navigate('/login');
+                  } else {
+                    toast.info('No resources available for download at the moment');
+                  }
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Free Guide
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Footer />
