@@ -38,7 +38,7 @@ const Resources = () => {
         .from('blogs')
         .select(`
           *,
-          profiles!blogs_author_id_fkey(full_name)
+          profiles(full_name)
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
