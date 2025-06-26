@@ -30,25 +30,32 @@ const Resources = () => {
     downloadResource.mutate(resourceId);
   };
 
-  // Fetch latest blog posts
-  const { data: latestBlogs } = useQuery({
+  // Fetch latest blog posts with better error handling
+  const { data: latestBlogs, isLoading: blogsLoading, error: blogsError } = useQuery({
     queryKey: ['latest-blogs'],
     queryFn: async () => {
+      console.log('Fetching latest blogs...');
       const { data, error } = await supabase
         .from('blogs')
         .select(`
-          *,
+          id,
+          title,
+          content,
+          featured_image_url,
+          tags,
+          created_at,
           profiles!blogs_author_id_fkey(full_name)
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
-        .limit(3);
+        .limit(6);
 
       if (error) {
         console.error('Error fetching latest blogs:', error);
-        return [];
+        throw error;
       }
 
+      console.log('Fetched blogs:', data);
       return data || [];
     }
   });
@@ -358,16 +365,44 @@ const Resources = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Latest Blog Posts Section - Now with real data */}
+        {/* Latest Blog Posts Section - Enhanced with better display */}
         <div className="mt-16">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold">Latest Articles</h2>
+            <div>
+              <h2 className="text-3xl font-bold">Latest Articles</h2>
+              <p className="text-muted-foreground mt-2">Insights and tips from our experts</p>
+            </div>
             <Link to="/blog">
-              <Button variant="outline">View All Articles</Button>
+              <Button variant="outline">
+                View All Articles
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
             </Link>
           </div>
           
-          {!latestBlogs?.length ? (
+          {blogsLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="feature-card animate-pulse">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+                    <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+                    <div className="h-20 bg-muted/50 rounded"></div>
+                    <div className="h-8 bg-muted/50 rounded w-1/4"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : blogsError ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">⚠️</div>
+              <h3 className="text-lg font-semibold mb-2">Error Loading Articles</h3>
+              <p className="text-muted-foreground mb-4">
+                There was an issue loading the latest articles. Please try again later.
+              </p>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            </div>
+          ) : !latestBlogs?.length ? (
             <div className="text-center py-12">
               <div className="text-4xl mb-4">📝</div>
               <h3 className="text-lg font-semibold mb-2">No Articles Yet</h3>
@@ -379,26 +414,56 @@ const Resources = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {latestBlogs.map((post) => (
-                <Card key={post.id} className="feature-card">
+                <Card key={post.id} className="feature-card group hover:shadow-lg transition-all duration-300">
                   <CardHeader>
-                    <CardTitle className="text-lg">{post.title}</CardTitle>
+                    {post.featured_image_url && (
+                      <div className="mb-4 overflow-hidden rounded-lg">
+                        <img 
+                          src={post.featured_image_url} 
+                          alt={post.title}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                    )}
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
+                      {post.title}
+                    </CardTitle>
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <span>{formatDate(post.created_at)}</span>
                       <span>{estimateReadTime(post.content)}</span>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground mb-4 line-clamp-3">
-                      {post.content.substring(0, 100)}...
+                    <p className="text-muted-foreground mb-4 line-clamp-3 leading-relaxed">
+                      {post.content.substring(0, 150).replace(/\n/g, ' ')}...
                     </p>
+                    
+                    {post.tags && post.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {post.tags.slice(0, 2).map((tag: string, index: number) => (
+                          <span 
+                            key={index} 
+                            className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {post.tags.length > 2 && (
+                          <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded-full">
+                            +{post.tags.length - 2} more
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
                         By {(post.profiles as any)?.full_name || 'Anonymous'}
                       </span>
                       <Link to={`/blog/${post.id}`}>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                           Read More
                           <ExternalLink className="w-4 h-4 ml-2" />
                         </Button>
