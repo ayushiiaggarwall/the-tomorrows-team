@@ -74,7 +74,7 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 2000, // Refetch every 2 seconds
+    refetchInterval: 1000, // More frequent refetch
     staleTime: 0,
   });
 
@@ -93,8 +93,9 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD registration change detected:', payload);
-          // Invalidate and refetch the query immediately
+          // Force immediate refetch for all GD-related queries
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
       .on(
@@ -106,8 +107,9 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD GD change detected:', payload);
-          // Invalidate and refetch the query immediately
+          // Force immediate refetch for all GD-related queries
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
       .subscribe();
@@ -292,9 +294,10 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    const scheduledDate = new Date(dateString);
+    // Parse the date by adding 'Z' to treat it as UTC
+    const utcDate = new Date(dateString + 'Z');
     
-    return scheduledDate.toLocaleDateString('en-US', {
+    return utcDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -303,9 +306,10 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    const scheduledDate = new Date(dateString);
+    // Parse the date by adding 'Z' to treat it as UTC
+    const utcDate = new Date(dateString + 'Z');
     
-    return scheduledDate.toLocaleTimeString('en-US', {
+    return utcDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true

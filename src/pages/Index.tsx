@@ -89,16 +89,16 @@ const Index = () => {
 
           console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
-          // Simple date parsing - treat as local time display
-          const scheduledDate = new Date(gd.scheduled_date);
+          // Parse the date by adding 'Z' to treat it as UTC, then display in local time
+          const utcDate = new Date(gd.scheduled_date + 'Z');
 
           return {
             id: gd.id,
-            date: scheduledDate.toLocaleDateString('en-US', { 
+            date: utcDate.toLocaleDateString('en-US', { 
               month: 'short', 
               day: 'numeric' 
             }),
-            time: scheduledDate.toLocaleTimeString('en-US', { 
+            time: utcDate.toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit', 
               hour12: true
@@ -112,7 +112,7 @@ const Index = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 2000, // Refetch every 2 seconds
+    refetchInterval: 1000, // More frequent refetch
     staleTime: 0,
   });
 
@@ -121,7 +121,7 @@ const Index = () => {
     console.log('Setting up real-time subscription for home page GD registrations');
     
     const channel = supabase
-      .channel(`home-updates-${Date.now()}`)
+      .channel(`home-gd-updates-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -131,8 +131,9 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD registration change detected:', payload);
-          // Invalidate and refetch the query immediately
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds', user?.id] });
+          // Force immediate refetch for all GD-related queries
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+          queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
         }
       )
       .on(
@@ -144,8 +145,9 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD change detected:', payload);
-          // Invalidate and refetch the query immediately
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds', user?.id] });
+          // Force immediate refetch for all GD-related queries
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+          queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
         }
       )
       .subscribe();
