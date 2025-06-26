@@ -36,7 +36,7 @@ const Index = () => {
 
   // Fetch real upcoming GDs from database
   const { data: upcomingGDs, isLoading: upcomingLoading } = useQuery({
-    queryKey: ['home-upcoming-gds'],
+    queryKey: ['home-upcoming-gds', user?.id],
     queryFn: async () => {
       const { data: gds, error } = await supabase
         .from('group_discussions')
@@ -58,6 +58,19 @@ const Index = () => {
 
       if (!gds) return [];
 
+      // Get user's registrations if logged in
+      let userRegisteredGdIds = new Set();
+      if (user?.id) {
+        const { data: userRegistrations, error: regError } = await supabase
+          .from('gd_registrations')
+          .select('gd_id')
+          .eq('user_id', user.id);
+
+        if (!regError && userRegistrations) {
+          userRegisteredGdIds = new Set(userRegistrations.map(reg => reg.gd_id));
+        }
+      }
+
       // Get registration counts for each GD
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
@@ -68,8 +81,10 @@ const Index = () => {
 
           const registrationsCount = count || 0;
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+          const isUserRegistered = userRegisteredGdIds.has(gd.id);
 
           return {
+            id: gd.id,
             date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
               month: 'short', 
               day: 'numeric' 
@@ -80,7 +95,8 @@ const Index = () => {
               hour12: true 
             }),
             topic: gd.topic_name,
-            spots: spotsLeft
+            spots: spotsLeft,
+            isRegistered: isUserRegistered
           };
         })
       );
@@ -260,9 +276,15 @@ const Index = () => {
                     <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">{gd.spots} spots left</span>
-                      <Link to="/join-gd">
-                        <Button size="sm" className="btn-primary">Register</Button>
-                      </Link>
+                      {gd.isRegistered ? (
+                        <Button size="sm" variant="secondary" disabled>
+                          ✅ Registered
+                        </Button>
+                      ) : (
+                        <Link to="/join-gd">
+                          <Button size="sm" className="btn-primary">Register</Button>
+                        </Link>
+                      )}
                     </div>
                   </CardContent>
                 </Card>)
