@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { X, Upload, Plus } from 'lucide-react';
+import { X, Upload, Plus, Eye, EyeOff } from 'lucide-react';
 
 interface PredefinedTag {
   id: string;
@@ -35,6 +35,12 @@ const ProfileSettings = () => {
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Fetch user profile
   const { data: userProfile, isLoading: profileLoading } = useQuery({
@@ -102,6 +108,33 @@ const ProfileSettings = () => {
     }
   });
 
+  // Change password mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ newPassword }: { newPassword: string }) => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated successfully!",
+        description: "Your password has been changed.",
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating password",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -120,6 +153,30 @@ const ProfileSettings = () => {
       profile_picture_url: profilePictureUrl || null,
       tags: selectedTags
     });
+  };
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your new passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate({ newPassword });
   };
 
   const handleTagToggle = (tagName: string) => {
@@ -204,147 +261,224 @@ const ProfileSettings = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-6">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={profilePictureUrl} />
-                    <AvatarFallback>{fullName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
-                  </Avatar>
+          <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-6">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={profilePictureUrl} />
+                      <AvatarFallback>{fullName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2">
+                      <Label htmlFor="profilePicture">Profile Picture URL</Label>
+                      <div className="flex space-x-2">
+                        <Input
+                          id="profilePicture"
+                          type="url"
+                          placeholder="https://example.com/your-photo.jpg"
+                          value={profilePictureUrl}
+                          onChange={(e) => setProfilePictureUrl(e.target.value)}
+                        />
+                        <Button type="button" variant="outline" size="sm">
+                          <Upload className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={user?.email || ''}
+                        disabled
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        type="text"
+                        placeholder="Your full name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <Input
+                        id="dateOfBirth"
+                        type="date"
+                        value={dateOfBirth}
+                        onChange={(e) => setDateOfBirth(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tags About Yourself (Select up to 3)</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Choose tags that describe your skills, personality, and interests
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Selected Tags */}
+                  {selectedTags.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Selected Tags ({selectedTags.length}/3)</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTags.map((tag) => (
+                          <Badge key={tag} variant="default" className="flex items-center gap-1">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add Custom Tag */}
                   <div className="space-y-2">
-                    <Label htmlFor="profilePicture">Profile Picture URL</Label>
+                    <Label>Add Custom Tag</Label>
                     <div className="flex space-x-2">
                       <Input
-                        id="profilePicture"
-                        type="url"
-                        placeholder="https://example.com/your-photo.jpg"
-                        value={profilePictureUrl}
-                        onChange={(e) => setProfilePictureUrl(e.target.value)}
+                        placeholder="Enter a custom tag"
+                        value={customTag}
+                        onChange={(e) => setCustomTag(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomTag())}
                       />
-                      <Button type="button" variant="outline" size="sm">
-                        <Upload className="h-4 w-4" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAddCustomTag}
+                        disabled={selectedTags.length >= 3 || !customTag.trim()}
+                      >
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="Your full name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
-                  </div>
+                  {/* Predefined Tags by Category */}
+                  {Object.entries(tagsByCategory).map(([category, tags]) => (
+                    <div key={category} className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant={selectedTags.includes(tag.name) ? "default" : "outline"}
+                            className="cursor-pointer hover:bg-primary/10"
+                            onClick={() => handleTagToggle(tag.name)}
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={dateOfBirth}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateProfileMutation.isPending}
+                  className="btn-primary"
+                >
+                  {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile'}
+                </Button>
+              </div>
+            </form>
 
+            {/* Password Change Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Tags About Yourself (Select up to 3)</CardTitle>
+                <CardTitle>Change Password</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Choose tags that describe your skills, personality, and interests
+                  Update your account password
                 </p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Selected Tags */}
-                {selectedTags.length > 0 && (
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Selected Tags ({selectedTags.length}/3)</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedTags.map((tag) => (
-                        <Badge key={tag} variant="default" className="flex items-center gap-1">
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="Enter new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
-                )}
 
-                {/* Add Custom Tag */}
-                <div className="space-y-2">
-                  <Label>Add Custom Tag</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      placeholder="Enter a custom tag"
-                      value={customTag}
-                      onChange={(e) => setCustomTag(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomTag())}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleAddCustomTag}
-                      disabled={selectedTags.length >= 3 || !customTag.trim()}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Predefined Tags by Category */}
-                {Object.entries(tagsByCategory).map(([category, tags]) => (
-                  <div key={category} className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {tags.map((tag) => (
-                        <Badge
-                          key={tag.id}
-                          variant={selectedTags.includes(tag.name) ? "default" : "outline"}
-                          className="cursor-pointer hover:bg-primary/10"
-                          onClick={() => handleTagToggle(tag.name)}
-                        >
-                          {tag.name}
-                        </Badge>
-                      ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
-                ))}
+
+                  <Button
+                    type="submit"
+                    disabled={changePasswordMutation.isPending || !newPassword || !confirmPassword}
+                    className="btn-primary"
+                  >
+                    {changePasswordMutation.isPending ? 'Updating...' : 'Change Password'}
+                  </Button>
+                </form>
               </CardContent>
             </Card>
-
-            <div className="flex justify-end space-x-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/dashboard')}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-                className="btn-primary"
-              >
-                {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile'}
-              </Button>
-            </div>
-          </form>
+          </div>
         </div>
       </main>
       
