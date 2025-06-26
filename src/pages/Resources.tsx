@@ -7,8 +7,10 @@ import { BookOpen, CheckCircle, Lightbulb, MessageSquare, Download, ExternalLink
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDownloadableResources } from '@/hooks/useDownloadableResources';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Resources = () => {
   const { user } = useAuth();
@@ -26,6 +28,44 @@ const Resources = () => {
       return;
     }
     downloadResource.mutate(resourceId);
+  };
+
+  // Fetch latest blog posts
+  const { data: latestBlogs } = useQuery({
+    queryKey: ['latest-blogs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select(`
+          *,
+          profiles!blogs_author_id_fkey(full_name)
+        `)
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('Error fetching latest blogs:', error);
+        return [];
+      }
+
+      return data || [];
+    }
+  });
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const estimateReadTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const wordCount = content.split(' ').length;
+    const readTime = Math.ceil(wordCount / wordsPerMinute);
+    return `${readTime} min read`;
   };
 
   const gdDosDonts = {
@@ -101,27 +141,6 @@ const Resources = () => {
     {
       title: "Practice Breathing",
       content: "Deep breathing before speaking calms nerves and provides steady airflow for strong vocal projection. Practice diaphragmatic breathing."
-    }
-  ];
-
-  const blogPosts = [
-    {
-      title: "The Psychology of Effective Communication",
-      excerpt: "Understanding how people process information can dramatically improve your communication effectiveness...",
-      readTime: "5 min read",
-      date: "Jan 5, 2025"
-    },
-    {
-      title: "Building Confidence for Public Speaking",
-      excerpt: "Confidence isn't something you're born with—it's a skill you can develop through practice and preparation...",
-      readTime: "7 min read", 
-      date: "Dec 28, 2024"
-    },
-    {
-      title: "Mastering Non-Verbal Communication",
-      excerpt: "Your body language speaks louder than words. Learn how to align your physical presence with your message...",
-      readTime: "6 min read",
-      date: "Dec 21, 2024"
     }
   ];
 
@@ -339,29 +358,57 @@ const Resources = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Blog Posts Section */}
+        {/* Latest Blog Posts Section - Now with real data */}
         <div className="mt-16">
-          <h2 className="text-3xl font-bold text-center mb-8">Latest Articles</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {blogPosts.map((post, index) => (
-              <Card key={index} className="feature-card">
-                <CardHeader>
-                  <CardTitle className="text-lg">{post.title}</CardTitle>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{post.date}</span>
-                    <span>{post.readTime}</span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">{post.excerpt}</p>
-                  <Button variant="outline" size="sm">
-                    Read More
-                    <ExternalLink className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold">Latest Articles</h2>
+            <Link to="/blog">
+              <Button variant="outline">View All Articles</Button>
+            </Link>
           </div>
+          
+          {!latestBlogs?.length ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-4">📝</div>
+              <h3 className="text-lg font-semibold mb-2">No Articles Yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Check back soon for new articles and insights!
+              </p>
+              <Link to="/blog">
+                <Button className="btn-primary">Visit Blog</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-6">
+              {latestBlogs.map((post) => (
+                <Card key={post.id} className="feature-card">
+                  <CardHeader>
+                    <CardTitle className="text-lg">{post.title}</CardTitle>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>{formatDate(post.created_at)}</span>
+                      <span>{estimateReadTime(post.content)}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4 line-clamp-3">
+                      {post.content.substring(0, 100)}...
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        By {post.profiles?.full_name || 'Anonymous'}
+                      </span>
+                      <Link to={`/blog/${post.id}`}>
+                        <Button variant="outline" size="sm">
+                          Read More
+                          <ExternalLink className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Download Resources Section */}

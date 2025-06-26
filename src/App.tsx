@@ -13,6 +13,7 @@ import JoinGD from "./pages/JoinGD";
 import Leaderboard from "./pages/Leaderboard";
 import WatchLearn from "./pages/WatchLearn";
 import Resources from "./pages/Resources";
+import Blog from "./pages/Blog";
 import Login from "./pages/Login";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -57,6 +58,8 @@ const App = () => (
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/watch-learn" element={<WatchLearn />} />
               <Route path="/resources" element={<Resources />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:id" element={<Blog />} />
               <Route path="/login" element={<AuthPage />} />
               <Route 
                 path="/dashboard" 
