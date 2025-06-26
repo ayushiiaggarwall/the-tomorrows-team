@@ -27,7 +27,7 @@ const Blog = () => {
         .from('blogs')
         .select(`
           *,
-          profiles(full_name)
+          author:profiles!author_id(full_name)
         `)
         .eq('id', id)
         .eq('status', 'published')
@@ -51,7 +51,7 @@ const Blog = () => {
         .from('blogs')
         .select(`
           *,
-          profiles(full_name)
+          author:profiles!author_id(full_name)
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false });
@@ -136,7 +136,7 @@ const Blog = () => {
             <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span>{blogPost.profiles?.full_name || 'Anonymous'}</span>
+                <span>{blogPost.author?.full_name || 'Anonymous'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -259,7 +259,7 @@ const Blog = () => {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
-                        By {post.profiles?.full_name || 'Anonymous'}
+                        By {post.author?.full_name || 'Anonymous'}
                       </span>
                       <Link to={`/blog/${post.id}`}>
                         <Button variant="outline" size="sm">
