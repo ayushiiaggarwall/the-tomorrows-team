@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     document.title = 'Home - The Tomorrows Team';
@@ -34,7 +35,7 @@ const Index = () => {
   }];
 
   // Fetch real upcoming GDs from database
-  const { data: upcomingGDs, isLoading: upcomingLoading, refetch: refetchUpcomingGDs } = useQuery({
+  const { data: upcomingGDs, isLoading: upcomingLoading } = useQuery({
     queryKey: ['home-upcoming-gds', user?.id],
     queryFn: async () => {
       const { data: gds, error } = await supabase
@@ -70,7 +71,7 @@ const Index = () => {
         }
       }
 
-      // Get registration counts for each GD - Using count() for accuracy
+      // Get registration counts for each GD
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
           const { count: registrationsCount, error: countError } = await supabase
@@ -88,19 +89,8 @@ const Index = () => {
 
           console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
-          // Fix date parsing - handle the scheduled_date properly
-          let scheduledDate;
-          try {
-            // Parse the date string properly
-            scheduledDate = new Date(gd.scheduled_date);
-            // Check if the date is valid
-            if (isNaN(scheduledDate.getTime())) {
-              throw new Error('Invalid date');
-            }
-          } catch (error) {
-            console.error('Error parsing date:', gd.scheduled_date, error);
-            scheduledDate = new Date(); // Fallback to current date
-          }
+          // Simple date parsing - treat as local time display
+          const scheduledDate = new Date(gd.scheduled_date);
 
           return {
             id: gd.id,
@@ -122,8 +112,8 @@ const Index = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 3000, // Refetch every 3 seconds
-    staleTime: 0, // Always consider data stale
+    refetchInterval: 2000, // Refetch every 2 seconds
+    staleTime: 0,
   });
 
   // Set up real-time subscription for registration changes on home page
@@ -131,7 +121,7 @@ const Index = () => {
     console.log('Setting up real-time subscription for home page GD registrations');
     
     const channel = supabase
-      .channel('home-gd-changes')
+      .channel(`home-updates-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -141,8 +131,8 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD registration change detected:', payload);
-          // Force immediate refetch
-          refetchUpcomingGDs();
+          // Invalidate and refetch the query immediately
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds', user?.id] });
         }
       )
       .on(
@@ -154,8 +144,8 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD change detected:', payload);
-          // Force immediate refetch
-          refetchUpcomingGDs();
+          // Invalidate and refetch the query immediately
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds', user?.id] });
         }
       )
       .subscribe();
@@ -164,7 +154,7 @@ const Index = () => {
       console.log('Cleaning up home page real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [refetchUpcomingGDs]);
+  }, [queryClient, user?.id]);
 
   // Fetch featured video for sample GD section
   const { data: featuredVideo } = useQuery({

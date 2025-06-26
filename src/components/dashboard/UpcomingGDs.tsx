@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
@@ -10,8 +10,9 @@ import { useEffect } from 'react';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const { data: upcomingGDs, isLoading, refetch } = useQuery({
+  const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -44,9 +45,8 @@ const UpcomingGDs = () => {
       }
 
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);
-      console.log('User registered GD IDs:', userRegisteredGdIds);
 
-      // Get registration counts for each GD - Using count() for accuracy
+      // Get registration counts for each GD
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
           const { count: registrationsCount, error: countError } = await supabase
@@ -64,19 +64,8 @@ const UpcomingGDs = () => {
           
           console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
-          // Fix date parsing - handle the scheduled_date properly
-          let scheduledDate;
-          try {
-            // Parse the date string properly
-            scheduledDate = new Date(gd.scheduled_date);
-            // Check if the date is valid
-            if (isNaN(scheduledDate.getTime())) {
-              throw new Error('Invalid date');
-            }
-          } catch (error) {
-            console.error('Error parsing date:', gd.scheduled_date, error);
-            scheduledDate = new Date(); // Fallback to current date
-          }
+          // Simple date parsing - treat the stored date as UTC and display as local time
+          const scheduledDate = new Date(gd.scheduled_date);
           
           return {
             id: gd.id,
@@ -98,21 +87,21 @@ const UpcomingGDs = () => {
         })
       );
 
-      return gdsWithCounts.slice(0, 5); // Show top 5 upcoming GDs
+      return gdsWithCounts.slice(0, 5);
     },
     enabled: !!user?.id,
-    refetchInterval: 3000, // Refetch every 3 seconds
-    staleTime: 0, // Always consider data stale
+    refetchInterval: 2000, // Refetch every 2 seconds
+    staleTime: 0,
   });
 
-  // Set up real-time subscription for registration changes
+  // Set up real-time subscription
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('Setting up real-time subscription for GD registrations');
+    console.log('Setting up real-time subscription for dashboard GD updates');
     
     const channel = supabase
-      .channel('dashboard-gd-changes')
+      .channel(`dashboard-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -121,9 +110,9 @@ const UpcomingGDs = () => {
           table: 'gd_registrations'
         },
         (payload) => {
-          console.log('Dashboard GD registration change detected:', payload);
-          // Force immediate refetch
-          refetch();
+          console.log('Dashboard: GD registration change detected:', payload);
+          // Invalidate and refetch the query immediately
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds', user.id] });
         }
       )
       .on(
@@ -134,9 +123,9 @@ const UpcomingGDs = () => {
           table: 'group_discussions'
         },
         (payload) => {
-          console.log('Dashboard GD change detected:', payload);
-          // Force immediate refetch
-          refetch();
+          console.log('Dashboard: GD change detected:', payload);
+          // Invalidate and refetch the query immediately
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds', user.id] });
         }
       )
       .subscribe();
@@ -145,7 +134,7 @@ const UpcomingGDs = () => {
       console.log('Cleaning up dashboard real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refetch]);
+  }, [user?.id, queryClient]);
 
   if (isLoading) {
     return (

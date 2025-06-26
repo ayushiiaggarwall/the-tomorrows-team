@@ -35,7 +35,7 @@ const JoinGD = () => {
   });
 
   // Fetch upcoming GDs with registration counts
-  const { data: upcomingGDs, isLoading, refetch } = useQuery({
+  const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
       const { data: gds, error } = await supabase
@@ -47,7 +47,7 @@ const JoinGD = () => {
 
       if (error) throw error;
 
-      // Get registration counts for each GD - Using count() for accuracy
+      // Get registration counts for each GD
       const gdsWithCounts = await Promise.all(
         (gds || []).map(async (gd) => {
           const { count: registrationsCount, error: countError } = await supabase
@@ -74,8 +74,8 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 3000, // Refetch every 3 seconds
-    staleTime: 0, // Always consider data stale
+    refetchInterval: 2000, // Refetch every 2 seconds
+    staleTime: 0,
   });
 
   // Set up real-time subscription for registration changes
@@ -83,7 +83,7 @@ const JoinGD = () => {
     console.log('Setting up real-time subscription for JoinGD registrations');
     
     const channel = supabase
-      .channel('join-gd-changes')
+      .channel(`join-gd-updates-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -93,8 +93,8 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD registration change detected:', payload);
-          // Force immediate refetch
-          refetch();
+          // Invalidate and refetch the query immediately
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
       .on(
@@ -106,8 +106,8 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD GD change detected:', payload);
-          // Force immediate refetch
-          refetch();
+          // Invalidate and refetch the query immediately
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
       .subscribe();
@@ -116,7 +116,7 @@ const JoinGD = () => {
       console.log('Cleaning up JoinGD real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [refetch]);
+  }, [queryClient]);
 
   // Register for GD mutation
   const registerMutation = useMutation({
@@ -292,19 +292,7 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    // Fix date parsing - handle the scheduled_date properly
-    let scheduledDate;
-    try {
-      // Parse the date string properly
-      scheduledDate = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(scheduledDate.getTime())) {
-        throw new Error('Invalid date');
-      }
-    } catch (error) {
-      console.error('Error parsing date:', dateString, error);
-      scheduledDate = new Date(); // Fallback to current date
-    }
+    const scheduledDate = new Date(dateString);
     
     return scheduledDate.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -315,19 +303,7 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    // Fix date parsing - handle the scheduled_date properly
-    let scheduledDate;
-    try {
-      // Parse the date string properly
-      scheduledDate = new Date(dateString);
-      // Check if the date is valid
-      if (isNaN(scheduledDate.getTime())) {
-        throw new Error('Invalid date');
-      }
-    } catch (error) {
-      console.error('Error parsing date:', dateString, error);
-      scheduledDate = new Date(); // Fallback to current date
-    }
+    const scheduledDate = new Date(dateString);
     
     return scheduledDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
