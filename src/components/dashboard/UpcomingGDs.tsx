@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,8 +64,19 @@ const UpcomingGDs = () => {
           
           console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
-          // Fix time display - parse as UTC and format as local time
-          const scheduledDate = new Date(gd.scheduled_date + 'Z'); // Force UTC parsing
+          // Fix date parsing - handle the scheduled_date properly
+          let scheduledDate;
+          try {
+            // Parse the date string properly
+            scheduledDate = new Date(gd.scheduled_date);
+            // Check if the date is valid
+            if (isNaN(scheduledDate.getTime())) {
+              throw new Error('Invalid date');
+            }
+          } catch (error) {
+            console.error('Error parsing date:', gd.scheduled_date, error);
+            scheduledDate = new Date(); // Fallback to current date
+          }
           
           return {
             id: gd.id,
@@ -89,8 +101,8 @@ const UpcomingGDs = () => {
       return gdsWithCounts.slice(0, 5); // Show top 5 upcoming GDs
     },
     enabled: !!user?.id,
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
-    staleTime: 1000, // Consider data stale after 1 second
+    refetchInterval: 3000, // Refetch every 3 seconds
+    staleTime: 0, // Always consider data stale
   });
 
   // Set up real-time subscription for registration changes
@@ -100,7 +112,7 @@ const UpcomingGDs = () => {
     console.log('Setting up real-time subscription for GD registrations');
     
     const channel = supabase
-      .channel('gd-registrations-changes')
+      .channel('dashboard-gd-changes')
       .on(
         'postgres_changes',
         {
@@ -109,15 +121,28 @@ const UpcomingGDs = () => {
           table: 'gd_registrations'
         },
         (payload) => {
-          console.log('GD registration change detected:', payload);
-          // Refetch the data immediately when registrations change
+          console.log('Dashboard GD registration change detected:', payload);
+          // Force immediate refetch
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_discussions'
+        },
+        (payload) => {
+          console.log('Dashboard GD change detected:', payload);
+          // Force immediate refetch
           refetch();
         }
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up real-time subscription');
+      console.log('Cleaning up dashboard real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, refetch]);

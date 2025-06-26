@@ -74,8 +74,8 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
-    staleTime: 1000, // Consider data stale after 1 second
+    refetchInterval: 3000, // Refetch every 3 seconds
+    staleTime: 0, // Always consider data stale
   });
 
   // Set up real-time subscription for registration changes
@@ -83,7 +83,7 @@ const JoinGD = () => {
     console.log('Setting up real-time subscription for JoinGD registrations');
     
     const channel = supabase
-      .channel('join-gd-registrations-changes')
+      .channel('join-gd-changes')
       .on(
         'postgres_changes',
         {
@@ -93,7 +93,20 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD registration change detected:', payload);
-          // Refetch the data immediately when registrations change
+          // Force immediate refetch
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_discussions'
+        },
+        (payload) => {
+          console.log('JoinGD GD change detected:', payload);
+          // Force immediate refetch
           refetch();
         }
       )
@@ -279,8 +292,20 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    // Fix time display - parse as UTC and format as local time
-    const scheduledDate = new Date(dateString + 'Z'); // Force UTC parsing
+    // Fix date parsing - handle the scheduled_date properly
+    let scheduledDate;
+    try {
+      // Parse the date string properly
+      scheduledDate = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(scheduledDate.getTime())) {
+        throw new Error('Invalid date');
+      }
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error);
+      scheduledDate = new Date(); // Fallback to current date
+    }
+    
     return scheduledDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -290,8 +315,20 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    // Fix time display - parse as UTC and format as local time
-    const scheduledDate = new Date(dateString + 'Z'); // Force UTC parsing
+    // Fix date parsing - handle the scheduled_date properly
+    let scheduledDate;
+    try {
+      // Parse the date string properly
+      scheduledDate = new Date(dateString);
+      // Check if the date is valid
+      if (isNaN(scheduledDate.getTime())) {
+        throw new Error('Invalid date');
+      }
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error);
+      scheduledDate = new Date(); // Fallback to current date
+    }
+    
     return scheduledDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',

@@ -88,8 +88,19 @@ const Index = () => {
 
           console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
-          // Fix time display - parse as UTC and format as local time
-          const scheduledDate = new Date(gd.scheduled_date + 'Z'); // Force UTC parsing
+          // Fix date parsing - handle the scheduled_date properly
+          let scheduledDate;
+          try {
+            // Parse the date string properly
+            scheduledDate = new Date(gd.scheduled_date);
+            // Check if the date is valid
+            if (isNaN(scheduledDate.getTime())) {
+              throw new Error('Invalid date');
+            }
+          } catch (error) {
+            console.error('Error parsing date:', gd.scheduled_date, error);
+            scheduledDate = new Date(); // Fallback to current date
+          }
 
           return {
             id: gd.id,
@@ -111,8 +122,8 @@ const Index = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
-    staleTime: 1000, // Consider data stale after 1 second
+    refetchInterval: 3000, // Refetch every 3 seconds
+    staleTime: 0, // Always consider data stale
   });
 
   // Set up real-time subscription for registration changes on home page
@@ -120,7 +131,7 @@ const Index = () => {
     console.log('Setting up real-time subscription for home page GD registrations');
     
     const channel = supabase
-      .channel('home-gd-registrations-changes')
+      .channel('home-gd-changes')
       .on(
         'postgres_changes',
         {
@@ -130,7 +141,20 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD registration change detected:', payload);
-          // Refetch the data immediately when registrations change
+          // Force immediate refetch
+          refetchUpcomingGDs();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_discussions'
+        },
+        (payload) => {
+          console.log('Home page GD change detected:', payload);
+          // Force immediate refetch
           refetchUpcomingGDs();
         }
       )
