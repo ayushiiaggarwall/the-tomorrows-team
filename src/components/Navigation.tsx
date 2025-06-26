@@ -12,12 +12,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Fetch user profile to get full name
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      return profile;
+    },
+    enabled: !!user?.id
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -41,9 +60,20 @@ const Navigation = () => {
   };
 
   const getUserInitials = () => {
+    if (userProfile?.full_name) {
+      const names = userProfile.full_name.trim().split(' ');
+      if (names.length >= 2) {
+        return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+      } else if (names.length === 1) {
+        return names[0].charAt(0).toUpperCase();
+      }
+    }
+    
+    // Fallback to email if no full name available
     if (user?.email) {
       return user.email.substring(0, 2).toUpperCase();
     }
+    
     return 'U';
   };
 
