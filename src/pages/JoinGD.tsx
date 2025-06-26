@@ -47,33 +47,35 @@ const JoinGD = () => {
 
       if (error) throw error;
 
-      // Get registration counts for each GD - Fixed to get actual count
+      // Get registration counts for each GD - Using count() for accuracy
       const gdsWithCounts = await Promise.all(
         (gds || []).map(async (gd) => {
-          const { data: registrations, error: countError } = await supabase
+          const { count: registrationsCount, error: countError } = await supabase
             .from('gd_registrations')
-            .select('id')
+            .select('*', { count: 'exact', head: true })
             .eq('gd_id', gd.id);
 
           if (countError) {
             console.error('Error fetching registrations for GD:', gd.id, countError);
           }
 
-          const registrationsCount = registrations?.length || 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
+          const totalRegistrations = registrationsCount || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
 
-          console.log(`JoinGD - GD ${gd.id}: totalRegistrations=${registrationsCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
+          console.log(`JoinGD - GD ${gd.id}: totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
           return {
             ...gd,
-            registrationsCount,
+            registrationsCount: totalRegistrations,
             spotsLeft
           };
         })
       );
 
       return gdsWithCounts;
-    }
+    },
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Register for GD mutation
@@ -250,7 +252,8 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const scheduledDate = new Date(dateString);
+    return scheduledDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -259,10 +262,12 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+    const scheduledDate = new Date(dateString);
+    return scheduledDate.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZone: 'UTC' // Use UTC to prevent timezone conversion issues
     });
   };
 

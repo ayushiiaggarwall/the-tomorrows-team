@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -63,17 +62,21 @@ const UpcomingGDs = () => {
           
           console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
+          // Fix time display - use the original scheduled_date without timezone conversion
+          const scheduledDate = new Date(gd.scheduled_date);
+          
           return {
             id: gd.id,
             topic: gd.topic_name,
-            date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
+            date: scheduledDate.toLocaleDateString('en-US', { 
               month: 'long', 
               day: 'numeric' 
             }),
-            time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
+            time: scheduledDate.toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit', 
-              hour12: true 
+              hour12: true,
+              timeZone: 'UTC' // Use UTC to prevent timezone conversion issues
             }),
             spotsLeft,
             totalSpots: gd.slot_capacity,
@@ -86,7 +89,8 @@ const UpcomingGDs = () => {
       return gdsWithCounts.slice(0, 5); // Show top 5 upcoming GDs
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // Refetch every 30 seconds to keep data fresh
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   if (isLoading) {

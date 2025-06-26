@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -89,16 +88,20 @@ const Index = () => {
 
           console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
+          // Fix time display - use the original scheduled_date without timezone conversion
+          const scheduledDate = new Date(gd.scheduled_date);
+
           return {
             id: gd.id,
-            date: new Date(gd.scheduled_date).toLocaleDateString('en-US', { 
+            date: scheduledDate.toLocaleDateString('en-US', { 
               month: 'short', 
               day: 'numeric' 
             }),
-            time: new Date(gd.scheduled_date).toLocaleTimeString('en-US', { 
+            time: scheduledDate.toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit', 
-              hour12: true 
+              hour12: true,
+              timeZone: 'UTC' // Use UTC to prevent timezone conversion issues
             }),
             topic: gd.topic_name,
             spots: spotsLeft,
@@ -108,7 +111,9 @@ const Index = () => {
       );
 
       return gdsWithCounts;
-    }
+    },
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time updates
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Fetch featured video for sample GD section
