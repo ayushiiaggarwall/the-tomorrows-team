@@ -1,16 +1,14 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds', user?.id],
@@ -63,7 +61,7 @@ const UpcomingGDs = () => {
           const spotsLeft = Math.max(0, gd.slot_capacity - registrationsCount);
           const isUserRegistered = userRegisteredGdIds.has(gd.id);
           
-          console.log(`GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${registrationsCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
+          console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${registrationsCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
           return {
             id: gd.id,
@@ -90,73 +88,6 @@ const UpcomingGDs = () => {
     enabled: !!user?.id,
     refetchInterval: 30000, // Refetch every 30 seconds to keep data fresh
   });
-
-  // Registration mutation
-  const registerMutation = useMutation({
-    mutationFn: async (gdId: string) => {
-      if (!user?.id) {
-        throw new Error('User must be authenticated to register');
-      }
-
-      console.log('Dashboard registration attempt for GD:', gdId);
-
-      // Check if already registered
-      const { data: existingRegistration, error: checkError } = await supabase
-        .from('gd_registrations')
-        .select('id')
-        .eq('gd_id', gdId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking existing registration:', checkError);
-        throw new Error('Failed to check registration status');
-      }
-
-      if (existingRegistration) {
-        throw new Error('You are already registered for this GD');
-      }
-
-      // Register for the GD
-      const { data, error } = await supabase
-        .from('gd_registrations')
-        .insert({
-          gd_id: gdId,
-          user_id: user.id
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Registration error:', error);
-        throw new Error(error.message || 'Failed to register for the GD');
-      }
-
-      console.log('Dashboard registration successful:', data);
-      return data;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Successfully registered for the GD!",
-      });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-    },
-    onError: (error: any) => {
-      console.error('Dashboard registration error:', error);
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to register for the GD. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleRegister = (gdId: string) => {
-    console.log('Handle register called for GD:', gdId);
-    registerMutation.mutate(gdId);
-  };
 
   if (isLoading) {
     return (
@@ -237,15 +168,11 @@ const UpcomingGDs = () => {
                         </Button>
                       )
                     ) : (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleRegister(gd.id)}
-                        disabled={registerMutation.isPending || gd.spotsLeft === 0}
-                      >
-                        {registerMutation.isPending ? 'Registering...' : 
-                         gd.spotsLeft === 0 ? 'Full' : 'Register'}
-                      </Button>
+                      <Link to="/join-gd">
+                        <Button size="sm" variant="outline">
+                          {gd.spotsLeft === 0 ? 'Full' : 'Register'}
+                        </Button>
+                      </Link>
                     )}
                   </div>
                 </div>
