@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,8 @@ import BlogManager from '@/components/admin/BlogManager';
 import MediaManager from '@/components/admin/MediaManager';
 import ParticipantOverview from '@/components/admin/ParticipantOverview';
 import AdminSettings from '@/components/admin/AdminSettings';
-import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle } from 'lucide-react';
+import ResourceManager from '@/components/admin/ResourceManager';
+import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle, FileText } from 'lucide-react';
 
 const ErrorBoundary = ({ children, error, onRetry }: { children: React.ReactNode; error?: string; onRetry?: () => void }) => {
   if (error) {
@@ -129,7 +131,7 @@ const AdminDashboard = () => {
             console.log('🔄 Tab changed to:', value);
             setActiveTab(value);
           }} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="rewards" className="flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
                 Rewards
@@ -145,6 +147,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="media" className="flex items-center gap-2">
                 <Mic className="w-4 h-4" />
                 Media
+              </TabsTrigger>
+              <TabsTrigger value="resources" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Resources
               </TabsTrigger>
               <TabsTrigger value="participants" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
@@ -170,6 +176,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="media">
               {renderTabContent('media', MediaManager)}
+            </TabsContent>
+
+            <TabsContent value="resources">
+              {renderTabContent('resources', ResourceManager)}
             </TabsContent>
 
             <TabsContent value="participants">
