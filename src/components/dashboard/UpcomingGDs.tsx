@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,7 +63,7 @@ const UpcomingGDs = () => {
           
           console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
-          // Parse the date properly
+          // Parse the date properly without adding 'Z'
           const scheduledDate = new Date(gd.scheduled_date);
           
           return {
@@ -90,18 +89,18 @@ const UpcomingGDs = () => {
       return gdsWithCounts.slice(0, 5);
     },
     enabled: !!user?.id,
-    refetchInterval: 1000, // More frequent refetch
+    refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 0,
   });
 
-  // Set up real-time subscription with force refresh
+  // Set up real-time subscription for registration changes
   useEffect(() => {
     if (!user?.id) return;
 
     console.log('Setting up real-time subscription for dashboard GD updates');
     
     const channel = supabase
-      .channel(`dashboard-gd-updates-${user.id}-${Date.now()}`)
+      .channel(`dashboard-gd-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -111,8 +110,11 @@ const UpcomingGDs = () => {
         },
         (payload) => {
           console.log('Dashboard: GD registration change detected:', payload);
-          // Force immediate refetch for all GD-related queries
+          // Invalidate all GD-related queries immediately
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+          // Force refetch this specific query
           queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
         }
       )
@@ -125,8 +127,11 @@ const UpcomingGDs = () => {
         },
         (payload) => {
           console.log('Dashboard: GD change detected:', payload);
-          // Force immediate refetch for all GD-related queries
+          // Invalidate all GD-related queries immediately
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+          // Force refetch this specific query
           queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
         }
       )

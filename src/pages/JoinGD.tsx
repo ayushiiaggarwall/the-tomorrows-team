@@ -74,7 +74,7 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 1000, // More frequent refetch
+    refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 0,
   });
 
@@ -83,7 +83,7 @@ const JoinGD = () => {
     console.log('Setting up real-time subscription for JoinGD registrations');
     
     const channel = supabase
-      .channel(`join-gd-updates-${Date.now()}`)
+      .channel(`join-gd-updates`)
       .on(
         'postgres_changes',
         {
@@ -93,8 +93,11 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD registration change detected:', payload);
-          // Force immediate refetch for all GD-related queries
+          // Invalidate all GD-related queries immediately
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+          // Force refetch this specific query
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
@@ -107,8 +110,11 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD GD change detected:', payload);
-          // Force immediate refetch for all GD-related queries
+          // Invalidate all GD-related queries immediately
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+          // Force refetch this specific query
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
@@ -165,16 +171,14 @@ const JoinGD = () => {
         selectedGdId: null
       });
       
-      // Invalidate and refetch queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['upcoming-gds-for-registration'] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['upcoming-gds', user?.id] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['home-upcoming-gds', user?.id] 
-      });
+      // Invalidate and refetch all GD-related queries
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+      queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+      // Force immediate refetch
+      queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
+      queryClient.refetchQueries({ queryKey: ['upcoming-gds', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
     },
     onError: (error: any) => {
       if (error.code === '23505') {
@@ -294,10 +298,10 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    // Parse the date by adding 'Z' to treat it as UTC
-    const utcDate = new Date(dateString + 'Z');
+    // Parse the date properly without adding 'Z'
+    const date = new Date(dateString);
     
-    return utcDate.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -306,10 +310,10 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    // Parse the date by adding 'Z' to treat it as UTC
-    const utcDate = new Date(dateString + 'Z');
+    // Parse the date properly without adding 'Z'
+    const date = new Date(dateString);
     
-    return utcDate.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
