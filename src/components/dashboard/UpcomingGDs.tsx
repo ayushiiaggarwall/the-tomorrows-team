@@ -147,6 +147,7 @@ const UpcomingGDs = () => {
 // Separate component for each GD card to manage its own registration count
 const GDCard = ({ gd }: { gd: any }) => {
   const { registrationData } = useGDRegistrationCount(gd.id);
+  const { user } = useAuth();
 
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -181,9 +182,9 @@ const GDCard = ({ gd }: { gd: any }) => {
             </Button>
           )
         ) : (
-          <Link to="/join-gd">
+          <Link to={user ? "/join-gd" : "/login"}>
             <Button size="sm" variant="outline">
-              {registrationData?.isFull ? 'Full' : 'Register'}
+              {registrationData?.isFull ? 'Full' : (user ? 'Register' : 'Sign In to Register')}
             </Button>
           </Link>
         )}

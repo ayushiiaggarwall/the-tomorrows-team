@@ -456,6 +456,7 @@ const Index = () => {
 // Separate component for each GD card on home page to manage its own registration count
 const HomeGDCard = ({ gd }: { gd: any }) => {
   const { registrationData } = useGDRegistrationCount(gd.id);
+  const { user } = useAuth();
 
   return (
     <Card className="feature-card">
@@ -477,13 +478,13 @@ const HomeGDCard = ({ gd }: { gd: any }) => {
               ✅ Registered
             </Button>
           ) : (
-            <Link to="/join-gd">
+            <Link to={user ? "/join-gd" : "/login"}>
               <Button 
                 size="sm" 
                 className="btn-primary"
                 disabled={registrationData?.isFull}
               >
-                {registrationData?.isFull ? 'Full' : 'Register'}
+                {registrationData?.isFull ? 'Full' : (user ? 'Register' : 'Sign In to Register')}
               </Button>
             </Link>
           )}
