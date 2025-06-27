@@ -1,6 +1,5 @@
-
 import { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -8,14 +7,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Calendar, User, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Lock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Blog = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = 'Blog - The Tomorrows Team';
   }, []);
+
+  // Redirect to login if trying to view a specific blog post without authentication
+  useEffect(() => {
+    if (id && !user) {
+      navigate('/login', { 
+        state: { from: { pathname: `/blog/${id}` } }
+      });
+    }
+  }, [id, user, navigate]);
 
   // Fetch single blog post if ID is provided
   const { data: blogPost, isLoading: blogLoading } = useQuery({
@@ -58,7 +69,7 @@ const Blog = () => {
       console.log('Fetched single blog with author:', result);
       return result;
     },
-    enabled: !!id
+    enabled: !!id && !!user // Only fetch if user is authenticated
   });
 
   // Fetch all published blog posts if no ID is provided
@@ -118,6 +129,35 @@ const Blog = () => {
 
   // Single blog post view
   if (id) {
+    // Show authentication required message if not logged in
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-background">
+          <Navigation />
+          <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+            <Lock className="w-16 h-16 text-primary mx-auto mb-6" />
+            <h1 className="text-3xl font-bold mb-4">Sign In Required</h1>
+            <p className="text-muted-foreground mb-6 text-lg">
+              Please sign in to read our exclusive articles and content.
+            </p>
+            <div className="space-y-4">
+              <Link to="/login" state={{ from: { pathname: `/blog/${id}` } }}>
+                <Button className="btn-primary mr-4">
+                  Sign In to Read
+                </Button>
+              </Link>
+              <Link to="/blog">
+                <Button variant="outline">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Blog List
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (blogLoading) {
       return (
         <div className="min-h-screen bg-background">

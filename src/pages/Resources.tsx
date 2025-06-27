@@ -3,7 +3,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, CheckCircle, Lightbulb, MessageSquare, Download, ExternalLink } from 'lucide-react';
+import { BookOpen, CheckCircle, Lightbulb, MessageSquare, Download, ExternalLink, Lock } from 'lucide-react';
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useDownloadableResources } from '@/hooks/useDownloadableResources';
@@ -28,6 +28,17 @@ const Resources = () => {
       return;
     }
     downloadResource.mutate(resourceId);
+  };
+
+  const handleReadMore = (postId: string) => {
+    if (!user) {
+      toast.error('Please sign in to read the full article');
+      navigate('/login', { 
+        state: { from: { pathname: `/blog/${postId}` } }
+      });
+      return;
+    }
+    navigate(`/blog/${postId}`);
   };
 
   // Fetch latest blog posts with corrected query
@@ -375,7 +386,7 @@ const Resources = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Latest Blog Posts Section - Fixed */}
+        {/* Latest Blog Posts Section - Updated */}
         <div className="mt-16">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -472,12 +483,24 @@ const Resources = () => {
                       <span className="text-sm text-muted-foreground">
                         By {post.author_name}
                       </span>
-                      <Link to={`/blog/${post.id}`}>
-                        <Button variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          Read More
-                          <ExternalLink className="w-4 h-4 ml-2" />
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                        onClick={() => handleReadMore(post.id)}
+                      >
+                        {user ? (
+                          <>
+                            Read More
+                            <ExternalLink className="w-4 h-4 ml-2" />
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-4 h-4 mr-2" />
+                            Sign In to Read
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
