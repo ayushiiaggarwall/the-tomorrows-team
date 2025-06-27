@@ -52,10 +52,11 @@ const Contact = () => {
 
     try {
       // Call Supabase Edge Function to send email
-      const response = await fetch('/functions/v1/send-contact-email', {
+      const response = await fetch('https://wusbwaddlufqjltabtnp.supabase.co/functions/v1/send-contact-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1c2J3YWRkbHVmcWpsdGFidG5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzODY5MDMsImV4cCI6MjA2NDk2MjkwM30.yd7MFH8G7FyNs-pi28SHiVRn4BVGx1xY7RQo5gHVYWU'}`,
         },
         body: JSON.stringify({
           name: formData.fullName,
@@ -66,7 +67,8 @@ const Contact = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send email');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send email');
       }
 
       toast.success('Thanks! We\'ll get back to you within 24–48 hours.');

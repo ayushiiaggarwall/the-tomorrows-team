@@ -26,18 +26,29 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { name, email, topic, message }: ContactEmailRequest = await req.json();
 
+    // Validate required fields
+    if (!name || !email || !message) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: name, email, and message are required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     // Send email to the admin
     const emailResponse = await resend.emails.send({
       from: "The Tomorrows Team <onboarding@resend.dev>",
       to: ["ayushiaggarwal030@gmail.com"],
-      subject: `New Contact Form Submission: ${topic}`,
+      subject: `New Contact Form Submission: ${topic || 'General Inquiry'}`,
       html: `
         <h2>New Contact Form Submission</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Topic:</strong> ${topic}</p>
+        <p><strong>Topic:</strong> ${topic || 'General Inquiry'}</p>
         <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
+        <p>${(message || '').replace(/\n/g, '<br>')}</p>
         <br>
         <p><em>This message was sent from The Tomorrows Team contact form.</em></p>
       `,
@@ -52,7 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
         <h2>Thank you for contacting us, ${name}!</h2>
         <p>We have received your message and will get back to you within 24-48 hours.</p>
         <p><strong>Your message:</strong></p>
-        <p>${message.replace(/\n/g, '<br>')}</p>
+        <p>${(message || '').replace(/\n/g, '<br>')}</p>
         <br>
         <p>Best regards,<br>The Tomorrows Team</p>
       `,
