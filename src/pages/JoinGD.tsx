@@ -11,7 +11,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
 import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -38,7 +37,7 @@ const JoinGD = () => {
     selectedGdId: null as string | null
   });
 
-  // Fetch upcoming GDs
+  // Fetch upcoming GDs with registration counts
   const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
@@ -50,14 +49,36 @@ const JoinGD = () => {
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;
-      return gds || [];
+
+      // Get registration counts for all GDs
+      const gdsWithCounts = await Promise.all(
+        (gds || []).map(async (gd) => {
+          const { count, error: countError } = await supabase
+            .from('gd_registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('gd_id', gd.id);
+
+          if (countError) {
+            console.error('Error counting registrations for GD:', gd.id, countError);
+            return { ...gd, spotsLeft: gd.slot_capacity, isFull: false };
+          }
+
+          const registrationCount = count || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationCount);
+          
+          return {
+            ...gd,
+            spotsLeft,
+            isFull: spotsLeft === 0
+          };
+        })
+      );
+
+      return gdsWithCounts;
     },
     staleTime: 0,
     gcTime: 0,
   });
-
-  // Get registration count for selected GD
-  const { registrationData } = useGDRegistrationCount(formData.selectedGdId || undefined);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +148,8 @@ const JoinGD = () => {
     }
 
     // Check if GD is full before attempting registration
-    if (registrationData?.isFull) {
+    const selectedGd = upcomingGDs?.find(gd => gd.id === formData.selectedGdId);
+    if (selectedGd?.isFull) {
       toast({
         title: "Session Full",
         description: "This group discussion is now full. Please try another session.",
@@ -268,6 +290,8 @@ const JoinGD = () => {
     }
   };
 
+  const selectedGd = upcomingGDs?.find(gd => gd.id === formData.selectedGdId);
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -312,55 +336,49 @@ const JoinGD = () => {
               {/* Available GDs */}
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold">Available Sessions</h2>
-                {upcomingGDs.map((gd) => {
-                  const gdRegistrationData = formData.selectedGdId === gd.id ? registrationData : null;
-                  const spotsLeft = gdRegistrationData ? gdRegistrationData.spotsLeft : gd.slot_capacity;
-                  const isFull = spotsLeft === 0;
-                  
-                  return (
-                    <Card 
-                      key={gd.id} 
-                      className={`cursor-pointer transition-all ${
-                        formData.selectedGdId === gd.id 
-                          ? 'ring-2 ring-primary bg-primary/5' 
-                          : 'hover:shadow-md'
-                      } ${isFull ? 'opacity-60' : ''}`}
-                      onClick={() => !isFull && setFormData(prev => ({ ...prev, selectedGdId: gd.id }))}
-                    >
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
-                          <Badge variant={isFull ? "destructive" : "secondary"}>
-                            {isFull ? 'Full' : `${spotsLeft} spots left`}
-                          </Badge>
+                {upcomingGDs.map((gd) => (
+                  <Card 
+                    key={gd.id} 
+                    className={`cursor-pointer transition-all ${
+                      formData.selectedGdId === gd.id 
+                        ? 'ring-2 ring-primary bg-primary/5' 
+                        : 'hover:shadow-md'
+                    } ${gd.isFull ? 'opacity-60' : ''}`}
+                    onClick={() => !gd.isFull && setFormData(prev => ({ ...prev, selectedGdId: gd.id }))}
+                  >
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
+                        <Badge variant={gd.isFull ? "destructive" : "secondary"}>
+                          {gd.isFull ? 'Full' : `${gd.spotsLeft} spots left`}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(gd.scheduled_date)}</span>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>{formatDate(gd.scheduled_date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatTime(gd.scheduled_date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            <span>{gd.slot_capacity} total slots</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            <span>{gd.meet_link ? 'Online' : 'Location TBD'}</span>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatTime(gd.scheduled_date)}</span>
                         </div>
-                        {gd.description && (
-                          <p className="mt-3 text-sm">{gd.description}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>{gd.slot_capacity} total slots</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{gd.meet_link ? 'Online' : 'Location TBD'}</span>
+                        </div>
+                      </div>
+                      {gd.description && (
+                        <p className="mt-3 text-sm">{gd.description}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
 
               {/* Registration Form */}
@@ -374,7 +392,7 @@ const JoinGD = () => {
                       <p className="text-muted-foreground text-center py-8">
                         Select a group discussion to register
                       </p>
-                    ) : registrationData?.isFull ? (
+                    ) : selectedGd?.isFull ? (
                       <div className="text-center py-8">
                         <div className="text-4xl mb-4">😞</div>
                         <h3 className="text-lg font-semibold mb-2">Session Full</h3>
@@ -384,10 +402,10 @@ const JoinGD = () => {
                       </div>
                     ) : (
                       <form onSubmit={handleSubmit} className="space-y-4">
-                        {registrationData && (
+                        {selectedGd && (
                           <div className="mb-4 p-3 bg-muted/50 rounded-lg">
                             <p className="text-sm text-muted-foreground">
-                              <strong>{registrationData.spotsLeft}</strong> out of {registrationData.totalCapacity} spots remaining
+                              <strong>{selectedGd.spotsLeft}</strong> out of {selectedGd.slot_capacity} spots remaining
                             </p>
                           </div>
                         )}
@@ -446,7 +464,7 @@ const JoinGD = () => {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={registerMutation.isPending || registrationData?.isFull}
+                          disabled={registerMutation.isPending || selectedGd?.isFull}
                         >
                           {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
                         </Button>

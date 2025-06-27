@@ -12,7 +12,8 @@ import MediaManager from '@/components/admin/MediaManager';
 import ParticipantOverview from '@/components/admin/ParticipantOverview';
 import AdminSettings from '@/components/admin/AdminSettings';
 import ResourceManager from '@/components/admin/ResourceManager';
-import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle, FileText } from 'lucide-react';
+import GDRegistrationsView from '@/components/admin/GDRegistrationsView';
+import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle, FileText, ClipboardList } from 'lucide-react';
 
 const ErrorBoundary = ({ children, error, onRetry }: { children: React.ReactNode; error?: string; onRetry?: () => void }) => {
   if (error) {
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
             console.log('🔄 Tab changed to:', value);
             setActiveTab(value);
           }} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="rewards" className="flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
                 Rewards
@@ -139,6 +140,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="discussions" className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 GDs
+              </TabsTrigger>
+              <TabsTrigger value="registrations" className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" />
+                Registrations
               </TabsTrigger>
               <TabsTrigger value="blogs" className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
@@ -168,6 +173,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="discussions">
               {renderTabContent('discussions', GroupDiscussionManager)}
+            </TabsContent>
+
+            <TabsContent value="registrations">
+              {renderTabContent('registrations', GDRegistrationsView)}
             </TabsContent>
 
             <TabsContent value="blogs">
