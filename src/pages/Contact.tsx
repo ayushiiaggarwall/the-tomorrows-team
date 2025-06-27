@@ -105,10 +105,10 @@ const Contact = () => {
       </section>
 
       <div className="max-w-6xl mx-auto px-4 pb-20">
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-stretch">
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <Card className="feature-card">
+            <Card className="feature-card h-full">
               <CardHeader>
                 <CardTitle className="text-2xl font-bold">Send us a Message</CardTitle>
               </CardHeader>
@@ -179,9 +179,9 @@ const Contact = () => {
           </div>
 
           {/* Contact Information */}
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col">
             {/* Contact Details */}
-            <Card className="feature-card">
+            <Card className="feature-card flex-1">
               <CardHeader>
                 <CardTitle className="text-xl font-bold">Get in Touch</CardTitle>
               </CardHeader>
@@ -225,7 +225,7 @@ const Contact = () => {
             </Card>
 
             {/* Social Media */}
-            <Card className="feature-card">
+            <Card className="feature-card flex-1">
               <CardHeader>
                 <CardTitle className="text-xl font-bold">Follow Us</CardTitle>
               </CardHeader>
