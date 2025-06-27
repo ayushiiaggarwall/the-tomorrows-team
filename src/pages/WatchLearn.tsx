@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -346,21 +345,6 @@ const WatchLearn = () => {
             )}
           </TabsContent>
         </Tabs>
-
-        {/* Spotify Integration Placeholder */}
-        <div className="mt-12">
-          <Card className="feature-card bg-gradient-to-r from-success/10 to-primary/10">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">Listen on Spotify</h3>
-              <p className="text-muted-foreground mb-6">
-                Access our complete podcast library and never miss an episode!
-              </p>
-              <Button className="btn-primary">
-                Open on Spotify
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       <Footer />

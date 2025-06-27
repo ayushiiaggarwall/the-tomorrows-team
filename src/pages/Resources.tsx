@@ -388,12 +388,12 @@ const Resources = () => {
 
         {/* Latest Blog Posts Section - Updated */}
         <div className="mt-16">
-          <div className="flex items-center justify-between mb-8">
+          <div className="text-center mb-8">
             <div>
               <h2 className="text-3xl font-bold">Latest Articles</h2>
               <p className="text-muted-foreground mt-2">Insights and tips from our experts</p>
             </div>
-            <Link to="/blog">
+            <Link to="/blog" className="ml-auto">
               <Button variant="outline">
                 View All Articles
                 <ExternalLink className="w-4 h-4 ml-2" />
@@ -489,17 +489,7 @@ const Resources = () => {
                         className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                         onClick={() => handleReadMore(post.id)}
                       >
-                        {user ? (
-                          <>
-                            Read More
-                            <ExternalLink className="w-4 h-4 ml-2" />
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="w-4 h-4 mr-2" />
-                            Sign In to Read
-                          </>
-                        )}
+                        Read More
                       </Button>
                     </div>
                   </CardContent>
