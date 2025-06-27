@@ -74,7 +74,7 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 3000, // Refetch every 3 seconds
+    refetchInterval: 1000, // More frequent refetch
     staleTime: 0,
   });
 
@@ -96,11 +96,6 @@ const JoinGD = () => {
           // Force immediate refetch for all GD-related queries
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          
-          // Also invalidate other related queries
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
         }
       )
       .on(
@@ -115,11 +110,6 @@ const JoinGD = () => {
           // Force immediate refetch for all GD-related queries
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          
-          // Also invalidate other related queries
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
         }
       )
       .subscribe();
@@ -175,15 +165,16 @@ const JoinGD = () => {
         selectedGdId: null
       });
       
-      // Invalidate and refetch all related queries immediately
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
-      
-      // Force immediate refetch
-      queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
-      queryClient.refetchQueries({ queryKey: ['upcoming-gds', user?.id] });
+      // Invalidate and refetch queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['upcoming-gds-for-registration'] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['upcoming-gds', user?.id] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['home-upcoming-gds', user?.id] 
+      });
     },
     onError: (error: any) => {
       if (error.code === '23505') {
@@ -303,7 +294,7 @@ const JoinGD = () => {
   };
 
   const formatDate = (dateString: string) => {
-    // Parse the date by treating it as UTC and converting to local
+    // Parse the date by adding 'Z' to treat it as UTC
     const utcDate = new Date(dateString + 'Z');
     
     return utcDate.toLocaleDateString('en-US', {
@@ -315,7 +306,7 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    // Parse the date by treating it as UTC and converting to local
+    // Parse the date by adding 'Z' to treat it as UTC
     const utcDate = new Date(dateString + 'Z');
     
     return utcDate.toLocaleTimeString('en-US', {
