@@ -71,47 +71,30 @@ const Index = () => {
         }
       }
 
-      // Count registrations for each GD by querying the database directly
-      const gdsWithCounts = await Promise.all(
-        gds.map(async (gd) => {
-          // Count ALL registrations for this specific GD from database
-          const { data: registrations, error: countError } = await supabase
-            .from('gd_registrations')
-            .select('id')
-            .eq('gd_id', gd.id);
+      const gdsWithUserStatus = gds.map((gd) => {
+        const isUserRegistered = userRegisteredGdIds.has(gd.id);
 
-          if (countError) {
-            console.error('Error counting registrations for GD:', gd.id, countError);
-          }
+        // Parse the date properly without adding 'Z'
+        const scheduledDate = new Date(gd.scheduled_date);
 
-          const totalRegistrations = registrations ? registrations.length : 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
-          const isUserRegistered = userRegisteredGdIds.has(gd.id);
+        return {
+          id: gd.id,
+          date: scheduledDate.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          }),
+          time: scheduledDate.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true
+          }),
+          topic: gd.topic_name,
+          totalCapacity: gd.slot_capacity,
+          isRegistered: isUserRegistered
+        };
+      });
 
-          console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
-
-          // Parse the date properly without adding 'Z'
-          const scheduledDate = new Date(gd.scheduled_date);
-
-          return {
-            id: gd.id,
-            date: scheduledDate.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric' 
-            }),
-            time: scheduledDate.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit', 
-              hour12: true
-            }),
-            topic: gd.topic_name,
-            spots: spotsLeft,
-            isRegistered: isUserRegistered
-          };
-        })
-      );
-
-      return gdsWithCounts;
+      return gdsWithUserStatus;
     },
     staleTime: 0, // Always refetch to get latest counts
     gcTime: 0, // Don't cache old data
@@ -325,27 +308,7 @@ const Index = () => {
                 </Link>
               </div>
             ) : (
-              upcomingGDs.map((gd, index) => <Card key={index} className="feature-card">
-                  <CardContent className="p-6">
-                    <div className="flex items-center mb-3">
-                      <Calendar className="w-5 h-5 text-primary mr-2" />
-                      <span className="text-sm font-medium text-primary">{gd.date} • {gd.time}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">{gd.spots} spots left</span>
-                      {gd.isRegistered ? (
-                        <Button size="sm" variant="secondary" disabled>
-                          ✅ Registered
-                        </Button>
-                      ) : (
-                        <Link to="/join-gd">
-                          <Button size="sm" className="btn-primary">Register</Button>
-                        </Link>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>)
+              upcomingGDs.map((gd, index) => <HomeGDCard key={index} gd={gd} />)
             )}
           </div>
           
@@ -486,4 +449,45 @@ const Index = () => {
       <Footer />
     </div>;
 };
+
+// Separate component for each GD card on home page to manage its own registration count
+const HomeGDCard = ({ gd }: { gd: any }) => {
+  const { registrationData } = useGDRegistrationCount(gd.id);
+
+  return (
+    <Card className="feature-card">
+      <CardContent className="p-6">
+        <div className="flex items-center mb-3">
+          <Calendar className="w-5 h-5 text-primary mr-2" />
+          <span className="text-sm font-medium text-primary">{gd.date} • {gd.time}</span>
+        </div>
+        <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-muted-foreground">
+            {registrationData 
+              ? `${registrationData.spotsLeft} spots left`
+              : 'Loading spots...'
+            }
+          </span>
+          {gd.isRegistered ? (
+            <Button size="sm" variant="secondary" disabled>
+              ✅ Registered
+            </Button>
+          ) : (
+            <Link to="/join-gd">
+              <Button 
+                size="sm" 
+                className="btn-primary"
+                disabled={registrationData?.isFull}
+              >
+                {registrationData?.isFull ? 'Full' : 'Register'}
+              </Button>
+            </Link>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default Index;

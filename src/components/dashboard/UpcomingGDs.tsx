@@ -1,15 +1,15 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
 import { Link } from 'react-router-dom';
-import { useEffect } from 'react';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds', user?.id],
@@ -45,102 +45,36 @@ const UpcomingGDs = () => {
 
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);
 
-      // Count registrations for each GD by querying the database directly
-      const gdsWithCounts = await Promise.all(
-        gds.map(async (gd) => {
-          // Count ALL registrations for this specific GD from database
-          const { data: registrations, error: countError } = await supabase
-            .from('gd_registrations')
-            .select('id')
-            .eq('gd_id', gd.id);
+      const gdsWithUserStatus = gds.map((gd) => {
+        const isUserRegistered = userRegisteredGdIds.has(gd.id);
+        
+        // Parse the date properly without adding 'Z'
+        const scheduledDate = new Date(gd.scheduled_date);
+        
+        return {
+          id: gd.id,
+          topic: gd.topic_name,
+          date: scheduledDate.toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric' 
+          }),
+          time: scheduledDate.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true
+          }),
+          totalSpots: gd.slot_capacity,
+          isRegistered: isUserRegistered,
+          meetLink: gd.meet_link
+        };
+      });
 
-          if (countError) {
-            console.error('Error counting registrations for GD:', gd.id, countError);
-          }
-
-          const totalRegistrations = registrations ? registrations.length : 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
-          const isUserRegistered = userRegisteredGdIds.has(gd.id);
-          
-          console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
-          
-          // Parse the date properly without adding 'Z'
-          const scheduledDate = new Date(gd.scheduled_date);
-          
-          return {
-            id: gd.id,
-            topic: gd.topic_name,
-            date: scheduledDate.toLocaleDateString('en-US', { 
-              month: 'long', 
-              day: 'numeric' 
-            }),
-            time: scheduledDate.toLocaleTimeString('en-US', { 
-              hour: 'numeric', 
-              minute: '2-digit', 
-              hour12: true
-            }),
-            spotsLeft,
-            totalSpots: gd.slot_capacity,
-            isRegistered: isUserRegistered,
-            meetLink: gd.meet_link
-          };
-        })
-      );
-
-      return gdsWithCounts.slice(0, 5);
+      return gdsWithUserStatus.slice(0, 5);
     },
     enabled: !!user?.id,
-    staleTime: 0, // Always refetch to get latest counts
-    gcTime: 0, // Don't cache old data
+    staleTime: 0,
+    gcTime: 0,
   });
-
-  // Set up real-time subscription for registration changes
-  useEffect(() => {
-    if (!user?.id) return;
-
-    console.log('Setting up real-time subscription for dashboard GD updates');
-    
-    const channel = supabase
-      .channel(`dashboard-gd-updates-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'gd_registrations'
-        },
-        (payload) => {
-          console.log('Dashboard: GD registration change detected, refetching counts:', payload);
-          // Force immediate refetch with fresh data
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'group_discussions'
-        },
-        (payload) => {
-          console.log('Dashboard: GD change detected, refetching counts:', payload);
-          // Force immediate refetch with fresh data
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up dashboard real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]);
 
   if (isLoading) {
     return (
@@ -192,43 +126,7 @@ const UpcomingGDs = () => {
           ) : (
             <>
               {upcomingGDs.map((gd) => (
-                <div key={gd.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{gd.topic}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {gd.date} at {gd.time}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {gd.spotsLeft} spots left out of {gd.totalSpots}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Badge 
-                      variant={gd.isRegistered ? 'default' : 'secondary'}
-                    >
-                      {gd.isRegistered ? 'Registered ✅' : 'Available'}
-                    </Badge>
-                    {gd.isRegistered ? (
-                      gd.meetLink ? (
-                        <Button size="sm" className="btn-primary" asChild>
-                          <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
-                            📩 Join Meeting
-                          </a>
-                        </Button>
-                      ) : (
-                        <Button size="sm" disabled>
-                          Link Coming Soon
-                        </Button>
-                      )
-                    ) : (
-                      <Link to="/join-gd">
-                        <Button size="sm" variant="outline">
-                          {gd.spotsLeft === 0 ? 'Full' : 'Register'}
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
+                <GDCard key={gd.id} gd={gd} />
               ))}
               
               <div className="mt-6 text-center">
@@ -243,6 +141,54 @@ const UpcomingGDs = () => {
         </div>
       </CardContent>
     </Card>
+  );
+};
+
+// Separate component for each GD card to manage its own registration count
+const GDCard = ({ gd }: { gd: any }) => {
+  const { registrationData } = useGDRegistrationCount(gd.id);
+
+  return (
+    <div className="flex items-center justify-between p-4 border rounded-lg">
+      <div className="flex-1">
+        <div className="font-medium">{gd.topic}</div>
+        <div className="text-sm text-muted-foreground">
+          {gd.date} at {gd.time}
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {registrationData 
+            ? `${registrationData.spotsLeft} spots left out of ${registrationData.totalCapacity}`
+            : `Loading spots...`
+          }
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <Badge 
+          variant={gd.isRegistered ? 'default' : 'secondary'}
+        >
+          {gd.isRegistered ? 'Registered ✅' : 'Available'}
+        </Badge>
+        {gd.isRegistered ? (
+          gd.meetLink ? (
+            <Button size="sm" className="btn-primary" asChild>
+              <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
+                📩 Join Meeting
+              </a>
+            </Button>
+          ) : (
+            <Button size="sm" disabled>
+              Link Coming Soon
+            </Button>
+          )
+        ) : (
+          <Link to="/join-gd">
+            <Button size="sm" variant="outline">
+              {registrationData?.isFull ? 'Full' : 'Register'}
+            </Button>
+          </Link>
+        )}
+      </div>
+    </div>
   );
 };
 

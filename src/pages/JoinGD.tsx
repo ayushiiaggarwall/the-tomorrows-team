@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Clock, Users, MapPin } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
+import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
@@ -20,7 +23,8 @@ const JoinGD = () => {
 
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const registerMutation = useAtomicGDRegistration();
+  
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -34,7 +38,7 @@ const JoinGD = () => {
     selectedGdId: null as string | null
   });
 
-  // Fetch upcoming GDs with registration counts
+  // Fetch upcoming GDs
   const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
@@ -46,154 +50,14 @@ const JoinGD = () => {
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;
-
-      // Count registrations for each GD by querying the database directly
-      const gdsWithCounts = await Promise.all(
-        (gds || []).map(async (gd) => {
-          // Count ALL registrations for this specific GD from database
-          const { data: registrations, error: countError } = await supabase
-            .from('gd_registrations')
-            .select('id')
-            .eq('gd_id', gd.id);
-
-          if (countError) {
-            console.error('Error fetching registrations for GD:', gd.id, countError);
-          }
-
-          const totalRegistrations = registrations ? registrations.length : 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
-
-          console.log(`JoinGD - GD ${gd.id}: totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
-
-          return {
-            ...gd,
-            registrationsCount: totalRegistrations,
-            spotsLeft
-          };
-        })
-      );
-
-      return gdsWithCounts;
+      return gds || [];
     },
-    staleTime: 0, // Always refetch to get latest counts
-    gcTime: 0, // Don't cache old data
+    staleTime: 0,
+    gcTime: 0,
   });
 
-  // Set up real-time subscription for registration changes
-  useEffect(() => {
-    console.log('Setting up real-time subscription for JoinGD registrations');
-    
-    const channel = supabase
-      .channel(`join-gd-updates`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'gd_registrations'
-        },
-        (payload) => {
-          console.log('JoinGD registration change detected, refetching counts:', payload);
-          // Force immediate refetch with fresh data
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'group_discussions'
-        },
-        (payload) => {
-          console.log('JoinGD GD change detected, refetching counts:', payload);
-          // Force immediate refetch with fresh data
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up JoinGD real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  // Register for GD mutation
-  const registerMutation = useMutation({
-    mutationFn: async (registrationData: any) => {
-      const { data, error } = await supabase
-        .from('gd_registrations')
-        .insert({
-          gd_id: registrationData.gdId,
-          user_id: registrationData.userId,
-          participant_name: registrationData.name,
-          participant_email: registrationData.email,
-          participant_phone: registrationData.phone,
-          participant_occupation: registrationData.occupation,
-          participant_occupation_other: registrationData.occupationOther,
-          student_institution: registrationData.studentInstitution,
-          student_year: registrationData.studentYear,
-          professional_company: registrationData.professionalCompany,
-          professional_role: registrationData.professionalRole,
-          self_employed_profession: registrationData.selfEmployedProfession
-        })
-        .select()
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Registration Successful!",
-        description: "You have been registered for the group discussion.",
-      });
-      
-      // Reset form
-      setFormData({
-        name: '',
-        phone: '',
-        occupation: '',
-        occupationOther: '',
-        studentInstitution: '',
-        studentYear: '',
-        professionalCompany: '',
-        professionalRole: '',
-        selfEmployedProfession: '',
-        selectedGdId: null
-      });
-      
-      // Force immediate refetch with fresh data
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-      queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-      queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
-      queryClient.refetchQueries({ queryKey: ['upcoming-gds', user?.id] });
-      queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
-    },
-    onError: (error: any) => {
-      if (error.code === '23505') {
-        toast({
-          title: "Already Registered",
-          description: "You are already registered for this group discussion.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Registration Failed",
-          description: error.message || "Something went wrong. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }
-  });
+  // Get registration count for selected GD
+  const { registrationData } = useGDRegistrationCount(formData.selectedGdId || undefined);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -262,43 +126,48 @@ const JoinGD = () => {
       return;
     }
 
-    // Check if user is already registered for this GD
-    const { data: existingRegistration } = await supabase
-      .from('gd_registrations')
-      .select('id')
-      .eq('gd_id', formData.selectedGdId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (existingRegistration) {
+    // Check if GD is full before attempting registration
+    if (registrationData?.isFull) {
       toast({
-        title: "Already Registered",
-        description: "You are already registered for this group discussion.",
+        title: "Session Full",
+        description: "This group discussion is now full. Please try another session.",
         variant: "destructive"
       });
       return;
     }
 
-    registerMutation.mutate({
+    await registerMutation.mutateAsync({
       gdId: formData.selectedGdId,
       userId: user.id,
       name: formData.name,
-      email: user.email, // Get email from user profile
+      email: user.email || '',
       phone: formData.phone,
       occupation: formData.occupation,
-      occupationOther: formData.occupation === 'Others' ? formData.occupationOther : null,
-      studentInstitution: formData.occupation === 'Student' ? formData.studentInstitution : null,
-      studentYear: formData.occupation === 'Student' ? formData.studentYear : null,
-      professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : null,
-      professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : null,
-      selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : null
+      occupationOther: formData.occupation === 'Others' ? formData.occupationOther : undefined,
+      studentInstitution: formData.occupation === 'Student' ? formData.studentInstitution : undefined,
+      studentYear: formData.occupation === 'Student' ? formData.studentYear : undefined,
+      professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : undefined,
+      professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : undefined,
+      selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : undefined
+    });
+
+    // Reset form on success
+    setFormData({
+      name: '',
+      phone: '',
+      occupation: '',
+      occupationOther: '',
+      studentInstitution: '',
+      studentYear: '',
+      professionalCompany: '',
+      professionalRole: '',
+      selfEmployedProfession: '',
+      selectedGdId: null
     });
   };
 
   const formatDate = (dateString: string) => {
-    // Parse the date properly without adding 'Z'
     const date = new Date(dateString);
-    
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -308,9 +177,7 @@ const JoinGD = () => {
   };
 
   const formatTime = (dateString: string) => {
-    // Parse the date properly without adding 'Z'
     const date = new Date(dateString);
-    
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -445,75 +312,55 @@ const JoinGD = () => {
               {/* Available GDs */}
               <div className="space-y-6">
                 <h2 className="text-2xl font-semibold">Available Sessions</h2>
-                {upcomingGDs.filter(gd => gd.spotsLeft > 0).map((gd) => (
-                  <Card 
-                    key={gd.id} 
-                    className={`cursor-pointer transition-all ${
-                      formData.selectedGdId === gd.id 
-                        ? 'ring-2 ring-primary bg-primary/5' 
-                        : 'hover:shadow-md'
-                    }`}
-                    onClick={() => setFormData(prev => ({ ...prev, selectedGdId: gd.id }))}
-                  >
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
-                        <Badge variant="secondary">{gd.spotsLeft} spots left</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>{formatDate(gd.scheduled_date)}</span>
+                {upcomingGDs.map((gd) => {
+                  const gdRegistrationData = formData.selectedGdId === gd.id ? registrationData : null;
+                  const spotsLeft = gdRegistrationData ? gdRegistrationData.spotsLeft : gd.slot_capacity;
+                  const isFull = spotsLeft === 0;
+                  
+                  return (
+                    <Card 
+                      key={gd.id} 
+                      className={`cursor-pointer transition-all ${
+                        formData.selectedGdId === gd.id 
+                          ? 'ring-2 ring-primary bg-primary/5' 
+                          : 'hover:shadow-md'
+                      } ${isFull ? 'opacity-60' : ''}`}
+                      onClick={() => !isFull && setFormData(prev => ({ ...prev, selectedGdId: gd.id }))}
+                    >
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
+                          <Badge variant={isFull ? "destructive" : "secondary"}>
+                            {isFull ? 'Full' : `${spotsLeft} spots left`}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span>{formatTime(gd.scheduled_date)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          <span>{gd.slot_capacity} total slots</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          <span>{gd.meet_link ? 'Online' : 'Location TBD'}</span>
-                        </div>
-                      </div>
-                      {gd.description && (
-                        <p className="mt-3 text-sm">{gd.description}</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-                
-                {upcomingGDs.filter(gd => gd.spotsLeft === 0).length > 0 && (
-                  <>
-                    <h3 className="text-lg font-medium text-muted-foreground mt-8">Full Sessions</h3>
-                    {upcomingGDs.filter(gd => gd.spotsLeft === 0).map((gd) => (
-                      <Card key={gd.id} className="opacity-60">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
-                            <Badge variant="destructive">Full</Badge>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>{formatDate(gd.scheduled_date)}</span>
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>{formatDate(gd.scheduled_date)}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              <span>{formatTime(gd.scheduled_date)}</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{formatTime(gd.scheduled_date)}</span>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </>
-                )}
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            <span>{gd.slot_capacity} total slots</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>{gd.meet_link ? 'Online' : 'Location TBD'}</span>
+                          </div>
+                        </div>
+                        {gd.description && (
+                          <p className="mt-3 text-sm">{gd.description}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
 
               {/* Registration Form */}
@@ -527,8 +374,24 @@ const JoinGD = () => {
                       <p className="text-muted-foreground text-center py-8">
                         Select a group discussion to register
                       </p>
+                    ) : registrationData?.isFull ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">😞</div>
+                        <h3 className="text-lg font-semibold mb-2">Session Full</h3>
+                        <p className="text-muted-foreground">
+                          This session is now full. Please select another session.
+                        </p>
+                      </div>
                     ) : (
                       <form onSubmit={handleSubmit} className="space-y-4">
+                        {registrationData && (
+                          <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                            <p className="text-sm text-muted-foreground">
+                              <strong>{registrationData.spotsLeft}</strong> out of {registrationData.totalCapacity} spots remaining
+                            </p>
+                          </div>
+                        )}
+                        
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name *</Label>
                           <Input
@@ -558,7 +421,6 @@ const JoinGD = () => {
                             onValueChange={(value) => setFormData(prev => ({ 
                               ...prev, 
                               occupation: value,
-                              // Reset occupation-specific fields when changing occupation
                               occupationOther: '',
                               studentInstitution: '',
                               studentYear: '',
@@ -584,7 +446,7 @@ const JoinGD = () => {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={registerMutation.isPending}
+                          disabled={registerMutation.isPending || registrationData?.isFull}
                         >
                           {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
                         </Button>
