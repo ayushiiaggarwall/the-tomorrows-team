@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, Edit, Trash2, Search, Link } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +42,7 @@ const GroupDiscussionManager = () => {
     description: '',
     scheduled_date: '',
     slot_capacity: 10,
+    meet_link: '',
     is_active: true
   });
 
@@ -112,6 +113,7 @@ const GroupDiscussionManager = () => {
         description: '',
         scheduled_date: '',
         slot_capacity: 10,
+        meet_link: '',
         is_active: true
       });
       toast({
@@ -366,6 +368,20 @@ const GroupDiscussionManager = () => {
                     max="20"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="meet_link">Meet Link (Optional)</Label>
+                  <div className="relative">
+                    <Link className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="meet_link"
+                      type="url"
+                      placeholder="https://meet.google.com/..."
+                      value={newGD.meet_link}
+                      onChange={(e) => setNewGD({ ...newGD, meet_link: e.target.value })}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
@@ -427,6 +443,20 @@ const GroupDiscussionManager = () => {
                     min="2"
                     max="20"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="edit_meet_link">Meet Link (Optional)</Label>
+                  <div className="relative">
+                    <Link className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="edit_meet_link"
+                      type="url"
+                      placeholder="https://meet.google.com/..."
+                      value={editingGD.meet_link || ''}
+                      onChange={(e) => setEditingGD({ ...editingGD, meet_link: e.target.value })}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
               </div>
               <div>
@@ -491,6 +521,19 @@ const GroupDiscussionManager = () => {
                         <Users className="w-4 h-4" />
                         {discussion.slot_capacity} slots
                       </div>
+                      {discussion.meet_link && (
+                        <div className="flex items-center gap-1">
+                          <Link className="w-4 h-4" />
+                          <a 
+                            href={discussion.meet_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            Meet Link
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
