@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,11 +48,11 @@ const JoinGD = () => {
 
       if (error) throw error;
 
-      // Get registration counts for each GD with fresh data
+      // Get registration counts for each GD - count ALL registrations
       const gdsWithCounts = await Promise.all(
         (gds || []).map(async (gd) => {
-          // Force fresh count
-          const { count: registrationsCount, error: countError } = await supabase
+          // Count ALL registrations for this GD
+          const { count: totalRegistrations, error: countError } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact', head: true })
             .eq('gd_id', gd.id);
@@ -60,14 +61,14 @@ const JoinGD = () => {
             console.error('Error fetching registrations for GD:', gd.id, countError);
           }
 
-          const totalRegistrations = registrationsCount || 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
+          const registrationCount = totalRegistrations || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationCount);
 
-          console.log(`JoinGD - GD ${gd.id}: totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
+          console.log(`JoinGD - GD ${gd.id}: totalRegistrations=${registrationCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
           return {
             ...gd,
-            registrationsCount: totalRegistrations,
+            registrationsCount: registrationCount,
             spotsLeft
           };
         })

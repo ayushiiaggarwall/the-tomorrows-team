@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -71,11 +72,11 @@ const Index = () => {
         }
       }
 
-      // Get registration counts for each GD with fresh data
+      // Get registration counts for each GD - count ALL registrations
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
-          // Force fresh count
-          const { count: registrationsCount, error: countError } = await supabase
+          // Count ALL registrations for this GD
+          const { count: totalRegistrations, error: countError } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact', head: true })
             .eq('gd_id', gd.id);
@@ -84,11 +85,11 @@ const Index = () => {
             console.error('Error counting registrations for GD:', gd.id, countError);
           }
 
-          const totalRegistrations = registrationsCount || 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
+          const registrationCount = totalRegistrations || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationCount);
           const isUserRegistered = userRegisteredGdIds.has(gd.id);
 
-          console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
+          console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${registrationCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
           // Parse the date properly without adding 'Z'
           const scheduledDate = new Date(gd.scheduled_date);
