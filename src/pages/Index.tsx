@@ -484,7 +484,7 @@ const HomeGDCard = ({ gd }: { gd: any }) => {
                 className="btn-primary"
                 disabled={registrationData?.isFull}
               >
-                {registrationData?.isFull ? 'Full' : (user ? 'Register' : 'Sign In to Register')}
+                {registrationData?.isFull ? 'Full' : 'Register'}
               </Button>
             </Link>
           )}

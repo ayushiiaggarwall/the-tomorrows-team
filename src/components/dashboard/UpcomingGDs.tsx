@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -184,7 +183,7 @@ const GDCard = ({ gd }: { gd: any }) => {
         ) : (
           <Link to={user ? "/join-gd" : "/login"}>
             <Button size="sm" variant="outline">
-              {registrationData?.isFull ? 'Full' : (user ? 'Register' : 'Sign In to Register')}
+              {registrationData?.isFull ? 'Full' : 'Register'}
             </Button>
           </Link>
         )}
