@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+
+// Helper function to convert UTC datetime to local datetime-local format
+const convertUTCToLocal = (utcDateString: string) => {
+  const date = new Date(utcDateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Helper function to convert local datetime-local to UTC for database storage
+const convertLocalToUTC = (localDateString: string) => {
+  const date = new Date(localDateString);
+  return date.toISOString();
+};
 
 const GroupDiscussionManager = () => {
   console.log('🎯 GroupDiscussionManager component mounting');
@@ -64,15 +82,16 @@ const GroupDiscussionManager = () => {
         throw new Error('User must be authenticated to create group discussions');
       }
 
-      // Add the current user's ID as the creator
-      const gdDataWithCreator = {
+      // Convert local time to UTC for storage
+      const gdDataWithUTC = {
         ...gdData,
+        scheduled_date: convertLocalToUTC(gdData.scheduled_date),
         created_by: user.id
       };
 
       const { data, error } = await supabase
         .from('group_discussions')
-        .insert([gdDataWithCreator])
+        .insert([gdDataWithUTC])
         .select()
         .single();
 
@@ -114,9 +133,16 @@ const GroupDiscussionManager = () => {
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
       console.log('📝 Updating GD:', id, updates);
+      
+      // Convert local time to UTC for storage
+      const updatesWithUTC = {
+        ...updates,
+        scheduled_date: convertLocalToUTC(updates.scheduled_date)
+      };
+      
       const { data, error } = await supabase
         .from('group_discussions')
-        .update(updates)
+        .update(updatesWithUTC)
         .eq('id', id)
         .select()
         .single();
@@ -386,7 +412,7 @@ const GroupDiscussionManager = () => {
                   <Input
                     id="edit_scheduled_date"
                     type="datetime-local"
-                    value={editingGD.scheduled_date?.slice(0, 16)}
+                    value={convertUTCToLocal(editingGD.scheduled_date)}
                     onChange={(e) => setEditingGD({ ...editingGD, scheduled_date: e.target.value })}
                     required
                   />
