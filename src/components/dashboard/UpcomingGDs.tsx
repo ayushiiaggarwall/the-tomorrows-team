@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,8 +63,8 @@ const UpcomingGDs = () => {
           
           console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
-          // Parse the date properly
-          const scheduledDate = new Date(gd.scheduled_date);
+          // Parse the date properly - treat stored date as UTC and convert to local
+          const scheduledDate = new Date(gd.scheduled_date + 'Z');
           
           return {
             id: gd.id,
@@ -90,11 +89,11 @@ const UpcomingGDs = () => {
       return gdsWithCounts.slice(0, 5);
     },
     enabled: !!user?.id,
-    refetchInterval: 1000, // More frequent refetch
+    refetchInterval: 5000, // Refetch every 5 seconds
     staleTime: 0,
   });
 
-  // Set up real-time subscription with force refresh
+  // Set up real-time subscription with aggressive refresh
   useEffect(() => {
     if (!user?.id) return;
 
@@ -111,9 +110,13 @@ const UpcomingGDs = () => {
         },
         (payload) => {
           console.log('Dashboard: GD registration change detected:', payload);
-          // Force immediate refetch for all GD-related queries
+          // Force immediate refetch with multiple approaches
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
+          
+          // Also invalidate home page queries if they exist
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
         }
       )
       .on(
@@ -125,9 +128,13 @@ const UpcomingGDs = () => {
         },
         (payload) => {
           console.log('Dashboard: GD change detected:', payload);
-          // Force immediate refetch for all GD-related queries
+          // Force immediate refetch with multiple approaches
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
+          
+          // Also invalidate home page queries if they exist
+          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
         }
       )
       .subscribe();
