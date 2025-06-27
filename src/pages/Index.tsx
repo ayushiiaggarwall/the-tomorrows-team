@@ -89,16 +89,16 @@ const Index = () => {
 
           console.log(`Home GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
 
-          // Parse the date by adding 'Z' to treat it as UTC, then display in local time
-          const utcDate = new Date(gd.scheduled_date + 'Z');
+          // Parse the date properly
+          const scheduledDate = new Date(gd.scheduled_date);
 
           return {
             id: gd.id,
-            date: utcDate.toLocaleDateString('en-US', { 
+            date: scheduledDate.toLocaleDateString('en-US', { 
               month: 'short', 
               day: 'numeric' 
             }),
-            time: utcDate.toLocaleTimeString('en-US', { 
+            time: scheduledDate.toLocaleTimeString('en-US', { 
               hour: 'numeric', 
               minute: '2-digit', 
               hour12: true
