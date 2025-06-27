@@ -23,22 +23,40 @@ const Blog = () => {
     queryFn: async () => {
       if (!id) return null;
       
-      const { data, error } = await supabase
+      console.log('Fetching single blog post with ID:', id);
+      
+      // First get the blog
+      const { data: blogData, error: blogError } = await supabase
         .from('blogs')
-        .select(`
-          *,
-          profiles!blogs_author_id_fkey(full_name)
-        `)
+        .select('id, title, content, featured_image_url, tags, created_at, author_id')
         .eq('id', id)
         .eq('status', 'published')
         .single();
 
-      if (error) {
-        console.error('Error fetching blog post:', error);
+      if (blogError) {
+        console.error('Error fetching blog post:', blogError);
         return null;
       }
 
-      return data;
+      if (!blogData) {
+        console.log('No blog found with ID:', id);
+        return null;
+      }
+
+      // Then get author details
+      const { data: authorData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', blogData.author_id)
+        .single();
+
+      const result = {
+        ...blogData,
+        author_name: authorData?.full_name || 'Anonymous'
+      };
+
+      console.log('Fetched single blog with author:', result);
+      return result;
     },
     enabled: !!id
   });
@@ -47,21 +65,38 @@ const Blog = () => {
   const { data: blogPosts, isLoading: postsLoading } = useQuery({
     queryKey: ['blog-posts'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('Fetching all blog posts...');
+      
+      // First get the blogs
+      const { data: blogsData, error: blogsError } = await supabase
         .from('blogs')
-        .select(`
-          *,
-          profiles!blogs_author_id_fkey(full_name)
-        `)
+        .select('id, title, content, featured_image_url, tags, created_at, author_id')
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching blog posts:', error);
+      if (blogsError) {
+        console.error('Error fetching blog posts:', blogsError);
         return [];
       }
 
-      return data || [];
+      // Then get author details for each blog
+      const blogsWithAuthors = await Promise.all(
+        (blogsData || []).map(async (blog) => {
+          const { data: authorData } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', blog.author_id)
+            .single();
+
+          return {
+            ...blog,
+            author_name: authorData?.full_name || 'Anonymous'
+          };
+        })
+      );
+
+      console.log('Fetched all blogs with authors:', blogsWithAuthors);
+      return blogsWithAuthors || [];
     },
     enabled: !id
   });
@@ -136,7 +171,7 @@ const Blog = () => {
             <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
-                <span>{(blogPost.profiles as any)?.full_name || 'Anonymous'}</span>
+                <span>{blogPost.author_name}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -259,7 +294,7 @@ const Blog = () => {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">
-                        By {(post.profiles as any)?.full_name || 'Anonymous'}
+                        By {post.author_name}
                       </span>
                       <Link to={`/blog/${post.id}`}>
                         <Button variant="outline" size="sm">
