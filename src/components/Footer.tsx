@@ -21,13 +21,28 @@ const Footer = () => {
               Built with purpose, powered by people. Join our community of bold thinkers improving their communication skills.
             </p>
             <div className="flex space-x-4">
-              <a href="https://youtube.com" className="text-muted-foreground hover:text-primary transition-colors">
+              <a 
+                href="https://youtube.com/@thetomorrowsteam?si=NKxIUwdc3RJNLNuA" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-red-600 hover:text-red-700 transition-colors"
+              >
                 <Youtube size={24} />
               </a>
-              <a href="https://instagram.com" className="text-muted-foreground hover:text-primary transition-colors">
+              <a 
+                href="https://www.instagram.com/thetomorrowsteam_?igsh=NXhqd3VodXMzcXk1&utm_source=qr" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-pink-600 hover:text-pink-700 transition-colors"
+              >
                 <Instagram size={24} />
               </a>
-              <a href="https://linkedin.com" className="text-muted-foreground hover:text-primary transition-colors">
+              <a 
+                href="https://www.linkedin.com/company/107558545/admin/dashboard/" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 transition-colors"
+              >
                 <Linkedin size={24} />
               </a>
             </div>
