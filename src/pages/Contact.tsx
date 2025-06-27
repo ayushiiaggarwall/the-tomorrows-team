@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Youtube, Instagram, Linkedin, Mail, MessageCircle, Clock, MapPin } from 'lucide-react';
+import { Youtube, Instagram, Linkedin, Mail, MessageCircle, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Contact = () => {
@@ -51,10 +51,24 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      // For now, we'll just show a success message
-      // In a real app, you would send this to your backend or email service
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
+      // Call Supabase Edge Function to send email
+      const response = await fetch('/functions/v1/send-contact-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          topic: formData.topic || 'General Inquiry',
+          message: formData.message
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
+
       toast.success('Thanks! We\'ll get back to you within 24–48 hours.');
       
       // Reset form
@@ -65,6 +79,7 @@ const Contact = () => {
         message: ''
       });
     } catch (error) {
+      console.error('Error sending email:', error);
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -198,18 +213,10 @@ const Contact = () => {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-orange-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Response Time</p>
-                    <p className="text-muted-foreground">We usually reply within 24 hours</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-purple-600 mt-0.5" />
                   <div>
                     <p className="font-medium">Location</p>
-                    <p className="text-muted-foreground">Based in India. Operating remotely across the country.</p>
+                    <p className="text-muted-foreground">Based in India, working remotely</p>
                   </div>
                 </div>
               </CardContent>
