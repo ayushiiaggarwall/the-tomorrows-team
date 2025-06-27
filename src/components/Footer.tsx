@@ -67,22 +67,23 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Resources */}
+          {/* Resources & Contact */}
           <div>
             <h4 className="font-semibold text-foreground mb-4">Resources</h4>
-            <div className="space-y-2">
+            <div className="space-y-2 mb-6">
               <Link to="/resources" className="block text-muted-foreground hover:text-primary transition-colors">
                 GD Tips
               </Link>
-              <Link to="/resources" className="block text-muted-foreground hover:text-primary transition-colors">
-                Sample Answers
+              <Link to="/blog" className="block text-muted-foreground hover:text-primary transition-colors">
+                Blogs
               </Link>
-              <Link to="/resources" className="block text-muted-foreground hover:text-primary transition-colors">
-                Interview Prep
+            </div>
+            
+            <h4 className="font-semibold text-foreground mb-4">Contact Us</h4>
+            <div className="space-y-2">
+              <Link to="/contact" className="block text-muted-foreground hover:text-primary transition-colors">
+                Get in Touch
               </Link>
-              <a href="mailto:contact@tomorrowsteam.com" className="block text-muted-foreground hover:text-primary transition-colors">
-                Contact
-              </a>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -119,21 +120,6 @@ const Resources = () => {
     ]
   };
 
-  const sampleAnswers = [
-    {
-      topic: "Should social media platforms be regulated?",
-      answer: "I believe social media regulation is necessary but should be balanced. Platforms like Facebook and Twitter have immense influence on public opinion, as we saw during elections and the pandemic. However, over-regulation could stifle free speech. A middle ground would be requiring transparency in algorithms and fact-checking mechanisms while preserving the right to express opinions."
-    },
-    {
-      topic: "Is remote work the future of employment?",
-      answer: "Remote work is definitely part of the future, but not the complete picture. The pandemic proved that many jobs can be done effectively from home, increasing productivity and work-life balance. However, collaboration, mentorship, and company culture benefit from in-person interactions. I think a hybrid model combining remote flexibility with periodic office presence will become the new normal."
-    },
-    {
-      topic: "Should college education be free?",
-      answer: "Free college education has merits but also challenges. Countries like Germany and Norway show it can increase access to higher education and reduce inequality. However, funding such programs requires significant public investment. Perhaps a compromise like income-based repayment plans or free community college could provide benefits while maintaining sustainability. The key is ensuring quality education remains accessible to all economic backgrounds."
-    }
-  ];
-
   const interviewTips = [
     {
       title: "Structure Your Responses",
@@ -190,9 +176,8 @@ const Resources = () => {
 
       <div className="max-w-7xl mx-auto px-4 pb-20">
         <Tabs defaultValue="gd-tips" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="gd-tips">GD Tips</TabsTrigger>
-            <TabsTrigger value="sample-answers">Sample Answers</TabsTrigger>
             <TabsTrigger value="interview-prep">Interview Prep</TabsTrigger>
             <TabsTrigger value="speaking-tips">Speaking Tips</TabsTrigger>
           </TabsList>
@@ -271,30 +256,6 @@ const Resources = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Sample Answers */}
-          <TabsContent value="sample-answers" className="mt-8">
-            <div className="space-y-6">
-              {sampleAnswers.map((sample, index) => (
-                <Card key={index} className="feature-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{sample.topic}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground leading-relaxed italic">
-                      "{sample.answer}"
-                    </p>
-                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-sm font-medium mb-1">Analysis:</p>
-                      <p className="text-sm text-muted-foreground">
-                        This answer demonstrates balanced thinking, uses specific examples, acknowledges multiple perspectives, and provides a practical solution.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           </TabsContent>
 
           {/* Interview Prep */}
