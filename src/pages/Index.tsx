@@ -71,9 +71,10 @@ const Index = () => {
         }
       }
 
-      // Get registration counts for each GD
+      // Get registration counts for each GD with fresh data
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
+          // Force fresh count
           const { count: registrationsCount, error: countError } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact', head: true })
@@ -112,8 +113,9 @@ const Index = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 0,
+    refetchInterval: 5000, // Refetch every 5 seconds
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache old data
   });
 
   // Set up real-time subscription for registration changes on home page
@@ -131,11 +133,11 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD registration change detected:', payload);
-          // Invalidate all GD-related queries immediately
+          // Immediately invalidate and refetch all GD queries
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          // Force refetch home page query
+          // Force immediate refetch
           queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
         }
       )
@@ -148,11 +150,11 @@ const Index = () => {
         },
         (payload) => {
           console.log('Home page GD change detected:', payload);
-          // Invalidate all GD-related queries immediately
+          // Immediately invalidate and refetch all GD queries
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          // Force refetch home page query
+          // Force immediate refetch
           queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
         }
       )

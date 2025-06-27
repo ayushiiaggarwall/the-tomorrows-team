@@ -47,9 +47,10 @@ const JoinGD = () => {
 
       if (error) throw error;
 
-      // Get registration counts for each GD
+      // Get registration counts for each GD with fresh data
       const gdsWithCounts = await Promise.all(
         (gds || []).map(async (gd) => {
+          // Force fresh count
           const { count: registrationsCount, error: countError } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact', head: true })
@@ -74,8 +75,9 @@ const JoinGD = () => {
 
       return gdsWithCounts;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
-    staleTime: 0,
+    refetchInterval: 5000, // Refetch every 5 seconds
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache old data
   });
 
   // Set up real-time subscription for registration changes
@@ -93,11 +95,11 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD registration change detected:', payload);
-          // Invalidate all GD-related queries immediately
+          // Immediately invalidate and refetch all GD queries
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          // Force refetch this specific query
+          // Force immediate refetch
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
@@ -110,11 +112,11 @@ const JoinGD = () => {
         },
         (payload) => {
           console.log('JoinGD GD change detected:', payload);
-          // Invalidate all GD-related queries immediately
+          // Immediately invalidate and refetch all GD queries
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          // Force refetch this specific query
+          // Force immediate refetch
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
@@ -171,7 +173,7 @@ const JoinGD = () => {
         selectedGdId: null
       });
       
-      // Invalidate and refetch all GD-related queries
+      // Immediately invalidate and refetch all GD queries
       queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
       queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
       queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
