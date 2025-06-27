@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,24 +45,24 @@ const UpcomingGDs = () => {
 
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);
 
-      // Get registration counts for each GD - count ALL registrations, not just user's
+      // Count registrations for each GD by querying the database directly
       const gdsWithCounts = await Promise.all(
         gds.map(async (gd) => {
-          // Count ALL registrations for this GD
-          const { count: totalRegistrations, error: countError } = await supabase
+          // Count ALL registrations for this specific GD from database
+          const { data: registrations, error: countError } = await supabase
             .from('gd_registrations')
-            .select('*', { count: 'exact', head: true })
+            .select('id')
             .eq('gd_id', gd.id);
 
           if (countError) {
             console.error('Error counting registrations for GD:', gd.id, countError);
           }
 
-          const registrationCount = totalRegistrations || 0;
-          const spotsLeft = Math.max(0, gd.slot_capacity - registrationCount);
+          const totalRegistrations = registrations ? registrations.length : 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
           const isUserRegistered = userRegisteredGdIds.has(gd.id);
           
-          console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${registrationCount}, spots=${spotsLeft}/${gd.slot_capacity}`);
+          console.log(`Dashboard GD ${gd.id}: registered=${isUserRegistered}, totalRegistrations=${totalRegistrations}, spots=${spotsLeft}/${gd.slot_capacity}`);
           
           // Parse the date properly without adding 'Z'
           const scheduledDate = new Date(gd.scheduled_date);
@@ -91,8 +90,7 @@ const UpcomingGDs = () => {
       return gdsWithCounts.slice(0, 5);
     },
     enabled: !!user?.id,
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
-    staleTime: 0, // Always consider data stale
+    staleTime: 0, // Always refetch to get latest counts
     gcTime: 0, // Don't cache old data
   });
 
@@ -112,12 +110,11 @@ const UpcomingGDs = () => {
           table: 'gd_registrations'
         },
         (payload) => {
-          console.log('Dashboard: GD registration change detected:', payload);
-          // Immediately invalidate and refetch all GD queries
+          console.log('Dashboard: GD registration change detected, refetching counts:', payload);
+          // Force immediate refetch with fresh data
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          // Force immediate refetch
           queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
         }
       )
@@ -129,12 +126,11 @@ const UpcomingGDs = () => {
           table: 'group_discussions'
         },
         (payload) => {
-          console.log('Dashboard: GD change detected:', payload);
-          // Immediately invalidate and refetch all GD queries
+          console.log('Dashboard: GD change detected, refetching counts:', payload);
+          // Force immediate refetch with fresh data
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          // Force immediate refetch
           queryClient.refetchQueries({ queryKey: ['upcoming-gds', user.id] });
         }
       )
