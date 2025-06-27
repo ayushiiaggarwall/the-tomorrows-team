@@ -1,4 +1,5 @@
 
+
 -- Create an atomic function for GD registration that prevents race conditions
 CREATE OR REPLACE FUNCTION public.register_for_gd_atomic(
   p_gd_id UUID,
@@ -46,12 +47,11 @@ BEGIN
     RAISE EXCEPTION 'ALREADY_REGISTERED: User is already registered for this GD';
   END IF;
   
-  -- Count current registrations with lock
+  -- Count current registrations without FOR UPDATE (aggregate functions don't support it)
   SELECT COUNT(*)
   INTO v_current_registrations
   FROM public.gd_registrations
-  WHERE gd_id = p_gd_id
-  FOR UPDATE;
+  WHERE gd_id = p_gd_id;
   
   -- Calculate spots left
   v_spots_left := v_slot_capacity - v_current_registrations;
@@ -106,3 +106,4 @@ EXCEPTION
     RAISE;
 END;
 $$;
+
