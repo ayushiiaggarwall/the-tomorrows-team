@@ -518,6 +518,23 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      register_for_gd_atomic: {
+        Args: {
+          p_gd_id: string
+          p_user_id: string
+          p_participant_name: string
+          p_participant_email: string
+          p_participant_phone: string
+          p_participant_occupation?: string
+          p_participant_occupation_other?: string
+          p_student_institution?: string
+          p_student_year?: string
+          p_professional_company?: string
+          p_professional_role?: string
+          p_self_employed_profession?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

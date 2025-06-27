@@ -96,8 +96,8 @@ const Index = () => {
 
       return gdsWithUserStatus;
     },
-    staleTime: 0, // Always refetch to get latest counts
-    gcTime: 0, // Don't cache old data
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Set up real-time subscription for registration changes on home page
@@ -209,7 +209,8 @@ const Index = () => {
     enabled: !!user?.id
   });
 
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       {/* Hero Section */}
@@ -447,7 +448,8 @@ const Index = () => {
       />
 
       <Footer />
-    </div>;
+    </div>
+  );
 };
 
 // Separate component for each GD card on home page to manage its own registration count
