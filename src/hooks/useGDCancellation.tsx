@@ -30,7 +30,7 @@ export const useGDCancellation = () => {
       }
 
       console.log('Cancellation successful:', data);
-      return data as CancellationResponse;
+      return data as unknown as CancellationResponse;
     },
     onSuccess: (data) => {
       const message = data?.message || 'Registration cancelled successfully';
