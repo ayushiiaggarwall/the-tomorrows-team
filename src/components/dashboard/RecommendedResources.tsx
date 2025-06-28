@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDownloadableResources } from '@/hooks/useDownloadableResources';
@@ -24,6 +23,11 @@ const RecommendedResources = () => {
     navigate(`/resources#${anchor}`);
   };
 
+  // Find the Ultimate Guide resource for download
+  const ultimateGuideResource = resources?.find(resource => 
+    resource.title.toLowerCase().includes('ultimate guide')
+  );
+
   const featuredResources = [
     {
       type: 'guide',
@@ -37,7 +41,8 @@ const RecommendedResources = () => {
       icon: '📖',
       title: 'The Ultimate Guide for Group Discussion',
       description: 'Complete guide to excel in GDs',
-      anchor: 'ultimate-guide'
+      anchor: 'ultimate-guide',
+      hasDownload: true
     }
   ];
 
@@ -56,19 +61,37 @@ const RecommendedResources = () => {
         {featuredResources.map((resource, index) => (
           <div 
             key={index} 
-            className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-            onClick={() => handleResourceClick(resource.anchor)}
+            className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
           >
             <div className="text-lg">{resource.icon}</div>
             <div className="flex-1">
-              <div className="font-medium text-sm text-primary hover:underline">{resource.title}</div>
+              <div 
+                className="font-medium text-sm text-primary hover:underline cursor-pointer"
+                onClick={() => handleResourceClick(resource.anchor)}
+              >
+                {resource.title}
+              </div>
               <div className="text-xs text-muted-foreground">{resource.description}</div>
+              {resource.hasDownload && ultimateGuideResource && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-1 h-6 px-2 text-xs"
+                  onClick={() => handleDownload(ultimateGuideResource.id)}
+                  disabled={downloadResource.isPending}
+                >
+                  {downloadResource.isPending ? 'Downloading...' : 'Download'}
+                </Button>
+              )}
             </div>
           </div>
         ))}
 
-        {/* Downloadable resources - only show first 2 with download buttons */}
-        {resources && resources.slice(0, 2).map((resource) => (
+        {/* Other downloadable resources - exclude the Ultimate Guide since it's now featured above */}
+        {resources && resources
+          .filter(resource => !resource.title.toLowerCase().includes('ultimate guide'))
+          .slice(0, 1)
+          .map((resource) => (
           <div key={resource.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
             <div className="text-lg">📄</div>
             <div className="flex-1">
