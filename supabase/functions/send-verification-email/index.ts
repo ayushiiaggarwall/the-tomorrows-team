@@ -14,6 +14,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Processing verification email request...')
+    
     const payload = await req.text()
     const headers = Object.fromEntries(req.headers)
     const wh = new Webhook(hookSecret)
@@ -36,6 +38,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log('Webhook verified, preparing email for:', user.email)
+
     // Extract first name from full name or use email
     const fullName = user.user_metadata?.full_name || user.email
     const firstName = fullName.split(' ')[0] || 'there'
@@ -44,21 +48,41 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const verificationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`
 
-    // Render the email template
-    const html = await renderAsync(
+    console.log('Rendering email template...')
+
+    // Render the email template with timeout
+    const renderPromise = renderAsync(
       React.createElement(VerificationEmail, {
         firstName,
         verificationUrl,
       })
     )
 
-    // Send the email using your custom domain
-    const { error } = await resend.emails.send({
+    // Add a timeout to the rendering
+    const html = await Promise.race([
+      renderPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Template rendering timeout')), 3000)
+      )
+    ]) as string
+
+    console.log('Template rendered, sending email...')
+
+    // Send the email using your custom domain with timeout
+    const emailPromise = resend.emails.send({
       from: 'hello@thetomorrowsteam.com',
       to: [user.email],
       subject: '✅ Verify your email to activate your account',
       html,
     })
+
+    // Add timeout to email sending
+    const { error } = await Promise.race([
+      emailPromise,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Email sending timeout')), 2000)
+      )
+    ]) as any
 
     if (error) {
       console.error('Error sending email:', error)
@@ -74,16 +98,15 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error in send-verification-email function:', error)
-    return new Response(
-      JSON.stringify({
-        error: {
-          message: error.message,
-        },
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
+    
+    // Return success even if email fails to prevent auth flow interruption
+    // Log the error for debugging but don't block user registration
+    return new Response(JSON.stringify({ 
+      success: true, 
+      warning: 'Email may be delayed' 
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 })
