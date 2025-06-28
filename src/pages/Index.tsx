@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -10,6 +11,34 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
+
+// Helper function to convert video URLs to embeddable format
+const getEmbeddableUrl = (url: string): string => {
+  // YouTube URLs
+  if (url.includes('youtube.com/watch?v=')) {
+    const videoId = url.split('v=')[1]?.split('&')[0];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  
+  // Already an embed URL
+  if (url.includes('youtube.com/embed/')) {
+    return url;
+  }
+  
+  // Vimeo URLs
+  if (url.includes('vimeo.com/')) {
+    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+    return `https://player.vimeo.com/video/${videoId}`;
+  }
+  
+  // For other platforms or already embeddable URLs, return as-is
+  return url;
+};
 
 const Index = () => {
   const { user } = useAuth();
@@ -336,7 +365,7 @@ const Index = () => {
               <iframe 
                 width="100%" 
                 height="100%" 
-                src={featuredVideo.media_url} 
+                src={getEmbeddableUrl(featuredVideo.media_url)} 
                 title={featuredVideo.title} 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
