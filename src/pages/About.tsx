@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -37,8 +38,8 @@ const About = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             About The Tomorrows Team
           </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Building confident communicators for tomorrow's world
+          <p className="text-xl text-muted-foreground">
+            Building Confident Communicators for Tomorrow's World
           </p>
         </div>
       </section>
@@ -47,12 +48,31 @@ const About = () => {
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="prose prose-lg max-w-none">
-            <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-              We're a community-led platform where individuals grow their confidence, improve articulation, and learn to express ideas effectively. Whether you're preparing for an interview, want to share your opinion on global issues, or just want to learn by listening — this is your space.
+            <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+              At The Tomorrows Team, we believe the ability to speak clearly, think critically, and connect meaningfully is one of the most powerful tools a person can have. From acing interviews and leading team meetings to expressing ideas in classrooms, conferences, or casual conversations — communication shapes opportunities, relationships, and identities.
             </p>
             
+            <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+              But communication isn't just about talking. It's about being heard, being understood, and having the courage to stand up and say something that matters.
+            </p>
+
+            <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+              We're a community-led platform built to give that courage a voice. Here, individuals from all walks of life come together to practice, grow, and evolve — not just as speakers, but as active listeners, empathetic collaborators, and thoughtful leaders.
+            </p>
+
+            <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+              Whether you're a:
+            </p>
+
+            <div className="text-lg text-muted-foreground mb-6 leading-relaxed space-y-2">
+              <p>🌱 Student trying to crack your first GD</p>
+              <p>👩‍💼 Professional looking to sharpen your presentation skills</p>
+              <p>🎙️ Curious thinker who wants to challenge ideas through discussion</p>
+              <p>🫂 Listener who learns best by observing conversations</p>
+            </div>
+
             <p className="text-lg text-muted-foreground mb-12 leading-relaxed">
-              Our mission is simple: to democratize access to quality communication training. We believe that effective communication is not a privilege but a skill that everyone deserves to develop, regardless of their background or current ability level.
+              This is your space to show up, speak up, and stretch beyond your comfort zone — one discussion at a time.
             </p>
           </div>
         </div>
@@ -60,13 +80,32 @@ const About = () => {
 
       {/* Vision Section */}
       <section className="py-16 px-4 bg-muted/50">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-8 text-center">
             Our Vision
           </h2>
-          <p className="text-xl text-muted-foreground leading-relaxed">
-            To create a generation of confident communicators who can articulate their thoughts clearly, listen actively, and engage in meaningful conversations that drive positive change in society.
-          </p>
+          <div className="text-lg text-muted-foreground leading-relaxed space-y-6">
+            <p>
+              We envision a world where everyone feels confident using their voice — regardless of their background, accent, or level of experience.
+            </p>
+            
+            <p>A world where:</p>
+            
+            <div className="space-y-2 ml-4">
+              <p>Students in small towns and cities feel just as equipped to express ideas as those in metros</p>
+              <p>Group discussions and public speaking don't cause anxiety but spark growth</p>
+              <p>Communication is seen not as a talent for a few, but as a skill for all</p>
+            </div>
+            
+            <p>
+              At The Tomorrows Team, our vision is to build a global community of bold, thoughtful, and collaborative communicators — one conversation at a time.
+            </p>
+            
+            <div className="text-center space-y-2 mt-8">
+              <p className="font-semibold">We are not here to create performers.</p>
+              <p className="font-semibold">We are here to empower thinkers who can speak with clarity, purpose, and heart.</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -108,16 +147,31 @@ const About = () => {
               </h2>
               <div className="text-lg text-muted-foreground leading-relaxed space-y-4">
                 <p>
-                  "The idea for The Tomorrows Team came from my own struggles with public speaking during college. I realized that while technical skills can be learned from books and courses, communication skills require practice with real people in real situations."
+                  "When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
                 </p>
                 <p>
-                  "After years of participating in debates, group discussions, and public speaking events, I discovered that the best learning happens in a supportive community where people aren't afraid to make mistakes and grow together."
+                  In classrooms, offices, and even friend circles, I saw brilliant minds with incredible ideas… hesitant to speak. Not because they didn't know what to say, but because they weren't confident how to say it. And somewhere along the way, I realized this isn't just a communication issue — it's a confidence issue.
                 </p>
                 <p>
-                  "Today, The Tomorrows Team is that community for thousands of young professionals and students across India. We're not just building better speakers; we're building confident leaders who will shape tomorrow's world."
+                  I've always believed that your voice shouldn't be held back by your background, your accent, or your fear of 'sounding wrong.' Everyone deserves a safe, non-judgmental space to speak, stumble, grow, and shine.
+                </p>
+                <p>
+                  The Tomorrows Team was born from this belief — that when people are given a platform, a purpose, and a push, something incredible happens:
+                </p>
+                <div className="ml-4 space-y-1">
+                  <p>They speak.</p>
+                  <p>They listen.</p>
+                  <p>They lead.</p>
+                </div>
+                <p>
+                  What started as a weekend group discussion experiment has grown into a growing community of learners, listeners, and leaders from across the country — all working towards one shared goal: to become better communicators and better human beings.
+                </p>
+                <p>
+                  We're just getting started — and I can't wait to see where your voice takes you."
                 </p>
                 <div className="mt-8 pt-6 border-t border-border">
-                  <p className="font-semibold">- The Tomorrows Team Founding Team</p>
+                  <p className="font-semibold">— Ayushi Aggarwal</p>
+                  <p className="text-sm">Founder, The Tomorrows Team</p>
                 </div>
               </div>
             </CardContent>
@@ -136,20 +190,20 @@ const About = () => {
           
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">2,500+</div>
+              <div className="text-4xl font-bold text-primary mb-2">30+</div>
               <div className="text-muted-foreground">Active Members</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">180+</div>
+              <div className="text-4xl font-bold text-primary mb-2">4+</div>
               <div className="text-muted-foreground">GDs Conducted</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">45+</div>
-              <div className="text-muted-foreground">Podcast Episodes</div>
+              <div className="text-4xl font-bold text-primary mb-2">1</div>
+              <div className="text-muted-foreground">Community Taking Shape</div>
             </div>
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">95%</div>
-              <div className="text-muted-foreground">Success Rate</div>
+              <div className="text-4xl font-bold text-primary mb-2"></div>
+              <div className="text-muted-foreground"></div>
             </div>
           </div>
         </div>
