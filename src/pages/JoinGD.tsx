@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -173,17 +174,18 @@ const JoinGD = () => {
     await registerMutation.mutateAsync({
       gdId: formData.selectedGdId!,
       userId: user!.id,
-      name: formData.name,
-      email: user!.email || '',
-      phone: formData.phone,
-      occupation: formData.occupation,
-      occupationOther: formData.occupation === 'Others' ? formData.occupationOther : undefined,
-      studentInstitution: formData.occupation === 'Student' ? formData.studentInstitution : undefined,
-      studentYear: formData.occupation === 'Student' ? formData.studentYear : undefined,
-      professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : undefined,
-      professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : undefined,
-      selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : undefined,
-      nocAccepted: true
+      registrationData: {
+        participantName: formData.name,
+        participantEmail: user!.email || '',
+        participantPhone: formData.phone,
+        participantOccupation: formData.occupation,
+        participantOccupationOther: formData.occupation === 'Others' ? formData.occupationOther : undefined,
+        studentInstitution: formData.occupation === 'Student' ? formData.studentInstitution : undefined,
+        studentYear: formData.occupation === 'Student' ? formData.studentYear : undefined,
+        professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : undefined,
+        professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : undefined,
+        selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : undefined,
+      }
     });
 
     // Reset form on success
