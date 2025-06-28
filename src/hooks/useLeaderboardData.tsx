@@ -76,14 +76,14 @@ export const useLeaderboardData = () => {
         return [];
       }
     },
-    refetchInterval: 5000,
+    refetchInterval: 3000, // Reduced from 5000 to 3000 for more frequent updates
     retry: (failureCount, error) => {
       if (error?.message?.includes('JWT')) {
         return false;
       }
       return failureCount < 3;
     },
-    staleTime: 1000,
+    staleTime: 0, // Changed from 1000 to 0 to ensure fresh data
   });
 
   // Set up real-time subscription for reward points
@@ -100,7 +100,19 @@ export const useLeaderboardData = () => {
           table: 'reward_points'
         },
         (payload) => {
-          console.log('Real-time leaderboard change:', payload);
+          console.log('Real-time leaderboard change (reward_points):', payload);
+          query.refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload) => {
+          console.log('Real-time leaderboard change (profiles):', payload);
           query.refetch();
         }
       )

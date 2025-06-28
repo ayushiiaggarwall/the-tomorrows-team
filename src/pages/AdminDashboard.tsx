@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +12,8 @@ import ParticipantOverview from '@/components/admin/ParticipantOverview';
 import AdminSettings from '@/components/admin/AdminSettings';
 import ResourceManager from '@/components/admin/ResourceManager';
 import GDRegistrationsView from '@/components/admin/GDRegistrationsView';
-import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle, FileText, ClipboardList } from 'lucide-react';
+import AnnouncementManager from '@/components/admin/AnnouncementManager';
+import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle, FileText, ClipboardList, Megaphone } from 'lucide-react';
 
 const ErrorBoundary = ({ children, error, onRetry }: { children: React.ReactNode; error?: string; onRetry?: () => void }) => {
   if (error) {
@@ -132,7 +132,7 @@ const AdminDashboard = () => {
             console.log('🔄 Tab changed to:', value);
             setActiveTab(value);
           }} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="rewards" className="flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
                 Rewards
@@ -160,6 +160,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="participants" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Users
+              </TabsTrigger>
+              <TabsTrigger value="announcements" className="flex items-center gap-2">
+                <Megaphone className="w-4 h-4" />
+                Announcements
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="w-4 h-4" />
@@ -193,6 +197,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="participants">
               {renderTabContent('participants', ParticipantOverview)}
+            </TabsContent>
+
+            <TabsContent value="announcements">
+              {renderTabContent('announcements', AnnouncementManager)}
             </TabsContent>
 
             <TabsContent value="settings">
