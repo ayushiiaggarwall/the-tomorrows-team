@@ -88,13 +88,14 @@ const Index = () => {
 
       if (!gds) return [];
 
-      // Get user's registrations if logged in
+      // Get user's registrations if logged in - only active ones (not cancelled)
       let userRegisteredGdIds = new Set();
       if (user?.id) {
         const { data: userRegistrations, error: regError } = await supabase
           .from('gd_registrations')
           .select('gd_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .is('cancelled_at', null); // Only get non-cancelled registrations
 
         if (!regError && userRegistrations) {
           userRegisteredGdIds = new Set(userRegistrations.map(reg => reg.gd_id));

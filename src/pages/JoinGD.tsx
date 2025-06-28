@@ -79,7 +79,25 @@ const JoinGD = () => {
         })
       );
 
-      return gdsWithCounts;
+      // Check if current user is registered for any GDs (only active registrations)
+      if (user?.id) {
+        const { data: userRegistrations, error: regError } = await supabase
+          .from('gd_registrations')
+          .select('gd_id')
+          .eq('user_id', user.id)
+          .is('cancelled_at', null); // Only get non-cancelled registrations
+
+        if (!regError && userRegistrations) {
+          const userRegisteredGdIds = new Set(userRegistrations.map(reg => reg.gd_id));
+          
+          return gdsWithCounts.map(gd => ({
+            ...gd,
+            isUserRegistered: userRegisteredGdIds.has(gd.id)
+          }));
+        }
+      }
+
+      return gdsWithCounts.map(gd => ({ ...gd, isUserRegistered: false }));
     },
     staleTime: 0,
     gcTime: 0,
@@ -369,9 +387,16 @@ const JoinGD = () => {
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
-                        <Badge variant={gd.isFull ? "destructive" : "secondary"}>
-                          {gd.isFull ? 'Full' : `${gd.spotsLeft} spots left`}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={gd.isFull ? "destructive" : "secondary"}>
+                            {gd.isFull ? 'Full' : `${gd.spotsLeft} spots left`}
+                          </Badge>
+                          {gd.isUserRegistered && (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              ✅ Registered
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -418,6 +443,14 @@ const JoinGD = () => {
                         <h3 className="text-lg font-semibold mb-2">Session Full</h3>
                         <p className="text-muted-foreground">
                           This session is now full. Please select another session.
+                        </p>
+                      </div>
+                    ) : selectedGd?.isUserRegistered ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">✅</div>
+                        <h3 className="text-lg font-semibold mb-2">Already Registered</h3>
+                        <p className="text-muted-foreground">
+                          You are already registered for this session. Check your dashboard for details.
                         </p>
                       </div>
                     ) : (
