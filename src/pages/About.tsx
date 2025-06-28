@@ -38,7 +38,7 @@ const About = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             About The Tomorrows Team
           </h1>
-          <p className="text-xl text-muted-foreground">
+          <p className="text-xl text-muted-foreground mb-0">
             Building Confident Communicators for Tomorrow's World
           </p>
         </div>
@@ -145,33 +145,36 @@ const About = () => {
               <h2 className="text-3xl font-bold text-foreground mb-6 text-center">
                 Founder's Note
               </h2>
-              <div className="text-lg text-muted-foreground leading-relaxed space-y-4">
-                <p>
-                  "When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
-                </p>
-                <p>
-                  In classrooms, offices, and even friend circles, I saw brilliant minds with incredible ideas… hesitant to speak. Not because they didn't know what to say, but because they weren't confident how to say it. And somewhere along the way, I realized this isn't just a communication issue — it's a confidence issue.
-                </p>
-                <p>
-                  I've always believed that your voice shouldn't be held back by your background, your accent, or your fear of 'sounding wrong.' Everyone deserves a safe, non-judgmental space to speak, stumble, grow, and shine.
-                </p>
-                <p>
-                  The Tomorrows Team was born from this belief — that when people are given a platform, a purpose, and a push, something incredible happens:
-                </p>
-                <div className="ml-4 space-y-1">
-                  <p>They speak.</p>
-                  <p>They listen.</p>
-                  <p>They lead.</p>
-                </div>
-                <p>
-                  What started as a weekend group discussion experiment has grown into a growing community of learners, listeners, and leaders from across the country — all working towards one shared goal: to become better communicators and better human beings.
-                </p>
-                <p>
-                  We're just getting started — and I can't wait to see where your voice takes you."
-                </p>
-                <div className="mt-8 pt-6 border-t border-border">
-                  <p className="font-semibold">— Ayushi Aggarwal</p>
-                  <p className="text-sm">Founder, The Tomorrows Team</p>
+              <div className="relative">
+                <div className="text-8xl text-primary/20 font-serif absolute -top-4 -left-2">"</div>
+                <div className="text-lg text-muted-foreground leading-relaxed space-y-4 pl-8">
+                  <p>
+                    When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
+                  </p>
+                  <p>
+                    In classrooms, offices, and even friend circles, I saw brilliant minds with incredible ideas… hesitant to speak. Not because they didn't know what to say, but because they weren't confident how to say it. And somewhere along the way, I realized this isn't just a communication issue — it's a confidence issue.
+                  </p>
+                  <p>
+                    I've always believed that your voice shouldn't be held back by your background, your accent, or your fear of "sounding wrong." Everyone deserves a safe, non-judgmental space to speak, stumble, grow, and shine.
+                  </p>
+                  <p>
+                    The Tomorrows Team was born from this belief — that when people are given a platform, a purpose, and a push, something incredible happens:
+                  </p>
+                  <div className="ml-4 space-y-1">
+                    <p>They speak.</p>
+                    <p>They listen.</p>
+                    <p>They lead.</p>
+                  </div>
+                  <p>
+                    What started as a weekend group discussion experiment has grown into a growing community of learners, listeners, and leaders from across the country — all working towards one shared goal: to become better communicators and better human beings.
+                  </p>
+                  <p>
+                    We're just getting started — and I can't wait to see where your voice takes you.
+                  </p>
+                  <div className="mt-8 pt-6 border-t border-border">
+                    <p className="font-semibold">— Ayushi Aggarwal</p>
+                    <p className="text-sm">Founder, The Tomorrows Team</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -188,7 +191,7 @@ const About = () => {
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="text-4xl font-bold text-primary mb-2">30+</div>
               <div className="text-muted-foreground">Active Members</div>
@@ -200,10 +203,6 @@ const About = () => {
             <div className="text-center">
               <div className="text-4xl font-bold text-primary mb-2">1</div>
               <div className="text-muted-foreground">Community Taking Shape</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2"></div>
-              <div className="text-muted-foreground"></div>
             </div>
           </div>
         </div>
