@@ -52,9 +52,9 @@ Deno.serve(async (req) => {
       })
     )
 
-    // Send the email
+    // Send the email using your custom domain
     const { error } = await resend.emails.send({
-      from: 'The Tomorrows Team <noreply@thetomorrowsteam.com>',
+      from: 'hello@thetomorrowsteam.com',
       to: [user.email],
       subject: '✅ Verify your email to activate your account',
       html,
