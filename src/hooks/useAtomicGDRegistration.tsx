@@ -52,7 +52,10 @@ export const useAtomicGDRegistration = () => {
       if (data && registrationData.nocAccepted) {
         const { error: updateError } = await supabase
           .from('gd_registrations')
-          .update({ noc_accepted: true, noc_accepted_at: new Date().toISOString() })
+          .update({ 
+            noc_accepted: true, 
+            noc_accepted_at: new Date().toISOString() 
+          })
           .eq('gd_id', registrationData.gdId)
           .eq('user_id', registrationData.userId);
 

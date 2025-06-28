@@ -152,6 +152,8 @@ export type Database = {
           attended: boolean | null
           gd_id: string
           id: string
+          noc_accepted: boolean | null
+          noc_accepted_at: string | null
           participant_email: string | null
           participant_name: string | null
           participant_occupation: string | null
@@ -169,6 +171,8 @@ export type Database = {
           attended?: boolean | null
           gd_id: string
           id?: string
+          noc_accepted?: boolean | null
+          noc_accepted_at?: string | null
           participant_email?: string | null
           participant_name?: string | null
           participant_occupation?: string | null
@@ -186,6 +190,8 @@ export type Database = {
           attended?: boolean | null
           gd_id?: string
           id?: string
+          noc_accepted?: boolean | null
+          noc_accepted_at?: string | null
           participant_email?: string | null
           participant_name?: string | null
           participant_occupation?: string | null
