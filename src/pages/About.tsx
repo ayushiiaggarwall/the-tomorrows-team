@@ -38,7 +38,7 @@ const About = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             About The Tomorrows Team
           </h1>
-          <p className="text-xl text-muted-foreground mb-0">
+          <p className="text-xl text-muted-foreground">
             Building Confident Communicators for Tomorrow's World
           </p>
         </div>
@@ -146,7 +146,7 @@ const About = () => {
                 Founder's Note
               </h2>
               <div className="relative">
-                <div className="text-8xl text-primary/20 font-serif absolute -top-4 -left-2">"</div>
+                <div className="text-8xl text-black font-serif absolute -top-4 -left-2">"</div>
                 <div className="text-lg text-muted-foreground leading-relaxed space-y-4 pl-8">
                   <p>
                     When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
@@ -191,7 +191,7 @@ const About = () => {
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="text-4xl font-bold text-primary mb-2">30+</div>
               <div className="text-muted-foreground">Active Members</div>
