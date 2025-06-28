@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Users, Ban, Award } from 'lucide-react';
+import { Search, Users, Award } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -28,21 +28,16 @@ const ParticipantOverview = () => {
 
   const fetchParticipants = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profilesData, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          total_points:reward_points(points.sum()),
-          gds_attended:gd_registrations(count),
-          best_speaker_count:reward_points(count)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Process the data to get proper counts
+      // Process each participant to get their stats
       const processedData = await Promise.all(
-        (data || []).map(async (participant) => {
+        (profilesData || []).map(async (participant) => {
           // Get total points
           const { data: pointsData } = await supabase
             .from('reward_points')
@@ -51,7 +46,7 @@ const ParticipantOverview = () => {
           
           const totalPoints = pointsData?.reduce((sum, entry) => sum + entry.points, 0) || 0;
 
-          // Get GDs attended count
+          // Get GDs attended count (where attended = true)
           const { count: gdsCount } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact', head: true })
@@ -77,6 +72,11 @@ const ParticipantOverview = () => {
       setParticipants(processedData);
     } catch (error) {
       console.error('Error fetching participants:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch participant data",
+        variant: "destructive"
+      });
     }
   };
 
@@ -164,13 +164,19 @@ const ParticipantOverview = () => {
                       {participant.total_points}
                     </span>
                   </TableCell>
-                  <TableCell>{participant.gds_attended}</TableCell>
                   <TableCell>
-                    {participant.best_speaker_count > 0 && (
+                    <span className="font-medium">
+                      {participant.gds_attended}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {participant.best_speaker_count > 0 ? (
                       <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                         <Award className="w-3 h-3 mr-1" />
                         {participant.best_speaker_count}x
                       </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
                     )}
                   </TableCell>
                   <TableCell>
