@@ -67,7 +67,7 @@ const RecommendedResources = () => {
           </div>
         ))}
 
-        {/* Downloadable resources */}
+        {/* Downloadable resources - only show first 2 with download buttons */}
         {resources && resources.slice(0, 2).map((resource) => (
           <div key={resource.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
             <div className="text-lg">📄</div>
