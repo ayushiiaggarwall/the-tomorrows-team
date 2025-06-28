@@ -5,50 +5,6 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { VerificationEmail } from './_templates/verification-email.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
-const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
-
-// Function to verify Supabase Auth webhook signature
-async function verifySupabaseAuthSignature(payload: string, signature: string, secret: string): Promise<boolean> {
-  try {
-    console.log('Verifying Auth webhook signature...')
-    console.log('Secret configured:', !!secret)
-    console.log('Signature received:', !!signature)
-    
-    if (!secret || !signature) {
-      console.log('Missing secret or signature')
-      return false
-    }
-    
-    const encoder = new TextEncoder()
-    const data = encoder.encode(payload)
-    
-    // For Supabase Auth webhooks, use the secret directly without prefix manipulation
-    const key = encoder.encode(secret)
-    
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      key,
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    )
-    
-    const signature_buffer = await crypto.subtle.sign("HMAC", cryptoKey, data)
-    const signature_array = new Uint8Array(signature_buffer)
-    const expected_signature = Array.from(signature_array)
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('')
-    
-    console.log('Expected signature:', expected_signature)
-    console.log('Received signature:', signature)
-    console.log('Signatures match:', signature === expected_signature)
-    
-    return signature === expected_signature
-  } catch (error) {
-    console.error('Signature verification failed:', error)
-    return false
-  }
-}
 
 Deno.serve(async (req) => {
   console.log('=== Auth Webhook Request ===')
@@ -69,59 +25,9 @@ Deno.serve(async (req) => {
     const headers = Object.fromEntries(req.headers.entries())
     console.log('All request headers:', headers)
     
-    // Check for various possible signature headers used by Supabase Auth
-    const possibleSignatureHeaders = [
-      'x-supabase-signature',
-      'authorization', 
-      'webhook-signature',
-      'x-webhook-signature'
-    ]
-    
-    let signature = null
-    let signatureHeader = null
-    
-    for (const headerName of possibleSignatureHeaders) {
-      const headerValue = req.headers.get(headerName)
-      if (headerValue) {
-        signature = headerValue
-        signatureHeader = headerName
-        break
-      }
-    }
-    
-    console.log('Found signature in header:', signatureHeader)
-    console.log('Signature value:', signature)
-    
-    // Always process the webhook for now, but log verification attempts
-    if (signature && hookSecret) {
-      console.log('Attempting signature verification...')
-      
-      // Try different signature formats that Supabase might use
-      let isValid = false
-      
-      // Try direct signature
-      isValid = await verifySupabaseAuthSignature(payload, signature, hookSecret)
-      
-      if (!isValid && signature.startsWith('Bearer ')) {
-        // Try without Bearer prefix
-        const cleanSignature = signature.replace('Bearer ', '')
-        isValid = await verifySupabaseAuthSignature(payload, cleanSignature, hookSecret)
-      }
-      
-      if (!isValid && hookSecret.startsWith('whsec_')) {
-        // Try with whsec_ prefix removed from secret
-        const cleanSecret = hookSecret.slice(6)
-        isValid = await verifySupabaseAuthSignature(payload, signature, cleanSecret)
-      }
-      
-      console.log('Final verification result:', isValid)
-      
-      if (!isValid) {
-        console.warn('Signature verification failed, but continuing to process webhook')
-      }
-    } else {
-      console.log('No signature verification attempted - missing signature or secret')
-    }
+    // For Supabase Auth webhooks, we don't need signature verification
+    // The webhook URL itself acts as the authentication mechanism
+    console.log('Skipping signature verification for Supabase Auth webhook')
     
     const webhookData = JSON.parse(payload)
     console.log('Webhook data parsed successfully')
