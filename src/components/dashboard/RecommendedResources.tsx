@@ -20,24 +20,24 @@ const RecommendedResources = () => {
     downloadResource.mutate(resourceId);
   };
 
-  const staticResources = [
+  const handleResourceClick = (anchor: string) => {
+    navigate(`/resources#${anchor}`);
+  };
+
+  const featuredResources = [
     {
-      type: 'video',
-      icon: '🎥',
-      title: 'How to Open Strong in a GD',
-      description: 'Learn effective opening techniques'
+      type: 'guide',
+      icon: '📋',
+      title: 'GD Tips from Resources Section',
+      description: 'Essential tips for group discussions',
+      anchor: 'gd-tips'
     },
     {
-      type: 'article',
-      icon: '📝',
-      title: '5 Smart Phrases to Use in Debates',
-      description: 'Enhance your vocabulary for discussions'
-    },
-    {
-      type: 'podcast',
-      icon: '🎙️',
-      title: 'Building Confidence as a Speaker',
-      description: 'Overcome speaking anxiety'
+      type: 'guide',
+      icon: '📖',
+      title: 'The Ultimate Guide for Group Discussion',
+      description: 'Complete guide to excel in GDs',
+      anchor: 'ultimate-guide'
     }
   ];
 
@@ -52,12 +52,16 @@ const RecommendedResources = () => {
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Static resources */}
-        {staticResources.map((resource, index) => (
-          <div key={index} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+        {/* Featured resource links */}
+        {featuredResources.map((resource, index) => (
+          <div 
+            key={index} 
+            className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+            onClick={() => handleResourceClick(resource.anchor)}
+          >
             <div className="text-lg">{resource.icon}</div>
             <div className="flex-1">
-              <div className="font-medium text-sm">{resource.title}</div>
+              <div className="font-medium text-sm text-primary hover:underline">{resource.title}</div>
               <div className="text-xs text-muted-foreground">{resource.description}</div>
             </div>
           </div>
@@ -83,7 +87,11 @@ const RecommendedResources = () => {
           </div>
         ))}
         
-        <Button variant="outline" className="w-full mt-4" onClick={() => navigate('/resources')}>
+        <Button 
+          variant="outline" 
+          className="w-full mt-4" 
+          onClick={() => navigate('/resources')}
+        >
           🔍 Explore All Resources
         </Button>
       </CardContent>

@@ -72,6 +72,36 @@ export type Database = {
         }
         Relationships: []
       }
+      community_announcements: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       downloadable_resources: {
         Row: {
           created_at: string | null
