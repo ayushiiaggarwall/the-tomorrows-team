@@ -3,6 +3,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+interface CancellationResponse {
+  success: boolean;
+  cancellation_type: string;
+  hours_until_gd: number;
+  points_deducted: number;
+  message: string;
+}
+
 export const useGDCancellation = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -22,7 +30,7 @@ export const useGDCancellation = () => {
       }
 
       console.log('Cancellation successful:', data);
-      return data;
+      return data as CancellationResponse;
     },
     onSuccess: (data) => {
       const message = data?.message || 'Registration cancelled successfully';
