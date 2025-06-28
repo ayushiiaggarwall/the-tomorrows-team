@@ -21,11 +21,12 @@ export const useGDRegistrationCount = (gdId?: string) => {
 
       if (gdError) throw gdError;
 
-      // Count current registrations
+      // Count current registrations (excluding cancelled ones)
       const { count: registrationCount, error: countError } = await supabase
         .from('gd_registrations')
         .select('*', { count: 'exact', head: true })
-        .eq('gd_id', gdId);
+        .eq('gd_id', gdId)
+        .is('cancelled_at', null);
 
       if (countError) throw countError;
 

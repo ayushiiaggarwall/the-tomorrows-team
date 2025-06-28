@@ -53,13 +53,14 @@ const JoinGD = () => {
 
       if (error) throw error;
 
-      // Get registration counts for all GDs
+      // Get registration counts for all GDs (excluding cancelled registrations)
       const gdsWithCounts = await Promise.all(
         (gds || []).map(async (gd) => {
           const { count, error: countError } = await supabase
             .from('gd_registrations')
             .select('*', { count: 'exact', head: true })
-            .eq('gd_id', gd.id);
+            .eq('gd_id', gd.id)
+            .is('cancelled_at', null);
 
           if (countError) {
             console.error('Error counting registrations for GD:', gd.id, countError);

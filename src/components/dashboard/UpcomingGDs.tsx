@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -5,7 +6,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
+import { useGDCancellation } from '@/hooks/useGDCancellation';
+import { GDCancellationDialog } from '@/components/GDCancellationDialog';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
@@ -32,11 +36,12 @@ const UpcomingGDs = () => {
 
       if (!gds) return [];
 
-      // Get user's registrations
+      // Get user's registrations (only non-cancelled ones)
       const { data: userRegistrations, error: regError } = await supabase
         .from('gd_registrations')
         .select('gd_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .is('cancelled_at', null);
 
       if (regError) {
         console.error('Error fetching user registrations:', regError);
@@ -62,6 +67,7 @@ const UpcomingGDs = () => {
             minute: '2-digit', 
             hour12: true
           }),
+          scheduledDate: scheduledDate,
           totalSpots: gd.slot_capacity,
           isRegistered: isUserRegistered,
           meetLink: gd.meet_link
@@ -147,48 +153,93 @@ const UpcomingGDs = () => {
 const GDCard = ({ gd }: { gd: any }) => {
   const { registrationData } = useGDRegistrationCount(gd.id);
   const { user } = useAuth();
+  const cancelMutation = useGDCancellation();
+  
+  const [showCancellationDialog, setShowCancellationDialog] = useState(false);
+
+  const calculateHoursUntilGD = () => {
+    const now = new Date();
+    const scheduledDate = new Date(gd.scheduledDate);
+    const diffInMs = scheduledDate.getTime() - now.getTime();
+    return Math.max(0, diffInMs / (1000 * 60 * 60)); // Convert to hours
+  };
+
+  const handleCancellation = () => {
+    if (!user?.id) return;
+    
+    cancelMutation.mutate({
+      gdId: gd.id,
+      userId: user.id
+    });
+    
+    setShowCancellationDialog(false);
+  };
+
+  const hoursUntilGD = calculateHoursUntilGD();
 
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg">
-      <div className="flex-1">
-        <div className="font-medium">{gd.topic}</div>
-        <div className="text-sm text-muted-foreground">
-          {gd.date} at {gd.time}
+    <>
+      <div className="flex items-center justify-between p-4 border rounded-lg">
+        <div className="flex-1">
+          <div className="font-medium">{gd.topic}</div>
+          <div className="text-sm text-muted-foreground">
+            {gd.date} at {gd.time}
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {registrationData 
+              ? `${registrationData.spotsLeft} spots left out of ${registrationData.totalCapacity}`
+              : `Loading spots...`
+            }
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground mt-1">
-          {registrationData 
-            ? `${registrationData.spotsLeft} spots left out of ${registrationData.totalCapacity}`
-            : `Loading spots...`
-          }
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <Badge 
-          variant={gd.isRegistered ? 'default' : 'secondary'}
-        >
-          {gd.isRegistered ? 'Registered ✅' : 'Available'}
-        </Badge>
-        {gd.isRegistered ? (
-          gd.meetLink ? (
-            <Button size="sm" className="btn-primary" asChild>
-              <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
-                📩 Join Meeting
-              </a>
-            </Button>
+        <div className="flex items-center gap-3">
+          <Badge 
+            variant={gd.isRegistered ? 'default' : 'secondary'}
+          >
+            {gd.isRegistered ? 'Registered ✅' : 'Available'}
+          </Badge>
+          {gd.isRegistered ? (
+            <div className="flex gap-2">
+              {gd.meetLink ? (
+                <Button size="sm" className="btn-primary" asChild>
+                  <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
+                    📩 Join Meeting
+                  </a>
+                </Button>
+              ) : (
+                <Button size="sm" disabled>
+                  Link Coming Soon
+                </Button>
+              )}
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => setShowCancellationDialog(true)}
+                disabled={cancelMutation.isPending}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                {hoursUntilGD < 24 ? 'Drop Out' : 'De-Register'}
+              </Button>
+            </div>
           ) : (
-            <Button size="sm" disabled>
-              Link Coming Soon
-            </Button>
-          )
-        ) : (
-          <Link to={user ? "/join-gd" : "/login"}>
-            <Button size="sm" variant="outline">
-              {registrationData?.isFull ? 'Full' : 'Register'}
-            </Button>
-          </Link>
-        )}
+            <Link to={user ? "/join-gd" : "/login"}>
+              <Button size="sm" variant="outline">
+                {registrationData?.isFull ? 'Full' : 'Register'}
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
-    </div>
+
+      <GDCancellationDialog
+        isOpen={showCancellationDialog}
+        onClose={() => setShowCancellationDialog(false)}
+        onConfirm={handleCancellation}
+        gdTitle={gd.topic}
+        hoursUntilGD={hoursUntilGD}
+        isLoading={cancelMutation.isPending}
+      />
+    </>
   );
 };
 

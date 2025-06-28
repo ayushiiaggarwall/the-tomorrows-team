@@ -180,6 +180,9 @@ export type Database = {
       gd_registrations: {
         Row: {
           attended: boolean | null
+          cancellation_reason: string | null
+          cancellation_type: string | null
+          cancelled_at: string | null
           gd_id: string
           id: string
           noc_accepted: boolean | null
@@ -199,6 +202,9 @@ export type Database = {
         }
         Insert: {
           attended?: boolean | null
+          cancellation_reason?: string | null
+          cancellation_type?: string | null
+          cancelled_at?: string | null
           gd_id: string
           id?: string
           noc_accepted?: boolean | null
@@ -218,6 +224,9 @@ export type Database = {
         }
         Update: {
           attended?: boolean | null
+          cancellation_reason?: string | null
+          cancellation_type?: string | null
+          cancelled_at?: string | null
           gd_id?: string
           id?: string
           noc_accepted?: boolean | null
@@ -535,6 +544,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_gd_registration: {
+        Args: { p_gd_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_user_total_points: {
         Args: { _user_id: string }
         Returns: number

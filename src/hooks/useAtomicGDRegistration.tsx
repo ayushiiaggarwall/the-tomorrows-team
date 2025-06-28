@@ -27,6 +27,24 @@ export const useAtomicGDRegistration = () => {
     mutationFn: async (registrationData: RegistrationData) => {
       console.log('Starting atomic registration for GD:', registrationData.gdId);
 
+      // Check if user already has an active (non-cancelled) registration
+      const { data: existingRegistration, error: checkError } = await supabase
+        .from('gd_registrations')
+        .select('id, cancelled_at')
+        .eq('gd_id', registrationData.gdId)
+        .eq('user_id', registrationData.userId)
+        .is('cancelled_at', null)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing registration:', checkError);
+        throw checkError;
+      }
+
+      if (existingRegistration) {
+        throw new Error('ALREADY_REGISTERED: You already have an active registration for this GD');
+      }
+
       // Use a database transaction to ensure atomicity
       const { data, error } = await supabase.rpc('register_for_gd_atomic', {
         p_gd_id: registrationData.gdId,
@@ -57,7 +75,8 @@ export const useAtomicGDRegistration = () => {
             noc_accepted_at: new Date().toISOString() 
           })
           .eq('gd_id', registrationData.gdId)
-          .eq('user_id', registrationData.userId);
+          .eq('user_id', registrationData.userId)
+          .is('cancelled_at', null);
 
         if (updateError) {
           console.error('Error updating NOC acceptance:', updateError);
