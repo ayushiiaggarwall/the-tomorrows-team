@@ -63,7 +63,7 @@ export const useAtomicGDRegistration = () => {
       if (droppedOutReg) {
         console.log('User previously dropped out, reversing penalty');
         
-        // Add back the 10 points that were deducted
+        // Add back the 10 points that were deducted (reverse the penalty)
         const { error: pointsError } = await supabase
           .from('reward_points')
           .insert({

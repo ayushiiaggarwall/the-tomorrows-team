@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,7 @@ const GDRegistrationsView = () => {
     enabled: requireAdmin('view_gd_registrations')
   });
 
-  // Fetch registrations for selected GD
+  // Fetch registrations for selected GD - only active ones (not cancelled)
   const { data: registrations, isLoading } = useQuery({
     queryKey: ['gd-registrations', selectedGdId],
     queryFn: async () => {
@@ -44,6 +43,7 @@ const GDRegistrationsView = () => {
           group_discussions(topic_name, scheduled_date, slot_capacity)
         `)
         .eq('gd_id', selectedGdId)
+        .is('cancelled_at', null) // Only show active registrations
         .order('registered_at', { ascending: false });
 
       if (error) throw error;
@@ -98,10 +98,10 @@ const GDRegistrationsView = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            GD Registration Details
+            Active GD Registrations
           </CardTitle>
           <p className="text-muted-foreground">
-            View detailed registration information for group discussions
+            View active registration information for group discussions (cancelled registrations are hidden)
           </p>
         </CardHeader>
         <CardContent>
@@ -149,10 +149,10 @@ const GDRegistrationsView = () => {
       {selectedGdId && (
         <Card>
           <CardHeader>
-            <CardTitle>Registered Participants</CardTitle>
+            <CardTitle>Active Participants</CardTitle>
             {registrations && (
               <p className="text-muted-foreground">
-                {registrations.length} participant{registrations.length !== 1 ? 's' : ''} registered
+                {registrations.length} active participant{registrations.length !== 1 ? 's' : ''} registered
               </p>
             )}
           </CardHeader>
@@ -164,9 +164,9 @@ const GDRegistrationsView = () => {
             ) : !registrations?.length ? (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">No Registrations Yet</h3>
+                <h3 className="text-lg font-medium mb-2">No Active Registrations</h3>
                 <p className="text-muted-foreground">
-                  No participants have registered for this group discussion yet.
+                  No participants are currently registered for this group discussion.
                 </p>
               </div>
             ) : (

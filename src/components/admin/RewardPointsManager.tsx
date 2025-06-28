@@ -161,6 +161,22 @@ const RewardPointsManager = () => {
     entry.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const formatPoints = (points: number) => {
+    if (points > 0) {
+      return `+${points}`;
+    }
+    return points.toString();
+  };
+
+  const getPointsColor = (points: number) => {
+    if (points > 0) {
+      return "text-green-600";
+    } else if (points < 0) {
+      return "text-red-600";
+    }
+    return "text-gray-600";
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -189,7 +205,7 @@ const RewardPointsManager = () => {
               <Input
                 id="points"
                 type="number"
-                placeholder="10"
+                placeholder="10 or -10"
                 value={formData.points}
                 onChange={(e) => setFormData(prev => ({ ...prev, points: e.target.value }))}
                 required
@@ -206,6 +222,7 @@ const RewardPointsManager = () => {
                   <SelectItem value="Attendance">Attendance</SelectItem>
                   <SelectItem value="Best Speaker">Best Speaker</SelectItem>
                   <SelectItem value="Referral">Referral</SelectItem>
+                  <SelectItem value="penalty">Penalty</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -273,7 +290,9 @@ const RewardPointsManager = () => {
                 <TableRow key={entry.id}>
                   <TableCell>{entry.user_name || 'N/A'}</TableCell>
                   <TableCell>{entry.user_email}</TableCell>
-                  <TableCell className="font-semibold text-green-600">+{entry.points}</TableCell>
+                  <TableCell className={`font-semibold ${getPointsColor(entry.points)}`}>
+                    {formatPoints(entry.points)}
+                  </TableCell>
                   <TableCell>{entry.type}</TableCell>
                   <TableCell>{entry.reason}</TableCell>
                   <TableCell>{new Date(entry.created_at).toLocaleDateString()}</TableCell>
