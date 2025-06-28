@@ -1,12 +1,10 @@
 
 import React from 'npm:react@18.3.1'
-import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
 import { Resend } from 'npm:resend@4.0.0'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { VerificationEmail } from './_templates/verification-email.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
-const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
@@ -17,22 +15,11 @@ Deno.serve(async (req) => {
     console.log('Processing verification email request...')
     
     const payload = await req.text()
-    const headers = Object.fromEntries(req.headers)
+    console.log('Payload received, length:', payload.length)
     
-    console.log('Headers received:', JSON.stringify(headers, null, 2))
-    console.log('Payload length:', payload.length)
-    console.log('Hook secret configured:', !!hookSecret)
-    
-    // Parse webhook data - skip verification for now to get emails working
-    // The webhook verification can be added back once the basic flow works
-    let webhookData
-    try {
-      webhookData = JSON.parse(payload)
-      console.log('Payload parsed successfully')
-    } catch (parseError) {
-      console.error('Failed to parse payload:', parseError)
-      throw new Error('Invalid payload format')
-    }
+    // Parse the webhook payload directly without verification
+    const webhookData = JSON.parse(payload)
+    console.log('Webhook data parsed successfully')
     
     const {
       user,
@@ -64,18 +51,13 @@ Deno.serve(async (req) => {
 
     console.log('Rendering email template...')
 
-    // Render the email template with timeout
-    const html = await Promise.race([
-      renderAsync(
-        React.createElement(VerificationEmail, {
-          firstName,
-          verificationUrl,
-        })
-      ),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Template rendering timeout')), 3000)
-      )
-    ]) as string
+    // Render the email template
+    const html = await renderAsync(
+      React.createElement(VerificationEmail, {
+        firstName,
+        verificationUrl,
+      })
+    )
 
     console.log('Template rendered, sending email...')
 
