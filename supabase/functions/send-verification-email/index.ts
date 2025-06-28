@@ -7,28 +7,38 @@ import { VerificationEmail } from './_templates/verification-email.tsx'
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
 const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
 
-// Function to verify webhook signature
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(payload)
-  const key = encoder.encode(secret)
-  
-  return crypto.subtle.importKey(
-    "raw",
-    key,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  ).then(cryptoKey => 
-    crypto.subtle.sign("HMAC", cryptoKey, data)
-  ).then(signature_buffer => {
+// Function to verify Supabase webhook signature
+async function verifySupabaseSignature(payload: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    // Remove 'whsec_' prefix if present
+    const cleanSecret = secret.startsWith('whsec_') ? secret.slice(6) : secret
+    
+    const encoder = new TextEncoder()
+    const data = encoder.encode(payload)
+    const key = encoder.encode(cleanSecret)
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      key,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    )
+    
+    const signature_buffer = await crypto.subtle.sign("HMAC", cryptoKey, data)
     const signature_array = new Uint8Array(signature_buffer)
     const signature_hex = Array.from(signature_array)
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
     
+    console.log('Expected signature:', signature_hex)
+    console.log('Received signature:', signature)
+    
     return signature === signature_hex
-  }).catch(() => false)
+  } catch (error) {
+    console.error('Signature verification failed:', error)
+    return false
+  }
 }
 
 Deno.serve(async (req) => {
@@ -46,12 +56,24 @@ Deno.serve(async (req) => {
     const signature = req.headers.get('x-supabase-signature')
     console.log('Signature present:', !!signature)
     
-    if (!signature) {
-      console.log('No signature provided, processing without verification for now...')
+    // Verify webhook signature if present and secret is configured
+    if (signature && hookSecret) {
+      console.log('Verifying webhook signature...')
+      const isValid = await verifySupabaseSignature(payload, signature, hookSecret)
+      
+      if (!isValid) {
+        console.error('Invalid webhook signature')
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Invalid signature' 
+        }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      console.log('Webhook signature verified successfully')
     } else {
-      // For now, we'll skip signature verification to get emails working
-      // TODO: Implement proper signature verification once emails are working
-      console.log('Signature verification skipped for debugging')
+      console.log('No signature verification (signature or secret missing)')
     }
     
     const webhookData = JSON.parse(payload)
