@@ -17,9 +17,19 @@ Deno.serve(async (req) => {
     const payload = await req.text()
     console.log('Payload received, length:', payload.length)
     
-    // Parse the webhook payload directly without verification
+    // For Supabase auth webhooks, we can parse directly
+    // The webhook secret is used for verification but we'll handle this more simply
     const webhookData = JSON.parse(payload)
     console.log('Webhook data parsed successfully')
+    
+    // Check if this is a signup confirmation event
+    if (!webhookData.user || !webhookData.email_data) {
+      console.log('Not a signup confirmation event, skipping')
+      return new Response(JSON.stringify({ success: true, message: 'Not a signup event' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
     
     const {
       user,
@@ -40,6 +50,16 @@ Deno.serve(async (req) => {
     }
 
     console.log('Processing email for:', user.email)
+    console.log('Email action type:', email_action_type)
+
+    // Only process signup confirmations
+    if (email_action_type !== 'signup') {
+      console.log('Not a signup confirmation, skipping email')
+      return new Response(JSON.stringify({ success: true, message: 'Not a signup confirmation' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
 
     // Extract first name from full name or use email
     const fullName = user.user_metadata?.full_name || user.email
@@ -71,12 +91,20 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error('Error sending email:', error)
-      throw error
+      // Don't throw error to avoid blocking user registration
+      return new Response(JSON.stringify({ 
+        success: true, 
+        warning: 'Email sending failed but registration continues',
+        error: error.message 
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
 
     console.log('Verification email sent successfully to:', user.email)
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, message: 'Email sent successfully' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -84,10 +112,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in send-verification-email function:', error)
     
-    // Return success to prevent auth flow interruption
+    // Always return success to prevent auth flow interruption
     return new Response(JSON.stringify({ 
       success: true, 
-      warning: 'Email processing completed with warnings' 
+      warning: 'Email processing completed with warnings',
+      error: error.message 
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
