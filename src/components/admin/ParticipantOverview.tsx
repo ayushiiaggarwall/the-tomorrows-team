@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Users, Award } from 'lucide-react';
@@ -24,14 +25,29 @@ const ParticipantOverview = () => {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalParticipants, setTotalParticipants] = useState(0);
+  const itemsPerPage = 5;
   const { toast } = useToast();
 
-  const fetchParticipants = async () => {
+  const fetchParticipants = async (page = 1) => {
     try {
+      const start = (page - 1) * itemsPerPage;
+      const end = start + itemsPerPage - 1;
+
+      // Get total count first
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      setTotalParticipants(count || 0);
+
+      // Get paginated data
       const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(start, end);
 
       if (error) throw error;
 
@@ -81,8 +97,8 @@ const ParticipantOverview = () => {
   };
 
   useEffect(() => {
-    fetchParticipants();
-  }, []);
+    fetchParticipants(currentPage);
+  }, [currentPage]);
 
   const handleToggleAdmin = async (userId: string, currentAdminStatus: boolean) => {
     if (!confirm(`Are you sure you want to ${currentAdminStatus ? 'remove admin access from' : 'grant admin access to'} this user?`)) {
@@ -103,7 +119,7 @@ const ParticipantOverview = () => {
         description: `User ${currentAdminStatus ? 'removed from' : 'granted'} admin access`
       });
       
-      fetchParticipants();
+      fetchParticipants(currentPage);
     } catch (error) {
       toast({
         title: "Error",
@@ -120,13 +136,15 @@ const ParticipantOverview = () => {
     participant.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(totalParticipants / itemsPerPage);
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Participant Overview
+            Participant Overview ({totalParticipants} total)
           </CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -160,8 +178,8 @@ const ParticipantOverview = () => {
                   </TableCell>
                   <TableCell>{participant.email}</TableCell>
                   <TableCell>
-                    <span className="font-semibold text-green-600">
-                      {participant.total_points}
+                    <span className={`font-semibold ${participant.total_points >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {participant.total_points >= 0 ? '+' : ''}{participant.total_points}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -203,6 +221,37 @@ const ParticipantOverview = () => {
               ))}
             </TableBody>
           </Table>
+          
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -210,7 +259,7 @@ const ParticipantOverview = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{participants.length}</div>
+            <div className="text-2xl font-bold text-primary">{totalParticipants}</div>
             <div className="text-sm text-muted-foreground">Total Users</div>
           </CardContent>
         </Card>

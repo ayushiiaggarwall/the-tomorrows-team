@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Plus, Undo, Trophy } from 'lucide-react';
@@ -26,6 +27,9 @@ const RewardPointsManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [rewardEntries, setRewardEntries] = useState<RewardEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const itemsPerPage = 5;
   const [formData, setFormData] = useState({
     email: '',
     points: '',
@@ -35,13 +39,24 @@ const RewardPointsManager = () => {
   });
   const { toast } = useToast();
 
-  const fetchRewardEntries = async () => {
+  const fetchRewardEntries = async (page = 1) => {
     try {
+      const start = (page - 1) * itemsPerPage;
+      const end = start + itemsPerPage - 1;
+
+      // Get total count first
+      const { count } = await supabase
+        .from('reward_points')
+        .select('*', { count: 'exact', head: true });
+
+      setTotalEntries(count || 0);
+
+      // Get paginated data
       const { data: rewardData, error: rewardError } = await supabase
         .from('reward_points')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .range(start, end);
 
       if (rewardError) throw rewardError;
 
@@ -69,8 +84,8 @@ const RewardPointsManager = () => {
   };
 
   useEffect(() => {
-    fetchRewardEntries();
-  }, []);
+    fetchRewardEntries(currentPage);
+  }, [currentPage]);
 
   const handleAddPoints = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +134,7 @@ const RewardPointsManager = () => {
         type: 'Attendance',
         gdDate: ''
       });
-      fetchRewardEntries();
+      fetchRewardEntries(currentPage);
 
     } catch (error) {
       toast({
@@ -146,7 +161,7 @@ const RewardPointsManager = () => {
         description: "Points entry removed"
       });
       
-      fetchRewardEntries();
+      fetchRewardEntries(currentPage);
     } catch (error) {
       toast({
         title: "Error",
@@ -176,6 +191,8 @@ const RewardPointsManager = () => {
     }
     return "text-gray-600";
   };
+
+  const totalPages = Math.ceil(totalEntries / itemsPerPage);
 
   return (
     <div className="space-y-6">
@@ -261,7 +278,7 @@ const RewardPointsManager = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Point Awards</CardTitle>
+          <CardTitle>Recent Point Awards ({totalEntries} total)</CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -309,6 +326,37 @@ const RewardPointsManager = () => {
               ))}
             </TableBody>
           </Table>
+          
+          {totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

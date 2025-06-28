@@ -11,123 +11,79 @@ export const useLeaderboardData = () => {
       console.log('Fetching leaderboard data from database...');
       
       try {
-        // Get user points with profile information using a left join approach
-        const { data: userPoints, error } = await supabase
+        // Get all users first
+        const { data: allUsers, error: usersError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email');
+
+        if (usersError) {
+          console.error('Error fetching users:', usersError);
+          return [];
+        }
+
+        if (!allUsers || allUsers.length === 0) {
+          console.log('No users found in database');
+          return [];
+        }
+
+        // Get all reward points
+        const { data: pointsData, error: pointsError } = await supabase
           .from('reward_points')
-          .select(`
-            user_id,
-            points,
-            profiles!inner(full_name, email)
-          `);
+          .select('user_id, points');
 
-        if (error) {
-          console.error('Supabase error fetching leaderboard data:', error);
-          // If it's a relationship error, try fetching without the join
-          if (error.code === 'PGRST200') {
-            console.log('Foreign key relationship not found, fetching reward points only...');
-            const { data: pointsOnly, error: pointsError } = await supabase
-              .from('reward_points')
-              .select('user_id, points');
-            
-            if (pointsError) {
-              console.error('Error fetching reward points:', pointsError);
-              return [];
-            }
-            
-            if (!pointsOnly || pointsOnly.length === 0) {
-              console.log('No reward points found in database, returning empty array');
-              return [];
-            }
-            
-            // Aggregate points by user without profile names
-            const userPointsMap = new Map<string, { name: string; points: number }>();
-            
-            pointsOnly.forEach((entry) => {
-              const userId = entry.user_id;
-              const points = entry.points;
-              
-              // Validate points are within expected range (allow negative points)
-              if (typeof points !== 'number') {
-                console.warn(`Invalid points value detected: ${points} for user ${userId}`);
-                return;
-              }
-              
-              if (userPointsMap.has(userId)) {
-                const currentPoints = userPointsMap.get(userId)!.points;
-                const totalPoints = currentPoints + points;
-                userPointsMap.get(userId)!.points = totalPoints;
-              } else {
-                userPointsMap.set(userId, { name: `User ${userId.slice(0, 8)}`, points });
-              }
-            });
-
-            const topPerformers = Array.from(userPointsMap.values())
-              .sort((a, b) => b.points - a.points)
-              .slice(0, 5);
-
-            console.log('Processed top performers without profiles:', topPerformers);
-            return topPerformers;
-          }
-          return [];
+        if (pointsError) {
+          console.error('Error fetching reward points:', pointsError);
+          // Continue without points data - show users with 0 points
         }
 
-        console.log('Raw reward points data from database:', userPoints);
-
-        // If no reward points exist, return empty array
-        if (!userPoints || userPoints.length === 0) {
-          console.log('No reward points found in database, returning empty array');
-          return [];
-        }
-
-        // Aggregate points by user with security validation
+        // Calculate total points for each user
         const userPointsMap = new Map<string, { name: string; points: number }>();
-        
-        userPoints.forEach((entry) => {
-          const userId = entry.user_id;
-          const profile = entry.profiles as any;
-          const rawName = profile?.full_name || profile?.email?.split('@')[0] || `User ${userId.slice(0, 8)}`;
-          
-          // Sanitize user name to prevent XSS
-          const userName = validateInput.sanitizeHtml(rawName);
-          const points = entry.points;
-          
-          // Validate points are a number (allow negative points)
-          if (typeof points !== 'number') {
-            console.warn(`Invalid points value detected: ${points} for user ${userId}`);
-            return; // Skip invalid entries
-          }
-          
-          if (userPointsMap.has(userId)) {
-            const currentPoints = userPointsMap.get(userId)!.points;
-            const totalPoints = currentPoints + points;
-            userPointsMap.get(userId)!.points = totalPoints;
-          } else {
-            userPointsMap.set(userId, { name: userName, points });
-          }
+
+        // Initialize all users with 0 points
+        allUsers.forEach(user => {
+          const displayName = user.full_name || user.email?.split('@')[0] || `User ${user.id.slice(0, 8)}`;
+          const sanitizedName = validateInput.sanitizeHtml(displayName);
+          userPointsMap.set(user.id, { name: sanitizedName, points: 0 });
         });
 
-        // Convert to array and sort by points (highest first, but include negative points)
+        // Add actual points if available
+        if (pointsData && pointsData.length > 0) {
+          pointsData.forEach(entry => {
+            const userId = entry.user_id;
+            const points = entry.points;
+            
+            if (typeof points !== 'number') {
+              console.warn(`Invalid points value detected: ${points} for user ${userId}`);
+              return;
+            }
+            
+            if (userPointsMap.has(userId)) {
+              const currentPoints = userPointsMap.get(userId)!.points;
+              userPointsMap.get(userId)!.points = currentPoints + points;
+            }
+          });
+        }
+
+        // Convert to array and sort by points (highest first, including negative points)
         const topPerformers = Array.from(userPointsMap.values())
           .sort((a, b) => b.points - a.points)
-          .slice(0, 5);
+          .slice(0, 10); // Show top 10 instead of 5
 
         console.log('Processed top performers from database:', topPerformers);
         return topPerformers;
       } catch (error) {
         console.error('Failed to fetch leaderboard data:', error);
-        // Return empty array instead of throwing error to show proper empty state
         return [];
       }
     },
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    refetchInterval: 5000,
     retry: (failureCount, error) => {
-      // Don't retry on authentication errors
       if (error?.message?.includes('JWT')) {
         return false;
       }
       return failureCount < 3;
     },
-    staleTime: 1000, // Consider data stale after 1 second for more realtime feel
+    staleTime: 1000,
   });
 
   // Set up real-time subscription for reward points
