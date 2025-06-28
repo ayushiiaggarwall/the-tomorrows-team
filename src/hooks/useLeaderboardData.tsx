@@ -46,8 +46,8 @@ export const useLeaderboardData = () => {
               const userId = entry.user_id;
               const points = entry.points;
               
-              // Validate points are within expected range
-              if (!validateInput.validatePoints(points)) {
+              // Validate points are within expected range (allow negative points)
+              if (typeof points !== 'number') {
                 console.warn(`Invalid points value detected: ${points} for user ${userId}`);
                 return;
               }
@@ -55,10 +55,7 @@ export const useLeaderboardData = () => {
               if (userPointsMap.has(userId)) {
                 const currentPoints = userPointsMap.get(userId)!.points;
                 const totalPoints = currentPoints + points;
-                
-                if (validateInput.validatePoints(totalPoints)) {
-                  userPointsMap.get(userId)!.points = totalPoints;
-                }
+                userPointsMap.get(userId)!.points = totalPoints;
               } else {
                 userPointsMap.set(userId, { name: `User ${userId.slice(0, 8)}`, points });
               }
@@ -94,8 +91,8 @@ export const useLeaderboardData = () => {
           const userName = validateInput.sanitizeHtml(rawName);
           const points = entry.points;
           
-          // Validate points are within expected range
-          if (!validateInput.validatePoints(points)) {
+          // Validate points are a number (allow negative points)
+          if (typeof points !== 'number') {
             console.warn(`Invalid points value detected: ${points} for user ${userId}`);
             return; // Skip invalid entries
           }
@@ -103,17 +100,13 @@ export const useLeaderboardData = () => {
           if (userPointsMap.has(userId)) {
             const currentPoints = userPointsMap.get(userId)!.points;
             const totalPoints = currentPoints + points;
-            
-            // Validate total doesn't exceed maximum
-            if (validateInput.validatePoints(totalPoints)) {
-              userPointsMap.get(userId)!.points = totalPoints;
-            }
+            userPointsMap.get(userId)!.points = totalPoints;
           } else {
             userPointsMap.set(userId, { name: userName, points });
           }
         });
 
-        // Convert to array and sort by points
+        // Convert to array and sort by points (highest first, but include negative points)
         const topPerformers = Array.from(userPointsMap.values())
           .sort((a, b) => b.points - a.points)
           .slice(0, 5);
@@ -126,7 +119,7 @@ export const useLeaderboardData = () => {
         return [];
       }
     },
-    refetchInterval: 10000, // Refetch every 10 seconds for more frequent updates
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
     retry: (failureCount, error) => {
       // Don't retry on authentication errors
       if (error?.message?.includes('JWT')) {
@@ -134,7 +127,7 @@ export const useLeaderboardData = () => {
       }
       return failureCount < 3;
     },
-    staleTime: 5000, // Consider data stale after 5 seconds for more realtime feel
+    staleTime: 1000, // Consider data stale after 1 second for more realtime feel
   });
 
   // Set up real-time subscription for reward points
