@@ -45,7 +45,7 @@ const About = () => {
       </section>
 
       {/* Main Content */}
-      <section className="py-16 px-4">
+      <section className="py-0 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="prose prose-lg max-w-none">
             <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
@@ -146,7 +146,7 @@ const About = () => {
                 Founder's Note
               </h2>
               <div className="relative">
-                <div className="text-8xl text-black font-serif absolute -top-4 -left-2">"</div>
+                <div className="text-8xl text-black font-serif absolute -top-4 -left-2">❝</div>
                 <div className="text-lg text-muted-foreground leading-relaxed space-y-4 pl-8">
                   <p>
                     When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
