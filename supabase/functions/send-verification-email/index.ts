@@ -18,16 +18,44 @@ Deno.serve(async (req) => {
   try {
     console.log('Processing auth webhook request...')
     
+    // Check for authorization header
+    const authHeader = req.headers.get('authorization')
+    const apiKey = req.headers.get('apikey')
+    
+    console.log('Authorization header present:', !!authHeader)
+    console.log('API key header present:', !!apiKey)
+    
+    // For Supabase Auth webhooks, validate using the service role key or anon key
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    
+    let isAuthorized = false
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '')
+      if (token === supabaseServiceKey || token === supabaseAnonKey) {
+        isAuthorized = true
+      }
+    }
+    
+    if (apiKey) {
+      if (apiKey === supabaseServiceKey || apiKey === supabaseAnonKey) {
+        isAuthorized = true
+      }
+    }
+    
+    if (!isAuthorized) {
+      console.log('Unauthorized request - invalid or missing authorization')
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    
+    console.log('Request authorized successfully')
+    
     const payload = await req.text()
     console.log('Payload received, length:', payload.length)
-    
-    // Log all headers for debugging
-    const headers = Object.fromEntries(req.headers.entries())
-    console.log('All request headers:', headers)
-    
-    // For Supabase Auth webhooks, we don't need signature verification
-    // The webhook URL itself acts as the authentication mechanism
-    console.log('Skipping signature verification for Supabase Auth webhook')
     
     const webhookData = JSON.parse(payload)
     console.log('Webhook data parsed successfully')
