@@ -147,11 +147,11 @@ const About = () => {
               </h2>
               <div className="relative">
                 <div className="text-8xl text-black font-serif absolute -top-4 -left-2">❝</div>
-                <div className="text-lg text-muted-foreground leading-relaxed space-y-4 pl-8">
-                  <p>
+                <div className="text-lg text-muted-foreground leading-relaxed space-y-4 pl-12">
+                  <p className="ml-4">
                     When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
                   </p>
-                  <p>
+                  <p className="ml-4">
                     In classrooms, offices, and even friend circles, I saw brilliant minds with incredible ideas… hesitant to speak. Not because they didn't know what to say, but because they weren't confident how to say it. And somewhere along the way, I realized this isn't just a communication issue — it's a confidence issue.
                   </p>
                   <p>
