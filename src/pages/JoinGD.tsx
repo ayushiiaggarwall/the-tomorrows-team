@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
+import { ConsentModal } from '@/components/ConsentModal';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
@@ -23,6 +23,9 @@ const JoinGD = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const registerMutation = useAtomicGDRegistration();
+  
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [selectedGdForConsent, setSelectedGdForConsent] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -158,11 +161,19 @@ const JoinGD = () => {
       return;
     }
 
+    // Show consent modal instead of directly registering
+    setSelectedGdForConsent(selectedGd);
+    setShowConsentModal(true);
+  };
+
+  const handleConsentAgree = async () => {
+    setShowConsentModal(false);
+    
     await registerMutation.mutateAsync({
-      gdId: formData.selectedGdId,
-      userId: user.id,
+      gdId: formData.selectedGdId!,
+      userId: user!.id,
       name: formData.name,
-      email: user.email || '',
+      email: user!.email || '',
       phone: formData.phone,
       occupation: formData.occupation,
       occupationOther: formData.occupation === 'Others' ? formData.occupationOther : undefined,
@@ -170,7 +181,8 @@ const JoinGD = () => {
       studentYear: formData.occupation === 'Student' ? formData.studentYear : undefined,
       professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : undefined,
       professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : undefined,
-      selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : undefined
+      selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : undefined,
+      nocAccepted: true
     });
 
     // Reset form on success
@@ -186,6 +198,11 @@ const JoinGD = () => {
       selfEmployedProfession: '',
       selectedGdId: null
     });
+  };
+
+  const handleConsentCancel = () => {
+    setShowConsentModal(false);
+    setSelectedGdForConsent(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -477,6 +494,14 @@ const JoinGD = () => {
           )}
         </div>
       </div>
+
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        onClose={handleConsentCancel}
+        onAgree={handleConsentAgree}
+        gdTitle={selectedGdForConsent?.topic_name || ''}
+      />
 
       <Footer />
     </div>

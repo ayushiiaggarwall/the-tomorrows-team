@@ -16,6 +16,7 @@ interface RegistrationData {
   professionalCompany?: string;
   professionalRole?: string;
   selfEmployedProfession?: string;
+  nocAccepted?: boolean;
 }
 
 export const useAtomicGDRegistration = () => {
@@ -45,6 +46,20 @@ export const useAtomicGDRegistration = () => {
       if (error) {
         console.error('Registration error:', error);
         throw error;
+      }
+
+      // If registration was successful, update the record with NOC acceptance
+      if (data && registrationData.nocAccepted) {
+        const { error: updateError } = await supabase
+          .from('gd_registrations')
+          .update({ noc_accepted: true, noc_accepted_at: new Date().toISOString() })
+          .eq('gd_id', registrationData.gdId)
+          .eq('user_id', registrationData.userId);
+
+        if (updateError) {
+          console.error('Error updating NOC acceptance:', updateError);
+          // Don't fail the registration for this, just log it
+        }
       }
 
       console.log('Registration successful:', data);
