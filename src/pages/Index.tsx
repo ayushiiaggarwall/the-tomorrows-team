@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -89,21 +88,23 @@ const Index = () => {
       if (!gds) return [];
 
       // Get user's registrations if logged in - only active ones (not cancelled)
-      let userRegisteredGdIds = new Set();
+      let userRegistrations = [];
       if (user?.id) {
-        const { data: userRegistrations, error: regError } = await supabase
+        const { data: registrations, error: regError } = await supabase
           .from('gd_registrations')
-          .select('gd_id')
-          .eq('user_id', user.id)
-          .is('cancelled_at', null); // Only get non-cancelled registrations
+          .select('gd_id, cancelled_at')
+          .eq('user_id', user.id);
 
-        if (!regError && userRegistrations) {
-          userRegisteredGdIds = new Set(userRegistrations.map(reg => reg.gd_id));
+        if (!regError && registrations) {
+          userRegistrations = registrations;
         }
       }
 
       const gdsWithUserStatus = gds.map((gd) => {
-        const isUserRegistered = userRegisteredGdIds.has(gd.id);
+        // Check if user has any registration for this GD
+        const userReg = userRegistrations.find(reg => reg.gd_id === gd.id);
+        // User is registered if they have a registration that is NOT cancelled
+        const isUserRegistered = userReg && !userReg.cancelled_at;
 
         // Parse the date properly without adding 'Z'
         const scheduledDate = new Date(gd.scheduled_date);

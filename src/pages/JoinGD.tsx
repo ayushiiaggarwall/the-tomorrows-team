@@ -83,12 +83,13 @@ const JoinGD = () => {
       if (user?.id) {
         const { data: userRegistrations, error: regError } = await supabase
           .from('gd_registrations')
-          .select('gd_id')
-          .eq('user_id', user.id)
-          .is('cancelled_at', null); // Only get non-cancelled registrations
+          .select('gd_id, cancelled_at')
+          .eq('user_id', user.id);
 
         if (!regError && userRegistrations) {
-          const userRegisteredGdIds = new Set(userRegistrations.map(reg => reg.gd_id));
+          // Only consider registrations that are NOT cancelled
+          const activeRegistrations = userRegistrations.filter(reg => !reg.cancelled_at);
+          const userRegisteredGdIds = new Set(activeRegistrations.map(reg => reg.gd_id));
           
           return gdsWithCounts.map(gd => ({
             ...gd,

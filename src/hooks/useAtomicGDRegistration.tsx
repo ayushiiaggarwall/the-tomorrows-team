@@ -40,22 +40,45 @@ export const useAtomicGDRegistration = () => {
     }) => {
       console.log('Attempting atomic registration for GD:', gdId, 'User:', userId);
       
-      // First check if user has an active (non-cancelled) registration
-      const { data: existingReg, error: checkError } = await supabase
+      // First check if user has any registration (including cancelled ones)
+      const { data: existingRegs, error: checkError } = await supabase
         .from('gd_registrations')
-        .select('id, cancelled_at')
+        .select('id, cancelled_at, cancellation_type')
         .eq('gd_id', gdId)
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
 
       if (checkError && checkError.code !== 'PGRST116') {
         console.error('Error checking existing registration:', checkError);
         throw checkError;
       }
 
-      // If there's an active registration (not cancelled), prevent duplicate
-      if (existingReg && !existingReg.cancelled_at) {
+      // Check if user has an active (non-cancelled) registration
+      const activeReg = existingRegs?.find(reg => !reg.cancelled_at);
+      if (activeReg) {
         throw new Error('ALREADY_REGISTERED: You are already registered for this GD');
+      }
+
+      // Check if user previously dropped out and reverse penalty
+      const droppedOutReg = existingRegs?.find(reg => reg.cancelled_at && reg.cancellation_type === 'dropout');
+      if (droppedOutReg) {
+        console.log('User previously dropped out, reversing penalty');
+        
+        // Add back the 10 points that were deducted
+        const { error: pointsError } = await supabase
+          .from('reward_points')
+          .insert({
+            user_id: userId,
+            points: 10,
+            reason: 'Penalty reversal for re-registering after drop out',
+            type: 'bonus',
+            gd_date: new Date().toISOString().split('T')[0],
+            created_at: new Date().toISOString()
+          });
+
+        if (pointsError) {
+          console.error('Error reversing penalty points:', pointsError);
+          // Don't throw error here, just log it - registration can still proceed
+        }
       }
 
       const { data, error } = await supabase.rpc('register_for_gd_atomic', {
