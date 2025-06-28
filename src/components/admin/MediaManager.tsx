@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,7 @@ interface MediaContent {
   is_published: boolean;
   created_at: string;
   thumbnail_url: string | null;
+  is_featured: boolean | null;
 }
 
 const MediaManager = () => {
@@ -39,7 +39,8 @@ const MediaManager = () => {
     is_published: false,
     add_to_podcast: false,
     add_to_past_gd: false,
-    thumbnail_url: ''
+    thumbnail_url: '',
+    is_featured: false
   });
   const { toast } = useToast();
 
@@ -115,10 +116,19 @@ const MediaManager = () => {
         media_type: mediaType,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : null,
         is_published: formData.is_published,
-        thumbnail_url: formData.thumbnail_url || null
+        thumbnail_url: formData.thumbnail_url || null,
+        is_featured: formData.is_featured
       };
 
       if (editingId) {
+        // If setting this video as featured, first remove featured status from all other videos
+        if (formData.is_featured) {
+          await supabase
+            .from('media_content')
+            .update({ is_featured: false })
+            .neq('id', editingId);
+        }
+
         const { error } = await supabase
           .from('media_content')
           .update(mediaData)
@@ -131,6 +141,13 @@ const MediaManager = () => {
           description: "Media content updated successfully"
         });
       } else {
+        // If setting this video as featured, first remove featured status from all other videos
+        if (formData.is_featured) {
+          await supabase
+            .from('media_content')
+            .update({ is_featured: false });
+        }
+
         const { error } = await supabase
           .from('media_content')
           .insert([{ ...mediaData, created_by: (await supabase.auth.getUser()).data.user?.id }]);
@@ -153,7 +170,8 @@ const MediaManager = () => {
         is_published: false,
         add_to_podcast: false,
         add_to_past_gd: false,
-        thumbnail_url: ''
+        thumbnail_url: '',
+        is_featured: false
       });
       setEditingId(null);
       fetchMediaContent();
@@ -179,7 +197,8 @@ const MediaManager = () => {
       is_published: media.is_published,
       add_to_podcast: media.media_type === 'podcast',
       add_to_past_gd: media.media_type === 'past_gd',
-      thumbnail_url: media.thumbnail_url || ''
+      thumbnail_url: media.thumbnail_url || '',
+      is_featured: media.is_featured || false
     });
     setEditingId(media.id);
   };
@@ -384,6 +403,15 @@ const MediaManager = () => {
               
               <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="is_featured"
+                  checked={formData.is_featured}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked as boolean }))}
+                />
+                <Label htmlFor="is_featured">Set as Featured Video (shows on home page)</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
                   id="add_to_podcast"
                   checked={formData.add_to_podcast}
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, add_to_podcast: checked as boolean }))}
@@ -421,7 +449,8 @@ const MediaManager = () => {
                       is_published: false,
                       add_to_podcast: false,
                       add_to_past_gd: false,
-                      thumbnail_url: ''
+                      thumbnail_url: '',
+                      is_featured: false
                     });
                   }}
                 >

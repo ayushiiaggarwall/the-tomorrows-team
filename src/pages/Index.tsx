@@ -147,14 +147,15 @@ const Index = () => {
     };
   }, [queryClient, user?.id]);
 
-  // Fetch featured video for sample GD section
+  // Fetch featured video from media_content table
   const { data: featuredVideo } = useQuery({
     queryKey: ['featured-video'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('featured_videos')
+        .from('media_content')
         .select('*')
         .eq('is_featured', true)
+        .eq('is_published', true)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -324,18 +325,18 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Sample GD Video */}
+      {/* Featured Video */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
-            Watch a Sample GD
+            Featured Video
           </h2>
           {featuredVideo ? (
             <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">
               <iframe 
                 width="100%" 
                 height="100%" 
-                src={featuredVideo.video_url} 
+                src={featuredVideo.media_url} 
                 title={featuredVideo.title} 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
