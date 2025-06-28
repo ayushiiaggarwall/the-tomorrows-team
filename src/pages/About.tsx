@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -33,7 +32,7 @@ const About = () => {
       <Navigation />
       
       {/* Hero Section */}
-      <section className="py-20 px-4">
+      <section className="pt-20 pb-8 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             About The Tomorrows Team
@@ -45,7 +44,7 @@ const About = () => {
       </section>
 
       {/* Main Content */}
-      <section className="py-0 px-4">
+      <section className="py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="prose prose-lg max-w-none">
             <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
@@ -151,7 +150,7 @@ const About = () => {
                   <p className="ml-4">
                     When I started The Tomorrows Team, it wasn't just about launching a platform — it was about solving a problem I had seen over and over again.
                   </p>
-                  <p className="ml-4">
+                  <p>
                     In classrooms, offices, and even friend circles, I saw brilliant minds with incredible ideas… hesitant to speak. Not because they didn't know what to say, but because they weren't confident how to say it. And somewhere along the way, I realized this isn't just a communication issue — it's a confidence issue.
                   </p>
                   <p>
