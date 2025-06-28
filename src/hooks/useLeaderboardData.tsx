@@ -2,9 +2,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { validateInput } from '@/utils/securityValidation';
+import { useEffect } from 'react';
 
 export const useLeaderboardData = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
       console.log('Fetching leaderboard data from database...');
@@ -16,7 +17,7 @@ export const useLeaderboardData = () => {
           .select(`
             user_id,
             points,
-            profiles(full_name)
+            profiles!inner(full_name, email)
           `);
 
         if (error) {
@@ -86,7 +87,8 @@ export const useLeaderboardData = () => {
         
         userPoints.forEach((entry) => {
           const userId = entry.user_id;
-          const rawName = (entry.profiles as any)?.full_name || `User ${userId.slice(0, 8)}`;
+          const profile = entry.profiles as any;
+          const rawName = profile?.full_name || profile?.email?.split('@')[0] || `User ${userId.slice(0, 8)}`;
           
           // Sanitize user name to prevent XSS
           const userName = validateInput.sanitizeHtml(rawName);
@@ -124,7 +126,7 @@ export const useLeaderboardData = () => {
         return [];
       }
     },
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
+    refetchInterval: 10000, // Refetch every 10 seconds for more frequent updates
     retry: (failureCount, error) => {
       // Don't retry on authentication errors
       if (error?.message?.includes('JWT')) {
@@ -132,6 +134,34 @@ export const useLeaderboardData = () => {
       }
       return failureCount < 3;
     },
-    staleTime: 10000, // Consider data stale after 10 seconds
+    staleTime: 5000, // Consider data stale after 5 seconds for more realtime feel
   });
+
+  // Set up real-time subscription for reward points
+  useEffect(() => {
+    console.log('Setting up real-time subscription for leaderboard');
+
+    const channel = supabase
+      .channel('leaderboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reward_points'
+        },
+        (payload) => {
+          console.log('Real-time leaderboard change:', payload);
+          query.refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up leaderboard real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [query]);
+
+  return query;
 };

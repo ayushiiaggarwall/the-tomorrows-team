@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -8,17 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Database, Copy, Share, MessageCircle, Mail, Twitter } from 'lucide-react';
+import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Copy, Share, MessageCircle, Mail, Twitter } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
-import { useSeedData } from '@/hooks/useSeedData';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 const Leaderboard = () => {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { seedLeaderboardData } = useSeedData();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
@@ -42,12 +41,6 @@ const Leaderboard = () => {
       case 2: return "🥉";
       default: return "🏅";
     }
-  };
-
-  const handleSeedData = async () => {
-    await seedLeaderboardData();
-    // Refetch the leaderboard data after seeding
-    setTimeout(() => refetch(), 1000);
   };
 
   const handleJoinNextGD = () => {
@@ -147,17 +140,6 @@ const Leaderboard = () => {
                     <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
                       🏆 Top Performers – {currentMonth}
                     </CardTitle>
-                    {isAdmin && (
-                      <Button
-                        onClick={handleSeedData}
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center gap-2"
-                      >
-                        <Database className="w-4 h-4" />
-                        Seed Sample Data
-                      </Button>
-                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -202,12 +184,6 @@ const Leaderboard = () => {
                       <p className="text-gray-600 mb-4">
                         Be the first to participate and earn points!
                       </p>
-                      {isAdmin && (
-                        <Button onClick={handleSeedData} variant="outline">
-                          <Database className="w-4 h-4 mr-2" />
-                          Add Sample Data
-                        </Button>
-                      )}
                     </div>
                   )}
                 </CardContent>
