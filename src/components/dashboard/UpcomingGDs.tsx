@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,7 @@ const UpcomingGDs = () => {
 
       if (!gds) return [];
 
-      // Get user's registrations (only non-cancelled ones)
+      // Get user's active registrations (only non-cancelled ones)
       const { data: userRegistrations, error: regError } = await supabase
         .from('gd_registrations')
         .select('gd_id')
