@@ -81,6 +81,20 @@ export const useAtomicGDRegistration = () => {
         }
       }
 
+      // If user has any previous registration (cancelled), delete it before creating new one
+      if (existingRegs && existingRegs.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('gd_registrations')
+          .delete()
+          .eq('gd_id', gdId)
+          .eq('user_id', userId);
+
+        if (deleteError) {
+          console.error('Error deleting old registrations:', deleteError);
+          // Continue anyway, the atomic function will handle duplicates
+        }
+      }
+
       const { data, error } = await supabase.rpc('register_for_gd_atomic', {
         p_gd_id: gdId,
         p_user_id: userId,
