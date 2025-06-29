@@ -80,7 +80,7 @@ const RewardPoints = () => {
             day: 'numeric' 
           }),
           activity: entry.reason,
-          points: entry.points > 0 ? `+${entry.points}` : entry.points.toString(),
+          points: `+${entry.points}`,
           awardedBy: awardedByName,
           type: entry.type
         };
@@ -89,19 +89,17 @@ const RewardPoints = () => {
       console.log('Final history data:', history);
       return { totalPoints, history };
     },
-    enabled: !!user?.id,
-    refetchInterval: 2000, // Refetch every 2 seconds for real-time updates
-    staleTime: 0 // Always fetch fresh data
+    enabled: !!user?.id
   });
 
   // Set up real-time subscription for reward points
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('Setting up real-time subscription for user reward points:', user.id);
+    console.log('Setting up real-time subscription for user:', user.id);
 
     const channel = supabase
-      .channel(`user-reward-points-${user.id}`)
+      .channel('reward-points-changes')
       .on(
         'postgres_changes',
         {
@@ -112,16 +110,13 @@ const RewardPoints = () => {
         },
         (payload) => {
           console.log('Real-time reward points change:', payload);
-          // Force immediate refetch
           refetch();
         }
       )
-      .subscribe((status) => {
-        console.log('User reward points subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up user reward points real-time subscription');
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, refetch]);
@@ -191,11 +186,7 @@ const RewardPoints = () => {
                     <TableCell className="font-medium">{entry.date}</TableCell>
                     <TableCell>{entry.activity}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{entry.awardedBy}</TableCell>
-                    <TableCell className={`text-right font-medium ${
-                      entry.points.toString().startsWith('+') ? 'text-success' : 
-                      entry.points.toString().startsWith('-') ? 'text-destructive' : 
-                      'text-muted-foreground'
-                    }`}>
+                    <TableCell className="text-right text-success font-medium">
                       {entry.points}
                     </TableCell>
                   </TableRow>

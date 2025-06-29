@@ -76,22 +76,22 @@ export const useLeaderboardData = () => {
         return [];
       }
     },
-    refetchInterval: 2000, // Reduced to 2 seconds for faster updates
+    refetchInterval: 3000, // Reduced from 5000 to 3000 for more frequent updates
     retry: (failureCount, error) => {
       if (error?.message?.includes('JWT')) {
         return false;
       }
       return failureCount < 3;
     },
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0, // Changed from 1000 to 0 to ensure fresh data
   });
 
-  // Set up real-time subscription for reward points and profiles
+  // Set up real-time subscription for reward points
   useEffect(() => {
     console.log('Setting up real-time subscription for leaderboard');
 
     const channel = supabase
-      .channel('leaderboard-realtime')
+      .channel('leaderboard-changes')
       .on(
         'postgres_changes',
         {
@@ -101,7 +101,6 @@ export const useLeaderboardData = () => {
         },
         (payload) => {
           console.log('Real-time leaderboard change (reward_points):', payload);
-          // Force immediate refetch
           query.refetch();
         }
       )
@@ -114,19 +113,16 @@ export const useLeaderboardData = () => {
         },
         (payload) => {
           console.log('Real-time leaderboard change (profiles):', payload);
-          // Force immediate refetch
           query.refetch();
         }
       )
-      .subscribe((status) => {
-        console.log('Leaderboard subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
       console.log('Cleaning up leaderboard real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [query.refetch]); // Add refetch to dependencies
+  }, [query]);
 
   return query;
 };

@@ -86,35 +86,6 @@ const RewardPointsManager = () => {
     fetchRewardEntries(currentPage);
   }, [currentPage]);
 
-  // Set up real-time subscription for reward points changes
-  useEffect(() => {
-    console.log('Setting up real-time subscription for reward points manager');
-
-    const channel = supabase
-      .channel('reward-points-admin-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reward_points'
-        },
-        (payload) => {
-          console.log('Real-time reward points admin change:', payload);
-          // Refetch data when any change occurs
-          fetchRewardEntries(currentPage);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Reward points admin subscription status:', status);
-      });
-
-    return () => {
-      console.log('Cleaning up reward points admin real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [currentPage]);
-
   const handleAddPoints = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -162,14 +133,9 @@ const RewardPointsManager = () => {
         type: 'Attendance',
         gdDate: ''
       });
-      
-      // Force immediate refresh
-      setTimeout(() => {
-        fetchRewardEntries(currentPage);
-      }, 100);
+      fetchRewardEntries(currentPage);
 
     } catch (error) {
-      console.error('Error adding points:', error);
       toast({
         title: "Error",
         description: "Failed to add points",
@@ -194,13 +160,8 @@ const RewardPointsManager = () => {
         description: "Points entry removed"
       });
       
-      // Force immediate refresh
-      setTimeout(() => {
-        fetchRewardEntries(currentPage);
-      }, 100);
-      
+      fetchRewardEntries(currentPage);
     } catch (error) {
-      console.error('Error removing entry:', error);
       toast({
         title: "Error",
         description: "Failed to remove entry",
