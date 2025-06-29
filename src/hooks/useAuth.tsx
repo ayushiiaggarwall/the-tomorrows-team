@@ -54,6 +54,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Handle email confirmation
+        if (event === 'SIGNED_IN' && session?.user && !session.user.email_confirmed_at) {
+          // User just signed in but email not confirmed yet
+        } else if (event === 'SIGNED_IN' && session?.user && session.user.email_confirmed_at) {
+          // Email was just verified, redirect to verification success page
+          if (window.location.pathname.includes('/auth/v1/verify')) {
+            window.location.href = '/email-verified';
+            return;
+          }
+        }
+        
         if (session?.user) {
           setTimeout(() => {
             checkAdminStatus(session.user.id);
@@ -81,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/email-verified`;
     
     const { error } = await supabase.auth.signUp({
       email,

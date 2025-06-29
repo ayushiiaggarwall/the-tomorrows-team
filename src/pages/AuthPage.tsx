@@ -66,11 +66,8 @@ const AuthPage = () => {
             variant: "destructive"
           });
         } else {
-          toast({
-            title: "Success!",
-            description: "Please check your email to verify your account.",
-          });
-          setIsSignUp(false);
+          // Redirect to check email page with the email address
+          navigate(`/check-email?email=${encodeURIComponent(formData.email)}`);
         }
       } else {
         const { error } = await signIn(formData.email, formData.password);

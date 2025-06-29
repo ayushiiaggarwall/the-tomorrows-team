@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,8 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AuthPage from "./pages/AuthPage";
+import CheckEmail from "./pages/CheckEmail";
+import EmailVerified from "./pages/EmailVerified";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -63,6 +64,8 @@ const App = () => (
               <Route path="/blog/:id" element={<Blog />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<AuthPage />} />
+              <Route path="/check-email" element={<CheckEmail />} />
+              <Route path="/email-verified" element={<EmailVerified />} />
               <Route 
                 path="/dashboard" 
                 element={
