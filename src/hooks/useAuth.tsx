@@ -126,33 +126,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Attempting to reset password for:', email);
       
+      // First check if user exists in our profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle();
+      
+      console.log('Profile check result:', { profile, profileError });
+      
+      // If user doesn't exist in profiles, return a user not found error
+      if (!profile) {
+        console.log('User not found in profiles table');
+        return { 
+          error: { 
+            message: 'User not found - not registered',
+            code: 'user_not_found'
+          }
+        };
+      }
+      
+      // User exists, proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
       });
       
       console.log('Reset password response:', { error });
-      
-      // If no error from Supabase, check if user exists by attempting a sign in with a dummy password
-      if (!error) {
-        // Try to verify if user exists by checking profiles table
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('email', email)
-          .single();
-        
-        console.log('Profile check result:', { profile, profileError });
-        
-        // If user doesn't exist in profiles, return a user not found error
-        if (profileError && profileError.code === 'PGRST116') {
-          return { 
-            error: { 
-              message: 'User not found - not registered',
-              code: 'user_not_found'
-            }
-          };
-        }
-      }
       
       return { error };
     } catch (error: any) {
