@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,11 @@ const RewardPointsManager = () => {
       setRewardEntries(entriesWithUsers);
     } catch (error) {
       console.error('Error fetching reward entries:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch reward entries",
+        variant: "destructive"
+      });
     }
   };
 
@@ -120,41 +126,97 @@ const RewardPointsManager = () => {
     setLoading(true);
 
     try {
+      console.log('Starting point addition process with data:', formData);
+
+      // Validate form data
+      if (!formData.email || !formData.points || !formData.reason) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      const pointsValue = parseInt(formData.points);
+      if (isNaN(pointsValue)) {
+        toast({
+          title: "Validation Error",
+          description: "Points must be a valid number",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
       // First, find the user by email
+      console.log('Looking up user by email:', formData.email);
       const { data: userData, error: userError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email, full_name')
         .eq('email', formData.email)
         .single();
 
-      if (userError || !userData) {
+      if (userError) {
+        console.error('User lookup error:', userError);
+        toast({
+          title: "Error",
+          description: userError.code === 'PGRST116' ? "User not found with that email" : "Error looking up user",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!userData) {
         toast({
           title: "Error",
           description: "User not found with that email",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
-      // Add the reward points
-      const { error } = await supabase
-        .from('reward_points')
-        .insert([{
-          user_id: userData.id,
-          points: parseInt(formData.points),
-          reason: formData.reason,
-          type: formData.type,
-          gd_date: formData.gdDate || null
-        }]);
+      console.log('User found:', userData);
 
-      if (error) throw error;
+      // Add the reward points
+      const rewardData = {
+        user_id: userData.id,
+        points: pointsValue,
+        reason: formData.reason.trim(),
+        type: formData.type,
+        gd_date: formData.gdDate || null
+      };
+
+      console.log('Inserting reward points:', rewardData);
+
+      const { data: insertedData, error: insertError } = await supabase
+        .from('reward_points')
+        .insert([rewardData])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        toast({
+          title: "Database Error",
+          description: `Failed to add points: ${insertError.message}`,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log('Points added successfully:', insertedData);
 
       toast({
         title: "Success",
-        description: "Points added successfully"
+        description: `Added ${pointsValue} points to ${userData.full_name || userData.email}`
       });
 
-      // Reset form and refresh data
+      // Reset form
       setFormData({
         email: '',
         points: '',
@@ -169,10 +231,10 @@ const RewardPointsManager = () => {
       }, 100);
 
     } catch (error) {
-      console.error('Error adding points:', error);
+      console.error('Unexpected error adding points:', error);
       toast({
-        title: "Error",
-        description: "Failed to add points",
+        title: "Unexpected Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -182,12 +244,17 @@ const RewardPointsManager = () => {
 
   const handleUndo = async (id: string) => {
     try {
+      console.log('Removing reward points entry:', id);
+      
       const { error } = await supabase
         .from('reward_points')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -244,7 +311,7 @@ const RewardPointsManager = () => {
         <CardContent>
           <form onSubmit={handleAddPoints} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div>
-              <Label htmlFor="email">Participant Email</Label>
+              <Label htmlFor="email">Participant Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -256,7 +323,7 @@ const RewardPointsManager = () => {
             </div>
             
             <div>
-              <Label htmlFor="points">Points</Label>
+              <Label htmlFor="points">Points *</Label>
               <Input
                 id="points"
                 type="number"
@@ -294,7 +361,7 @@ const RewardPointsManager = () => {
             </div>
             
             <div className="md:col-span-2">
-              <Label htmlFor="reason">Reason</Label>
+              <Label htmlFor="reason">Reason *</Label>
               <Input
                 id="reason"
                 placeholder="Attended GD on AI in Education"
@@ -307,7 +374,7 @@ const RewardPointsManager = () => {
             <div className="flex items-end">
               <Button type="submit" disabled={loading} className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Points
+                {loading ? 'Adding...' : 'Add Points'}
               </Button>
             </div>
           </form>

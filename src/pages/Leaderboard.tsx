@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Copy, Share, MessageCircle, Mail, Twitter } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
+import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -18,6 +18,7 @@ const Leaderboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useAdminSettings();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
@@ -204,35 +205,35 @@ const Leaderboard = () => {
                       <Users className="w-4 h-4 mr-3 text-gray-500" />
                       Attend GD
                     </span>
-                    <span className="text-green-600 font-semibold">+10</span>
+                    <span className="text-green-600 font-semibold">+{settings.points_per_attendance}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="flex items-center text-gray-700">
                       <Trophy className="w-4 h-4 mr-3 text-gray-500" />
                       Best Speaker Award
                     </span>
-                    <span className="text-green-600 font-semibold">+20</span>
+                    <span className="text-green-600 font-semibold">+{settings.points_per_best_speaker}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="flex items-center text-gray-700">
                       <Target className="w-4 h-4 mr-3 text-gray-500" />
                       Session Moderator
                     </span>
-                    <span className="text-green-600 font-semibold">+15</span>
+                    <span className="text-green-600 font-semibold">+{settings.points_per_moderation}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="flex items-center text-gray-700">
                       <UserPlus className="w-4 h-4 mr-3 text-gray-500" />
                       Refer a Friend
                     </span>
-                    <span className="text-green-600 font-semibold">+10</span>
+                    <span className="text-green-600 font-semibold">+{settings.points_per_referral}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="flex items-center text-gray-700">
                       <Calendar className="w-4 h-4 mr-3 text-gray-500" />
                       Perfect Attendance (Month)
                     </span>
-                    <span className="text-green-600 font-semibold">+50</span>
+                    <span className="text-green-600 font-semibold">+{settings.points_per_perfect_attendance}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -293,7 +294,7 @@ const Leaderboard = () => {
                     </DialogHeader>
                     <div className="space-y-4">
                       <p className="text-sm text-gray-600">
-                        Share your referral code or link and earn 10 points when your friend joins and attends their first GD!
+                        Share your referral code or link and earn {settings.points_per_referral} points when your friend joins and attends their first GD!
                       </p>
                       
                       <div className="space-y-2">
@@ -387,7 +388,7 @@ const Leaderboard = () => {
 
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="text-sm text-blue-800">
-                          <strong>How it works:</strong> When someone uses your referral code to sign up and attends their first GD, you'll automatically earn 10 points!
+                          <strong>How it works:</strong> When someone uses your referral code to sign up and attends their first GD, you'll automatically earn {settings.points_per_referral} points!
                         </p>
                       </div>
                     </div>

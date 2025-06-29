@@ -1,71 +1,66 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
 import { Settings, Save, Bell } from 'lucide-react';
+import { useAdminSettings } from '@/hooks/useAdminSettings';
 
 const AdminSettings = () => {
-  const [settings, setSettings] = useState({
+  const { settings, isLoading, saveSettings, isSaving } = useAdminSettings();
+  const [formData, setFormData] = useState({
     pointsPerAttendance: '10',
     pointsPerBestSpeaker: '20',
     pointsPerReferral: '10',
     pointsPerModeration: '15',
     pointsPerPerfectAttendance: '50',
-    siteAnnouncement: '',
-    enableEmailNotifications: true,
-    enablePointsNotifications: true
+    siteAnnouncement: ''
   });
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+
+  // Update form data when settings load
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        pointsPerAttendance: settings.points_per_attendance.toString(),
+        pointsPerBestSpeaker: settings.points_per_best_speaker.toString(),
+        pointsPerReferral: settings.points_per_referral.toString(),
+        pointsPerModeration: settings.points_per_moderation.toString(),
+        pointsPerPerfectAttendance: settings.points_per_perfect_attendance.toString(),
+        siteAnnouncement: settings.site_announcement
+      });
+    }
+  }, [settings]);
 
   const handleSaveSettings = async () => {
-    setLoading(true);
-    try {
-      // In a real app, you would save these to your database
-      // For now, we'll just show a success message
-      
-      toast({
-        title: "Success",
-        description: "Settings saved successfully"
-      });
-      
-      console.log('Settings saved:', settings);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save settings",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    const settingsToSave = {
+      points_per_attendance: parseInt(formData.pointsPerAttendance),
+      points_per_best_speaker: parseInt(formData.pointsPerBestSpeaker),
+      points_per_referral: parseInt(formData.pointsPerReferral),
+      points_per_moderation: parseInt(formData.pointsPerModeration),
+      points_per_perfect_attendance: parseInt(formData.pointsPerPerfectAttendance),
+      site_announcement: formData.siteAnnouncement
+    };
+
+    saveSettings(settingsToSave);
   };
 
   const handleAnnouncementSave = async () => {
-    setLoading(true);
-    try {
-      // In a real app, you would save the announcement to your database
-      
-      toast({
-        title: "Success",
-        description: "Announcement saved successfully"
-      });
-      
-      console.log('Announcement saved:', settings.siteAnnouncement);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save announcement",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    saveSettings({ site_announcement: formData.siteAnnouncement });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -83,8 +78,8 @@ const AdminSettings = () => {
               <Input
                 id="pointsPerAttendance"
                 type="number"
-                value={settings.pointsPerAttendance}
-                onChange={(e) => setSettings(prev => ({ ...prev, pointsPerAttendance: e.target.value }))}
+                value={formData.pointsPerAttendance}
+                onChange={(e) => setFormData(prev => ({ ...prev, pointsPerAttendance: e.target.value }))}
               />
             </div>
             
@@ -93,8 +88,8 @@ const AdminSettings = () => {
               <Input
                 id="pointsPerBestSpeaker"
                 type="number"
-                value={settings.pointsPerBestSpeaker}
-                onChange={(e) => setSettings(prev => ({ ...prev, pointsPerBestSpeaker: e.target.value }))}
+                value={formData.pointsPerBestSpeaker}
+                onChange={(e) => setFormData(prev => ({ ...prev, pointsPerBestSpeaker: e.target.value }))}
               />
             </div>
             
@@ -103,8 +98,8 @@ const AdminSettings = () => {
               <Input
                 id="pointsPerReferral"
                 type="number"
-                value={settings.pointsPerReferral}
-                onChange={(e) => setSettings(prev => ({ ...prev, pointsPerReferral: e.target.value }))}
+                value={formData.pointsPerReferral}
+                onChange={(e) => setFormData(prev => ({ ...prev, pointsPerReferral: e.target.value }))}
               />
             </div>
             
@@ -113,8 +108,8 @@ const AdminSettings = () => {
               <Input
                 id="pointsPerModeration"
                 type="number"
-                value={settings.pointsPerModeration}
-                onChange={(e) => setSettings(prev => ({ ...prev, pointsPerModeration: e.target.value }))}
+                value={formData.pointsPerModeration}
+                onChange={(e) => setFormData(prev => ({ ...prev, pointsPerModeration: e.target.value }))}
               />
             </div>
             
@@ -123,16 +118,16 @@ const AdminSettings = () => {
               <Input
                 id="pointsPerPerfectAttendance"
                 type="number"
-                value={settings.pointsPerPerfectAttendance}
-                onChange={(e) => setSettings(prev => ({ ...prev, pointsPerPerfectAttendance: e.target.value }))}
+                value={formData.pointsPerPerfectAttendance}
+                onChange={(e) => setFormData(prev => ({ ...prev, pointsPerPerfectAttendance: e.target.value }))}
               />
             </div>
           </div>
           
           <div className="mt-6">
-            <Button onClick={handleSaveSettings} disabled={loading}>
+            <Button onClick={handleSaveSettings} disabled={isSaving}>
               <Save className="w-4 h-4 mr-2" />
-              Save Points Structure
+              {isSaving ? 'Saving...' : 'Save Points Structure'}
             </Button>
           </div>
         </CardContent>
@@ -152,15 +147,15 @@ const AdminSettings = () => {
               <Textarea
                 id="siteAnnouncement"
                 placeholder="Enter a site-wide announcement that will be visible to all users..."
-                value={settings.siteAnnouncement}
-                onChange={(e) => setSettings(prev => ({ ...prev, siteAnnouncement: e.target.value }))}
+                value={formData.siteAnnouncement}
+                onChange={(e) => setFormData(prev => ({ ...prev, siteAnnouncement: e.target.value }))}
                 rows={4}
               />
             </div>
             
-            <Button onClick={handleAnnouncementSave} disabled={loading}>
+            <Button onClick={handleAnnouncementSave} disabled={isSaving}>
               <Save className="w-4 h-4 mr-2" />
-              Save Announcement
+              {isSaving ? 'Saving...' : 'Save Announcement'}
             </Button>
           </div>
         </CardContent>
