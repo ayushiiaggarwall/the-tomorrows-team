@@ -37,10 +37,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send email to the admin
+    // Send email to the admin (your Gmail)
     const emailResponse = await resend.emails.send({
       from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
-      to: ["hello@thetomorrowsteam.com"],
+      to: ["ayushiaggarwal030@gmail.com"],
       subject: `New Contact Form Submission: ${topic || 'General Inquiry'}`,
       html: `
         <h2>New Contact Form Submission</h2>
