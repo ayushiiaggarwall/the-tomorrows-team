@@ -19,8 +19,9 @@ const AdminSettings = () => {
     siteAnnouncement: ''
   });
 
-  // Update form data when settings load
+  // Update form data when settings load or change
   useEffect(() => {
+    console.log('Settings changed, updating form data:', settings);
     if (settings) {
       setFormData({
         pointsPerAttendance: settings.points_per_attendance.toString(),
@@ -34,6 +35,8 @@ const AdminSettings = () => {
   }, [settings]);
 
   const handleSaveSettings = async () => {
+    console.log('Saving settings with form data:', formData);
+    
     const settingsToSave = {
       points_per_attendance: parseInt(formData.pointsPerAttendance),
       points_per_best_speaker: parseInt(formData.pointsPerBestSpeaker),

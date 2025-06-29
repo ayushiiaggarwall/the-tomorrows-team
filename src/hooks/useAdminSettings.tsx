@@ -59,7 +59,7 @@ export const useAdminSettings = () => {
       };
     },
     staleTime: 0,
-    refetchInterval: false, // Remove automatic polling
+    gcTime: 0, // Don't cache data
   });
 
   // Set up real-time subscription for admin settings
@@ -77,9 +77,8 @@ export const useAdminSettings = () => {
         },
         (payload) => {
           console.log('Real-time admin settings change detected:', payload);
-          // Force immediate refetch and cache invalidation
-          queryClient.removeQueries({ queryKey: ['admin-settings'] });
-          refetch();
+          // Invalidate and refetch immediately
+          queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
         }
       )
       .subscribe((status) => {
@@ -90,38 +89,64 @@ export const useAdminSettings = () => {
       console.log('Cleaning up admin settings real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [queryClient, refetch]);
+  }, [queryClient]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<AdminSettings>) => {
       console.log('Saving admin settings:', newSettings);
 
       const settingsData = {
-        points_per_attendance: newSettings.points_per_attendance || defaultSettings.points_per_attendance,
-        points_per_best_speaker: newSettings.points_per_best_speaker || defaultSettings.points_per_best_speaker,
-        points_per_referral: newSettings.points_per_referral || defaultSettings.points_per_referral,
-        points_per_moderation: newSettings.points_per_moderation || defaultSettings.points_per_moderation,
-        points_per_perfect_attendance: newSettings.points_per_perfect_attendance || defaultSettings.points_per_perfect_attendance,
-        site_announcement: newSettings.site_announcement || defaultSettings.site_announcement
+        points_per_attendance: newSettings.points_per_attendance ?? defaultSettings.points_per_attendance,
+        points_per_best_speaker: newSettings.points_per_best_speaker ?? defaultSettings.points_per_best_speaker,
+        points_per_referral: newSettings.points_per_referral ?? defaultSettings.points_per_referral,
+        points_per_moderation: newSettings.points_per_moderation ?? defaultSettings.points_per_moderation,
+        points_per_perfect_attendance: newSettings.points_per_perfect_attendance ?? defaultSettings.points_per_perfect_attendance,
+        site_announcement: newSettings.site_announcement ?? defaultSettings.site_announcement
       };
 
-      const { data, error } = await supabase
+      // First try to update existing settings
+      const { data: existingSettings } = await supabase
         .from('admin_settings')
-        .upsert(settingsData, { onConflict: 'id' })
-        .select()
+        .select('id')
         .single();
 
-      if (error) {
-        console.error('Error saving admin settings:', error);
-        throw error;
+      let result;
+      if (existingSettings) {
+        // Update existing settings
+        const { data, error } = await supabase
+          .from('admin_settings')
+          .update(settingsData)
+          .eq('id', existingSettings.id)
+          .select()
+          .single();
+        
+        result = { data, error };
+      } else {
+        // Insert new settings
+        const { data, error } = await supabase
+          .from('admin_settings')
+          .insert(settingsData)
+          .select()
+          .single();
+        
+        result = { data, error };
       }
 
-      console.log('Admin settings saved successfully:', data);
-      return data;
+      if (result.error) {
+        console.error('Error saving admin settings:', result.error);
+        throw result.error;
+      }
+
+      console.log('Admin settings saved successfully:', result.data);
+      return result.data;
     },
     onSuccess: (data) => {
-      console.log('Settings saved, updating cache:', data);
-      // Update the cache immediately with the new data
+      console.log('Settings saved successfully, invalidating cache');
+      
+      // Invalidate and refetch the cache immediately
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      
+      // Also update the cache directly for immediate UI update
       queryClient.setQueryData(['admin-settings'], {
         id: data.id,
         points_per_attendance: data.points_per_attendance,
