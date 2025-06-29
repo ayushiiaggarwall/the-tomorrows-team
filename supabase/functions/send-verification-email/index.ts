@@ -18,44 +18,6 @@ Deno.serve(async (req) => {
   try {
     console.log('Processing auth webhook request...')
     
-    // Get all possible authorization headers
-    const authHeader = req.headers.get('authorization')
-    const apiKeyHeader = req.headers.get('apikey')
-    const xApiKeyHeader = req.headers.get('x-api-key')
-    
-    console.log('Authorization header present:', !!authHeader)
-    console.log('API key header present:', !!apiKeyHeader)
-    console.log('X-API-Key header present:', !!xApiKeyHeader)
-    
-    // Get Supabase keys from environment
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    const webhookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET')
-    
-    let isAuthorized = false
-    
-    // Check various authorization methods
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '')
-      if (token === supabaseServiceKey || token === supabaseAnonKey || token === webhookSecret) {
-        isAuthorized = true
-      }
-    }
-    
-    if (apiKeyHeader) {
-      if (apiKeyHeader === supabaseServiceKey || apiKeyHeader === supabaseAnonKey || apiKeyHeader === webhookSecret) {
-        isAuthorized = true
-      }
-    }
-    
-    if (xApiKeyHeader) {
-      if (xApiKeyHeader === supabaseServiceKey || xApiKeyHeader === supabaseAnonKey || xApiKeyHeader === webhookSecret) {
-        isAuthorized = true
-      }
-    }
-    
-    // For Supabase auth webhooks, sometimes they don't include auth headers
-    // So we'll be more permissive for signup events
     const payload = await req.text()
     console.log('Payload received, length:', payload.length)
     
@@ -64,7 +26,8 @@ Deno.serve(async (req) => {
       webhookData = JSON.parse(payload)
     } catch (parseError) {
       console.error('Failed to parse webhook payload:', parseError)
-      return new Response(JSON.stringify({ success: true, message: 'Invalid payload format' }), {
+      // Return success to avoid blocking auth flow
+      return new Response(JSON.stringify({ success: true, message: 'Invalid payload format, but auth continues' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -75,21 +38,10 @@ Deno.serve(async (req) => {
     console.log('Has user data:', !!webhookData.user)
     console.log('Has email_data:', !!webhookData.email_data)
     
-    // If not authorized and no valid webhook data, return error
-    if (!isAuthorized && (!webhookData.user || !webhookData.email_data)) {
-      console.log('Unauthorized request and no valid webhook data')
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-    
-    console.log('Request processing authorized')
-    
-    // Check if this is a signup confirmation event
+    // Check if this is a signup confirmation event and has required data
     if (!webhookData.user || !webhookData.email_data) {
       console.log('Missing required data, returning success to avoid blocking auth')
-      return new Response(JSON.stringify({ success: true, message: 'Missing required data' }), {
+      return new Response(JSON.stringify({ success: true, message: 'Missing required data, but auth continues' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
