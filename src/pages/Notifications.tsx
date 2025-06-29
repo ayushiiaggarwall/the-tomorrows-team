@@ -65,7 +65,7 @@ const Notifications = () => {
               </div>
               
               {unreadCount > 0 && (
-                <Button onClick={markAllAsRead} className="flex items-center gap-2">
+                <Button onClick={() => markAllAsRead()} className="flex items-center gap-2">
                   <CheckCheck className="w-4 h-4" />
                   Mark All as Read ({unreadCount})
                 </Button>
