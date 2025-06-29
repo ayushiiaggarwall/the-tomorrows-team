@@ -1,4 +1,3 @@
-
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -350,16 +349,8 @@ const Resources = () => {
         {/* Latest Blog Posts Section - Updated */}
         <div className="mt-16">
           <div className="text-center mb-8">
-            <div>
-              <h2 className="text-3xl font-bold">Latest Articles</h2>
-              <p className="text-muted-foreground mt-2">Insights and tips from our experts</p>
-            </div>
-            <Link to="/blog" className="ml-auto">
-              <Button variant="outline">
-                View All Articles
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
+            <h2 className="text-3xl font-bold">Latest Articles</h2>
+            <p className="text-muted-foreground mt-2">Insights and tips from our experts</p>
           </div>
           
           {blogsLoading ? (
@@ -458,6 +449,16 @@ const Resources = () => {
               ))}
             </div>
           )}
+
+          {/* View All Articles Button - Now Below Articles */}
+          <div className="text-center mt-8">
+            <Link to="/blog">
+              <Button variant="outline">
+                View All Articles
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Download Resources Section */}
@@ -478,9 +479,10 @@ const Resources = () => {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        {resource.download_count} downloads
-                      </span>
+                      <div className="text-sm text-muted-foreground">
+                        <div>Downloaded</div>
+                        <div>{resource.download_count} times</div>
+                      </div>
                       <Button 
                         onClick={() => handleDownload(resource.id)}
                         disabled={downloadResource.isPending}
