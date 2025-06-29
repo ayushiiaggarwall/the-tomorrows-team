@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,21 +7,55 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotifications } from '@/hooks/useNotifications';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CalendarIcon, Send } from 'lucide-react';
+import { CalendarIcon, Send, Users, User } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
 const NotificationManager = () => {
   const { createNotification } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
     type: 'announcement',
+    target: 'global', // 'global' or 'user'
+    user_id: '',
     expires_at: undefined as Date | undefined
   });
+
+  // Fetch users for the dropdown
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .order('full_name');
+
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Failed to load users');
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,21 +64,37 @@ const NotificationManager = () => {
       return;
     }
 
+    if (formData.target === 'user' && !formData.user_id) {
+      toast.error('Please select a user');
+      return;
+    }
+
     setIsLoading(true);
     try {
+      const isGlobal = formData.target === 'global';
+      const targetUserId = isGlobal ? null : formData.user_id;
+
       createNotification({
+        user_id: targetUserId,
         title: formData.title,
         message: formData.message,
         type: formData.type,
-        is_global: true,
+        is_global: isGlobal,
         expires_at: formData.expires_at?.toISOString()
       });
       
-      toast.success('Global notification created successfully!');
+      const targetUser = users.find(u => u.id === formData.user_id);
+      const successMessage = isGlobal 
+        ? 'Global notification created successfully!'
+        : `Notification sent to ${targetUser?.full_name || 'selected user'} successfully!`;
+      
+      toast.success(successMessage);
       setFormData({
         title: '',
         message: '',
         type: 'announcement',
+        target: 'global',
+        user_id: '',
         expires_at: undefined
       });
     } catch (error) {
@@ -60,11 +110,66 @@ const NotificationManager = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Send className="w-5 h-5" />
-          Create Global Notification
+          Send Notification
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="target">Send To</Label>
+            <Select
+              value={formData.target}
+              onValueChange={(value) => setFormData(prev => ({ 
+                ...prev, 
+                target: value,
+                user_id: value === 'global' ? '' : prev.user_id
+              }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="global">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    All Users (Global)
+                  </div>
+                </SelectItem>
+                <SelectItem value="user">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Specific User
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {formData.target === 'user' && (
+            <div>
+              <Label htmlFor="user_id">Select User</Label>
+              <Select
+                value={formData.user_id}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, user_id: value }))}
+                disabled={loadingUsers}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingUsers ? "Loading users..." : "Select a user"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{user.full_name || 'No name'}</span>
+                        <span className="text-sm text-muted-foreground">{user.email}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="title">Title *</Label>
             <Input
@@ -129,8 +234,9 @@ const NotificationManager = () => {
             </Popover>
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Creating...' : 'Create Global Notification'}
+          <Button type="submit" disabled={isLoading || loadingUsers} className="w-full">
+            {isLoading ? 'Sending...' : 
+             formData.target === 'global' ? 'Send Global Notification' : 'Send to User'}
           </Button>
         </form>
       </CardContent>
