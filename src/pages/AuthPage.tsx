@@ -94,29 +94,8 @@ const AuthPage = () => {
   };
 
   const handleResetPassword = async () => {
-    if (!formData.email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const { error } = await resetPassword(formData.email);
-    
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Reset link sent",
-        description: "Check your email for password reset instructions",
-      });
-    }
+    // Redirect to dedicated reset password page
+    navigate('/reset-password');
   };
 
   return (

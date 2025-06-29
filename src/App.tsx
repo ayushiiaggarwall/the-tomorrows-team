@@ -16,6 +16,9 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AuthPage from "./pages/AuthPage";
+import ResetPassword from "./pages/ResetPassword";
+import ResetEmailSent from "./pages/ResetEmailSent";
+import UserNotFound from "./pages/UserNotFound";
 import CheckEmail from "./pages/CheckEmail";
 import EmailVerified from "./pages/EmailVerified";
 import Dashboard from "./pages/Dashboard";
@@ -64,6 +67,9 @@ const App = () => (
               <Route path="/blog/:id" element={<Blog />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<AuthPage />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/reset-email-sent" element={<ResetEmailSent />} />
+              <Route path="/user-not-found" element={<UserNotFound />} />
               <Route path="/check-email" element={<CheckEmail />} />
               <Route path="/email-verified" element={<EmailVerified />} />
               <Route 
