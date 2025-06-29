@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -129,6 +130,9 @@ const Navigation = () => {
                   </Link>
                 )}
                 
+                {/* Notification Bell */}
+                <NotificationBell />
+                
                 {/* User Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -195,6 +199,13 @@ const Navigation = () => {
             
             {user ? (
               <>
+                <Link
+                  to="/notifications"
+                  className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Notifications
+                </Link>
                 <Link
                   to="/dashboard/profile"
                   className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"

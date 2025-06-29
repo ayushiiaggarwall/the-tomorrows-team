@@ -383,6 +383,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_global: boolean
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_global?: boolean
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_global?: boolean
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       predefined_tags: {
         Row: {
           category: string | null
@@ -584,6 +626,18 @@ export type Database = {
         Args: { p_gd_id: string; p_user_id: string }
         Returns: Json
       }
+      create_notification: {
+        Args: {
+          p_user_id: string
+          p_title: string
+          p_message: string
+          p_type?: string
+          p_is_global?: boolean
+          p_expires_at?: string
+          p_metadata?: Json
+        }
+        Returns: string
+      }
       get_user_total_points: {
         Args: { _user_id: string }
         Returns: number
@@ -601,6 +655,14 @@ export type Database = {
       }
       is_admin: {
         Args: { _user_id: string }
+        Returns: boolean
+      }
+      mark_all_notifications_read: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
+      mark_notification_read: {
+        Args: { p_notification_id: string }
         Returns: boolean
       }
       register_for_gd_atomic: {
