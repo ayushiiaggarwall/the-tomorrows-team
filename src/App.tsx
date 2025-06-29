@@ -50,6 +50,24 @@ const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const HomeRedirect = () => {
+  const { user, isAdmin, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  
+  if (user) {
+    return <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />;
+  }
+  
+  return <Index />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -60,7 +78,7 @@ const App = () => (
           <ScrollToTop />
           <AuthWrapper>
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<HomeRedirect />} />
               <Route path="/about" element={<About />} />
               <Route path="/join-gd" element={<JoinGD />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
