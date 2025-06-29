@@ -27,7 +27,7 @@ export const useAdminSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading, refetch } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: async () => {
       console.log('Fetching admin settings...');
@@ -58,16 +58,16 @@ export const useAdminSettings = () => {
         site_announcement: data.site_announcement || ''
       };
     },
-    staleTime: 0, // Always fetch fresh data
-    refetchInterval: 1000, // Poll every second for changes
+    staleTime: 0,
+    refetchInterval: false, // Remove automatic polling
   });
 
   // Set up real-time subscription for admin settings
   useEffect(() => {
-    console.log('Setting up real-time subscription for admin settings in hook');
+    console.log('Setting up real-time subscription for admin settings');
 
     const channel = supabase
-      .channel('admin-settings-realtime')
+      .channel('admin-settings-changes')
       .on(
         'postgres_changes',
         {
@@ -76,20 +76,21 @@ export const useAdminSettings = () => {
           table: 'admin_settings'
         },
         (payload) => {
-          console.log('Real-time admin settings change in hook:', payload);
-          // Force immediate refetch of admin settings
-          queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+          console.log('Real-time admin settings change detected:', payload);
+          // Force immediate refetch and cache invalidation
+          queryClient.removeQueries({ queryKey: ['admin-settings'] });
+          refetch();
         }
       )
       .subscribe((status) => {
-        console.log('Admin settings hook subscription status:', status);
+        console.log('Admin settings subscription status:', status);
       });
 
     return () => {
-      console.log('Cleaning up admin settings hook real-time subscription');
+      console.log('Cleaning up admin settings real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, refetch]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<AdminSettings>) => {
@@ -118,8 +119,19 @@ export const useAdminSettings = () => {
       console.log('Admin settings saved successfully:', data);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+    onSuccess: (data) => {
+      console.log('Settings saved, updating cache:', data);
+      // Update the cache immediately with the new data
+      queryClient.setQueryData(['admin-settings'], {
+        id: data.id,
+        points_per_attendance: data.points_per_attendance,
+        points_per_best_speaker: data.points_per_best_speaker,
+        points_per_referral: data.points_per_referral,
+        points_per_moderation: data.points_per_moderation,
+        points_per_perfect_attendance: data.points_per_perfect_attendance,
+        site_announcement: data.site_announcement || ''
+      });
+      
       toast({
         title: "Success",
         description: "Settings saved successfully"
