@@ -70,7 +70,7 @@ const Contact = () => {
         throw new Error(errorData.error || 'Failed to send email');
       }
 
-      toast.success('Thanks! We\'ll get back to you within 24–48 hours.');
+      toast.success('Thanks! We\'ll get back to you within 24 hours.');
       
       // Reset form
       setFormData({
@@ -190,10 +190,10 @@ const Contact = () => {
                   <div>
                     <p className="font-medium">Email</p>
                     <a 
-                      href="mailto:support@thetomorrowsteam.com" 
+                      href="mailto:hello@thetomorrowsteam.com" 
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
-                      support@thetomorrowsteam.com
+                      hello@thetomorrowsteam.com
                     </a>
                   </div>
                 </div>
