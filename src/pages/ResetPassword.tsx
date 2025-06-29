@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Mail, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowLeft, RefreshCw } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
 const ResetPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { resetPassword } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -26,31 +27,57 @@ const ResetPassword = () => {
       const { error } = await resetPassword(email);
       
       if (error) {
-        // Check for user not found errors
+        console.log('Reset password error:', error.message);
+        
+        // Check for timeout errors
+        if (error.message.includes('timeout') || 
+            error.message.includes('Failed to reach hook') ||
+            error.message.includes('maximum time')) {
+          toast({
+            title: "Request timeout",
+            description: "The request is taking longer than expected. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Check for user not found errors with more comprehensive detection
         if (error.message.includes('User not found') || 
             error.message.includes('not registered') ||
             error.message.includes('Invalid login credentials') ||
-            error.message.includes('Email not confirmed')) {
+            error.message.includes('Email not confirmed') ||
+            error.message.includes('user_not_found') ||
+            error.message.includes('signup_disabled') ||
+            error.message.toLowerCase().includes('no user found')) {
           navigate('/user-not-found');
-        } else {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive"
-          });
+          return;
         }
+        
+        // For other errors, show generic error message
+        toast({
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
       } else {
+        // Success - redirect to email sent page
         navigate(`/reset-email-sent?email=${encodeURIComponent(email)}`);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.log('Reset password catch error:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    handleSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
   return (
@@ -87,8 +114,28 @@ const ResetPassword = () => {
                 </div>
                 
                 <Button type="submit" className="w-full btn-primary" disabled={loading}>
-                  {loading ? 'Sending...' : 'Send reset link'}
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send reset link'
+                  )}
                 </Button>
+                
+                {retryCount > 0 && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleRetry}
+                    disabled={loading}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Try again
+                  </Button>
+                )}
               </form>
 
               <div className="mt-6 text-center">
