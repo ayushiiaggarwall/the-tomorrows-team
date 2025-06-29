@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to the admin
     const emailResponse = await resend.emails.send({
-      from: "The Tomorrows Team <onboarding@resend.dev>",
+      from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
       to: ["hello@thetomorrowsteam.com"],
       subject: `New Contact Form Submission: ${topic || 'General Inquiry'}`,
       html: `
@@ -56,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Also send a confirmation email to the user
     const confirmationResponse = await resend.emails.send({
-      from: "The Tomorrows Team <onboarding@resend.dev>",
+      from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
       to: [email],
       subject: "We received your message!",
       html: `
