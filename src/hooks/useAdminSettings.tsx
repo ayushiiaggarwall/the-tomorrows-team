@@ -58,8 +58,8 @@ export const useAdminSettings = () => {
         site_announcement: data.site_announcement || ''
       };
     },
-    staleTime: 0,
-    gcTime: 0, // Don't cache data
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Set up real-time subscription for admin settings
@@ -77,8 +77,10 @@ export const useAdminSettings = () => {
         },
         (payload) => {
           console.log('Real-time admin settings change detected:', payload);
-          // Invalidate and refetch immediately
-          queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+          // Only refetch if this change wasn't made by us
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+          }, 100);
         }
       )
       .subscribe((status) => {
@@ -141,13 +143,10 @@ export const useAdminSettings = () => {
       return result.data;
     },
     onSuccess: (data) => {
-      console.log('Settings saved successfully, invalidating cache');
+      console.log('Settings saved successfully, updating cache');
       
-      // Invalidate and refetch the cache immediately
-      queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
-      
-      // Also update the cache directly for immediate UI update
-      queryClient.setQueryData(['admin-settings'], {
+      // Update the cache immediately with the new data
+      const updatedSettings = {
         id: data.id,
         points_per_attendance: data.points_per_attendance,
         points_per_best_speaker: data.points_per_best_speaker,
@@ -155,7 +154,10 @@ export const useAdminSettings = () => {
         points_per_moderation: data.points_per_moderation,
         points_per_perfect_attendance: data.points_per_perfect_attendance,
         site_announcement: data.site_announcement || ''
-      });
+      };
+      
+      // Set the data in cache immediately
+      queryClient.setQueryData(['admin-settings'], updatedSettings);
       
       toast({
         title: "Success",
