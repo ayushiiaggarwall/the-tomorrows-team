@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 
 interface AdminSettings {
@@ -25,6 +26,7 @@ const defaultSettings: AdminSettings = {
 
 export const useAdminSettings = () => {
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: settings, isLoading, refetch } = useQuery({
@@ -58,11 +60,12 @@ export const useAdminSettings = () => {
         site_announcement: data.site_announcement || ''
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 1 * 60 * 1000, // Reduced to 1 minute for faster updates
+    gcTime: 5 * 60 * 1000, // Reduced to 5 minutes  
+    refetchInterval: 30000, // Refetch every 30 seconds to ensure all users get updates
   });
 
-  // Set up real-time subscription for admin settings
+  // Set up real-time subscription for admin settings (for all authenticated users)
   useEffect(() => {
     console.log('Setting up real-time subscription for admin settings');
 
@@ -77,7 +80,7 @@ export const useAdminSettings = () => {
         },
         (payload) => {
           console.log('Real-time admin settings change detected:', payload);
-          // Only refetch if this change wasn't made by us
+          // Force immediate refetch for all users
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
           }, 100);
@@ -96,6 +99,11 @@ export const useAdminSettings = () => {
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<AdminSettings>) => {
       console.log('Saving admin settings:', newSettings);
+
+      // Only allow admins to save settings
+      if (!isAdmin) {
+        throw new Error('Only administrators can modify settings');
+      }
 
       const settingsData = {
         points_per_attendance: newSettings.points_per_attendance ?? defaultSettings.points_per_attendance,
