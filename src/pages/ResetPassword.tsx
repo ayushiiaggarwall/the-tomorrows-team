@@ -26,7 +26,11 @@ const ResetPassword = () => {
       const { error } = await resetPassword(email);
       
       if (error) {
-        if (error.message.includes('User not found') || error.message.includes('not registered')) {
+        // Check for user not found errors
+        if (error.message.includes('User not found') || 
+            error.message.includes('not registered') ||
+            error.message.includes('Invalid login credentials') ||
+            error.message.includes('Email not confirmed')) {
           navigate('/user-not-found');
         } else {
           toast({

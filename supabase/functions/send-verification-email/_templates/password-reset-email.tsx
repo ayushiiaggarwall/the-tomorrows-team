@@ -25,7 +25,6 @@ export const PasswordResetEmail = ({
     <Preview>Reset your password for The Tomorrows Team</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Reset Your Password</Heading>
         <Text style={text}>
           Hi {firstName},
         </Text>
@@ -65,14 +64,6 @@ const container = {
   margin: '0 auto',
   padding: '20px 0 48px',
   maxWidth: '580px',
-}
-
-const h1 = {
-  color: '#1f2937',
-  fontSize: '24px',
-  fontWeight: '600',
-  lineHeight: '1.25',
-  margin: '16px 0',
 }
 
 const text = {
