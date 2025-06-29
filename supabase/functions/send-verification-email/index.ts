@@ -3,6 +3,7 @@ import React from 'npm:react@18.3.1'
 import { Resend } from 'npm:resend@4.0.0'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { VerificationEmail } from './_templates/verification-email.tsx'
+import { PasswordResetEmail } from './_templates/password-reset-email.tsx'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
 
@@ -26,7 +27,6 @@ Deno.serve(async (req) => {
       webhookData = JSON.parse(payload)
     } catch (parseError) {
       console.error('Failed to parse webhook payload:', parseError)
-      // Return success to avoid blocking auth flow
       return new Response(JSON.stringify({ success: true, message: 'Invalid payload format, but auth continues' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     console.log('Has user data:', !!webhookData.user)
     console.log('Has email_data:', !!webhookData.email_data)
     
-    // Check if this is a signup confirmation event and has required data
+    // Check if this has required data
     if (!webhookData.user || !webhookData.email_data) {
       console.log('Missing required data, returning success to avoid blocking auth')
       return new Response(JSON.stringify({ success: true, message: 'Missing required data, but auth continues' }), {
@@ -69,10 +69,10 @@ Deno.serve(async (req) => {
     console.log('Email action type:', email_action_type)
     console.log('Redirect to:', redirect_to)
 
-    // Only process signup confirmations
-    if (email_action_type !== 'signup') {
-      console.log('Not a signup confirmation, skipping email')
-      return new Response(JSON.stringify({ success: true, message: 'Not a signup confirmation' }), {
+    // Handle both signup confirmations and password recovery
+    if (email_action_type !== 'signup' && email_action_type !== 'recovery') {
+      console.log('Not a signup or recovery action, skipping email')
+      return new Response(JSON.stringify({ success: true, message: 'Not a supported email action' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
@@ -82,24 +82,39 @@ Deno.serve(async (req) => {
     const fullName = user.user_metadata?.full_name || user.email
     const firstName = fullName.split(' ')[0] || 'there'
 
-    // Build verification URL
+    // Build verification/reset URL
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     if (!supabaseUrl) {
       throw new Error('SUPABASE_URL not configured')
     }
     
-    const verificationUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
-    console.log('Verification URL built:', verificationUrl)
+    const actionUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
+    console.log('Action URL built:', actionUrl)
 
     console.log('Rendering email template...')
 
-    // Render the email template
-    const html = await renderAsync(
-      React.createElement(VerificationEmail, {
-        firstName,
-        verificationUrl,
-      })
-    )
+    let html: string
+    let subject: string
+
+    if (email_action_type === 'signup') {
+      // Render the verification email template
+      html = await renderAsync(
+        React.createElement(VerificationEmail, {
+          firstName,
+          verificationUrl: actionUrl,
+        })
+      )
+      subject = '✅ Verify your email to activate your account'
+    } else {
+      // Render the password reset email template
+      html = await renderAsync(
+        React.createElement(PasswordResetEmail, {
+          firstName,
+          resetUrl: actionUrl,
+        })
+      )
+      subject = '🔐 Reset your password for The Tomorrows Team'
+    }
 
     console.log('Template rendered, sending email...')
 
@@ -107,16 +122,15 @@ Deno.serve(async (req) => {
     const { error } = await resend.emails.send({
       from: 'hello@thetomorrowsteam.com',
       to: [user.email],
-      subject: '✅ Verify your email to activate your account',
+      subject,
       html,
     })
 
     if (error) {
       console.error('Error sending email:', error)
-      // Don't throw error to avoid blocking user registration
       return new Response(JSON.stringify({ 
         success: true, 
-        warning: 'Email sending failed but registration continues',
+        warning: 'Email sending failed but auth continues',
         error: error.message 
       }), {
         status: 200,
@@ -124,7 +138,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    console.log('Verification email sent successfully to:', user.email)
+    console.log(`${email_action_type} email sent successfully to:`, user.email)
 
     return new Response(JSON.stringify({ success: true, message: 'Email sent successfully' }), {
       status: 200,
@@ -134,7 +148,6 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in send-verification-email function:', error)
     
-    // Always return success to prevent auth flow interruption
     return new Response(JSON.stringify({ 
       success: true, 
       warning: 'Email processing completed with warnings',
