@@ -19,7 +19,7 @@ const Achievements = () => {
   const { data: achievementsData, isLoading } = useQuery({
     queryKey: ['user-achievements-page', user?.id],
     queryFn: async () => {
-      if (!user?.id) return { unlocked: [], locked: [], stats: {} };
+      if (!user?.id) return { unlocked: [], locked: [], stats: { totalPoints: 0, bestSpeakerAwards: 0, referrals: 0, totalGDs: 0 } };
 
       // Get user stats
       const { data: rewardPoints } = await supabase
@@ -34,7 +34,7 @@ const Achievements = () => {
         .eq('user_id', user.id)
         .eq('attended', true);
 
-      if (!rewardPoints) return { unlocked: [], locked: [], stats: {} };
+      if (!rewardPoints) return { unlocked: [], locked: [], stats: { totalPoints: 0, bestSpeakerAwards: 0, referrals: 0, totalGDs: 0 } };
 
       const totalPoints = rewardPoints.reduce((sum, rp) => sum + rp.points, 0);
       const bestSpeakerAwards = rewardPoints.filter(rp => rp.type === 'best_speaker').length;
@@ -158,7 +158,7 @@ const Achievements = () => {
     );
   }
 
-  const { unlocked = [], locked = [], stats = {} } = achievementsData || {};
+  const { unlocked = [], locked = [], stats = { totalPoints: 0, bestSpeakerAwards: 0, referrals: 0, totalGDs: 0 } } = achievementsData || {};
 
   return (
     <div className="min-h-screen bg-background">
