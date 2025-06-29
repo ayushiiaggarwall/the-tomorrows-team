@@ -181,12 +181,18 @@ const RewardPointsManager = () => {
 
       console.log('User found:', userData);
 
+      // Determine the correct type value
+      let typeValue = formData.type;
+      if (pointsValue < 0 && formData.type !== 'penalty') {
+        typeValue = 'penalty';
+      }
+
       // Add the reward points
       const rewardData = {
         user_id: userData.id,
         points: pointsValue,
         reason: formData.reason.trim(),
-        type: formData.type,
+        type: typeValue,
         gd_date: formData.gdDate || null
       };
 
