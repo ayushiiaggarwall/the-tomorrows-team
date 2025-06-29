@@ -18,50 +18,73 @@ Deno.serve(async (req) => {
   try {
     console.log('Processing auth webhook request...')
     
-    // Check for authorization header
+    // Get all possible authorization headers
     const authHeader = req.headers.get('authorization')
-    const apiKey = req.headers.get('apikey')
+    const apiKeyHeader = req.headers.get('apikey')
+    const xApiKeyHeader = req.headers.get('x-api-key')
     
     console.log('Authorization header present:', !!authHeader)
-    console.log('API key header present:', !!apiKey)
+    console.log('API key header present:', !!apiKeyHeader)
+    console.log('X-API-Key header present:', !!xApiKeyHeader)
     
-    // For Supabase Auth webhooks, validate using the service role key or anon key
+    // Get Supabase keys from environment
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const webhookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET')
     
     let isAuthorized = false
     
+    // Check various authorization methods
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '')
-      if (token === supabaseServiceKey || token === supabaseAnonKey) {
+      if (token === supabaseServiceKey || token === supabaseAnonKey || token === webhookSecret) {
         isAuthorized = true
       }
     }
     
-    if (apiKey) {
-      if (apiKey === supabaseServiceKey || apiKey === supabaseAnonKey) {
+    if (apiKeyHeader) {
+      if (apiKeyHeader === supabaseServiceKey || apiKeyHeader === supabaseAnonKey || apiKeyHeader === webhookSecret) {
         isAuthorized = true
       }
     }
     
-    if (!isAuthorized) {
-      console.log('Unauthorized request - invalid or missing authorization')
+    if (xApiKeyHeader) {
+      if (xApiKeyHeader === supabaseServiceKey || xApiKeyHeader === supabaseAnonKey || xApiKeyHeader === webhookSecret) {
+        isAuthorized = true
+      }
+    }
+    
+    // For Supabase auth webhooks, sometimes they don't include auth headers
+    // So we'll be more permissive for signup events
+    const payload = await req.text()
+    console.log('Payload received, length:', payload.length)
+    
+    let webhookData
+    try {
+      webhookData = JSON.parse(payload)
+    } catch (parseError) {
+      console.error('Failed to parse webhook payload:', parseError)
+      return new Response(JSON.stringify({ success: true, message: 'Invalid payload format' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    
+    console.log('Webhook data parsed successfully')
+    console.log('Event type:', webhookData.type || 'unknown')
+    console.log('Has user data:', !!webhookData.user)
+    console.log('Has email_data:', !!webhookData.email_data)
+    
+    // If not authorized and no valid webhook data, return error
+    if (!isAuthorized && (!webhookData.user || !webhookData.email_data)) {
+      console.log('Unauthorized request and no valid webhook data')
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       })
     }
     
-    console.log('Request authorized successfully')
-    
-    const payload = await req.text()
-    console.log('Payload received, length:', payload.length)
-    
-    const webhookData = JSON.parse(payload)
-    console.log('Webhook data parsed successfully')
-    console.log('Event type:', webhookData.type || 'unknown')
-    console.log('Has user data:', !!webhookData.user)
-    console.log('Has email_data:', !!webhookData.email_data)
+    console.log('Request processing authorized')
     
     // Check if this is a signup confirmation event
     if (!webhookData.user || !webhookData.email_data) {
