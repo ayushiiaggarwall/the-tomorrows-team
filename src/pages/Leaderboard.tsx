@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -13,17 +14,46 @@ import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Leaderboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { settings } = useAdminSettings();
+  const { settings, isLoading: settingsLoading } = useAdminSettings();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'Leaderboard - The Tomorrows Team';
+  }, []);
+
+  // Set up real-time subscription for admin settings changes
+  useEffect(() => {
+    console.log('Setting up real-time subscription for admin settings on leaderboard');
+
+    const channel = supabase
+      .channel('leaderboard-admin-settings')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_settings'
+        },
+        (payload) => {
+          console.log('Real-time admin settings change on leaderboard:', payload);
+          // The useAdminSettings hook will automatically refetch when this changes
+        }
+      )
+      .subscribe((status) => {
+        console.log('Leaderboard admin settings subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up leaderboard admin settings real-time subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const { data: topPerformers = [], isLoading, error, refetch } = useLeaderboardData();
@@ -200,41 +230,54 @@ const Leaderboard = () => {
                   <CardTitle className="text-lg font-semibold text-gray-900">How to Earn Points</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center py-2">
-                    <span className="flex items-center text-gray-700">
-                      <Users className="w-4 h-4 mr-3 text-gray-500" />
-                      Attend GD
-                    </span>
-                    <span className="text-green-600 font-semibold">+{settings.points_per_attendance}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="flex items-center text-gray-700">
-                      <Trophy className="w-4 h-4 mr-3 text-gray-500" />
-                      Best Speaker Award
-                    </span>
-                    <span className="text-green-600 font-semibold">+{settings.points_per_best_speaker}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="flex items-center text-gray-700">
-                      <Target className="w-4 h-4 mr-3 text-gray-500" />
-                      Session Moderator
-                    </span>
-                    <span className="text-green-600 font-semibold">+{settings.points_per_moderation}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="flex items-center text-gray-700">
-                      <UserPlus className="w-4 h-4 mr-3 text-gray-500" />
-                      Refer a Friend
-                    </span>
-                    <span className="text-green-600 font-semibold">+{settings.points_per_referral}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="flex items-center text-gray-700">
-                      <Calendar className="w-4 h-4 mr-3 text-gray-500" />
-                      Perfect Attendance (Month)
-                    </span>
-                    <span className="text-green-600 font-semibold">+{settings.points_per_perfect_attendance}</span>
-                  </div>
+                  {settingsLoading ? (
+                    <div className="animate-pulse space-y-4">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex justify-between items-center py-2">
+                          <div className="h-4 bg-gray-200 rounded w-32"></div>
+                          <div className="h-4 bg-gray-200 rounded w-8"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <Users className="w-4 h-4 mr-3 text-gray-500" />
+                          Attend GD
+                        </span>
+                        <span className="text-green-600 font-semibold">+{settings.points_per_attendance}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <Trophy className="w-4 h-4 mr-3 text-gray-500" />
+                          Best Speaker Award
+                        </span>
+                        <span className="text-green-600 font-semibold">+{settings.points_per_best_speaker}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <Target className="w-4 h-4 mr-3 text-gray-500" />
+                          Session Moderator
+                        </span>
+                        <span className="text-green-600 font-semibold">+{settings.points_per_moderation}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <UserPlus className="w-4 h-4 mr-3 text-gray-500" />
+                          Refer a Friend
+                        </span>
+                        <span className="text-green-600 font-semibold">+{settings.points_per_referral}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <Calendar className="w-4 h-4 mr-3 text-gray-500" />
+                          Perfect Attendance (Month)
+                        </span>
+                        <span className="text-green-600 font-semibold">+{settings.points_per_perfect_attendance}</span>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
