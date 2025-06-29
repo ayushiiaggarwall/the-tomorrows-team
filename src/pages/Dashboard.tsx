@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import Achievements from '@/components/dashboard/Achievements';
 import RewardPoints from '@/components/dashboard/RewardPoints';
 import RecommendedResources from '@/components/dashboard/RecommendedResources';
 import CommunityAnnouncements from '@/components/dashboard/CommunityAnnouncements';
+import TestimonialsCarousel from '@/components/dashboard/TestimonialsCarousel';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,6 +72,7 @@ const Dashboard = () => {
             <div className="space-y-6">
               <RecommendedResources />
               <CommunityAnnouncements />
+              <TestimonialsCarousel />
             </div>
           </div>
         </div>

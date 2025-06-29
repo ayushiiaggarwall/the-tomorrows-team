@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const RewardPoints = () => {
   const { user } = useAuth();
@@ -207,11 +208,13 @@ const RewardPoints = () => {
               <Button variant="outline" disabled className="w-full">
                 📤 Redeem Rewards (Coming Soon)
               </Button>
+              <Link to="/achievements">
+                <Button variant="outline" className="w-full">
+                  🏆 View All Achievements
+                </Button>
+              </Link>
               <Button variant="outline" disabled className="w-full">
-                🏆 View All Achievements
-              </Button>
-              <Button variant="outline" disabled className="w-full">
-                📊 Detailed Analytics
+                📊 Detailed Analytics (Coming Soon)
               </Button>
             </div>
           </>

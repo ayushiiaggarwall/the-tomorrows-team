@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Menu, X, User, LogOut, Settings, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +43,15 @@ const Navigation = () => {
     navigate('/');
   };
 
-  const navItems = [
+  // Dynamic navigation items based on auth state
+  const navItems = user ? [
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'About', href: '/about' },
+    { name: 'Join GD', href: '/join-gd' },
+    { name: 'Leaderboard', href: '/leaderboard' },
+    { name: 'Watch & Learn', href: '/watch-learn' },
+    { name: 'Resources', href: '/resources' },
+  ] : [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
     { name: 'Join GD', href: '/join-gd' },
@@ -53,8 +61,8 @@ const Navigation = () => {
   ];
 
   const isActiveRoute = (href: string) => {
-    if (href === '/') {
-      return location.pathname === '/';
+    if (href === '/' || href === '/dashboard') {
+      return location.pathname === href;
     }
     return location.pathname.startsWith(href);
   };
@@ -82,7 +90,7 @@ const Navigation = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
+            <Link to={user ? "/dashboard" : "/"} className="flex-shrink-0 flex items-center">
               <img 
                 src="/lovable-uploads/42d05df8-abbe-449d-89f5-9549f7993132.png" 
                 alt="The Tomorrows Team" 
@@ -133,12 +141,6 @@ const Navigation = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 bg-background border shadow-lg" align="end" forceMount>
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className="cursor-pointer">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard/profile" className="cursor-pointer">
                         <User className="mr-2 h-4 w-4" />
@@ -193,14 +195,6 @@ const Navigation = () => {
             
             {user ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <LayoutDashboard className="w-4 h-4 mr-2 inline" />
-                  Dashboard
-                </Link>
                 <Link
                   to="/dashboard/profile"
                   className="text-foreground/80 hover:text-foreground hover:bg-muted block px-3 py-2 text-base font-medium transition-colors"

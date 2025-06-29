@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +26,8 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ProfileSettings from "./pages/ProfileSettings";
+import ParticipationHistory from "./pages/ParticipationHistory";
+import Achievements from "./pages/Achievements";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +88,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <ProfileSettings />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/participation-history" 
+                element={
+                  <ProtectedRoute>
+                    <ParticipationHistory />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/achievements" 
+                element={
+                  <ProtectedRoute>
+                    <Achievements />
                   </ProtectedRoute>
                 } 
               />

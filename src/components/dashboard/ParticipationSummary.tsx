@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 const ParticipationSummary = () => {
   const { user } = useAuth();
@@ -113,7 +114,9 @@ const ParticipationSummary = () => {
             <p className="text-muted-foreground mb-4">
               Start your journey by joining your first group discussion. Your participation stats will appear here.
             </p>
-            <Button className="btn-primary">Join Your First GD</Button>
+            <Link to="/join-gd">
+              <Button className="btn-primary">Join Your First GD</Button>
+            </Link>
           </div>
         ) : (
           <>
@@ -141,12 +144,16 @@ const ParticipationSummary = () => {
             </div>
             
             <div className="flex flex-wrap gap-3 pt-4">
-              <Button className="btn-secondary">
-                🔄 Update My Profile
-              </Button>
-              <Button variant="outline">
-                📜 View Full Participation History
-              </Button>
+              <Link to="/dashboard/profile">
+                <Button className="btn-secondary">
+                  🔄 Update My Profile
+                </Button>
+              </Link>
+              <Link to="/participation-history">
+                <Button variant="outline">
+                  📜 View Full Participation History
+                </Button>
+              </Link>
             </div>
           </>
         )}
