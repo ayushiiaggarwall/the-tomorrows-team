@@ -99,6 +99,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
             rating: testimonialData.rating,
             user_name: testimonialData.userName,
             user_role: testimonialData.userRole,
+            is_approved: true, // Ensure it stays approved
             updated_at: new Date().toISOString()
           })
           .eq('id', existingTestimonialId)
@@ -113,7 +114,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
         }
         return data;
       } else {
-        // Create new testimonial
+        // Create new testimonial - make it approved so everyone can see it
         const { data, error } = await supabase
           .from('testimonials')
           .insert({
@@ -122,7 +123,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
             rating: testimonialData.rating,
             user_name: testimonialData.userName,
             user_role: testimonialData.userRole,
-            is_approved: true // Auto-approve testimonials
+            is_approved: true // Auto-approve so everyone can see it
           })
           .select()
           .single();
@@ -140,13 +141,14 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
       toast({
         title: isEditing ? "Review Updated!" : "Review Submitted!",
         description: isEditing 
-          ? "Your review has been successfully updated." 
-          : "Thank you for your feedback. Your review has been published.",
+          ? "Your review has been successfully updated and is visible to everyone." 
+          : "Thank you for your feedback. Your review has been published and is now visible to everyone.",
       });
       
       onOpenChange(false);
       
-      // Invalidate testimonials queries
+      // Invalidate testimonials queries to refresh the display
+      queryClient.invalidateQueries({ queryKey: ['dashboard-testimonials'] });
       queryClient.invalidateQueries({ queryKey: ['home-testimonials'] });
       queryClient.invalidateQueries({ queryKey: ['user-testimonial'] });
     },
@@ -205,7 +207,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
           <DialogDescription>
             {isEditing 
               ? 'Update your experience with our group discussions.'
-              : 'Tell us about your experience with our group discussions.'
+              : 'Tell us about your experience with our group discussions. Your review will be visible to everyone immediately.'
             }
           </DialogDescription>
         </DialogHeader>
