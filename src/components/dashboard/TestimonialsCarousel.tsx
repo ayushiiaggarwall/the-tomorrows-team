@@ -79,6 +79,17 @@ const TestimonialsCarousel = () => {
     };
   }, [emblaApi]);
 
+  // Auto-scroll functionality
+  useEffect(() => {
+    if (!emblaApi || !testimonials?.length || testimonials.length <= 1) return;
+
+    const interval = setInterval(() => {
+      emblaApi.scrollNext();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [emblaApi, testimonials?.length]);
+
   const scrollTo = (index: number) => {
     if (emblaApi) emblaApi.scrollTo(index);
   };
