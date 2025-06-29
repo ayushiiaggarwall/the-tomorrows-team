@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 
 interface AdminSettings {
   id?: string;
@@ -56,8 +57,39 @@ export const useAdminSettings = () => {
         points_per_perfect_attendance: data.points_per_perfect_attendance,
         site_announcement: data.site_announcement || ''
       };
-    }
+    },
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 1000, // Poll every second for changes
   });
+
+  // Set up real-time subscription for admin settings
+  useEffect(() => {
+    console.log('Setting up real-time subscription for admin settings in hook');
+
+    const channel = supabase
+      .channel('admin-settings-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_settings'
+        },
+        (payload) => {
+          console.log('Real-time admin settings change in hook:', payload);
+          // Force immediate refetch of admin settings
+          queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Admin settings hook subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up admin settings hook real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<AdminSettings>) => {

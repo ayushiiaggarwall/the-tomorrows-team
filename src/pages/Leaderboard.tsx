@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -15,11 +14,13 @@ import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Leaderboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { settings, isLoading: settingsLoading } = useAdminSettings();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -43,7 +44,8 @@ const Leaderboard = () => {
         },
         (payload) => {
           console.log('Real-time admin settings change on leaderboard:', payload);
-          // The useAdminSettings hook will automatically refetch when this changes
+          // Force invalidation of admin settings query to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
         }
       )
       .subscribe((status) => {
@@ -54,7 +56,7 @@ const Leaderboard = () => {
       console.log('Cleaning up leaderboard admin settings real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   const { data: topPerformers = [], isLoading, error, refetch } = useLeaderboardData();
 
@@ -246,35 +248,35 @@ const Leaderboard = () => {
                           <Users className="w-4 h-4 mr-3 text-gray-500" />
                           Attend GD
                         </span>
-                        <span className="text-green-600 font-semibold">+{settings.points_per_attendance}</span>
+                        <span className="text-green-600 font-semibold">+{settings?.points_per_attendance || 10}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <Trophy className="w-4 h-4 mr-3 text-gray-500" />
                           Best Speaker Award
                         </span>
-                        <span className="text-green-600 font-semibold">+{settings.points_per_best_speaker}</span>
+                        <span className="text-green-600 font-semibold">+{settings?.points_per_best_speaker || 20}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <Target className="w-4 h-4 mr-3 text-gray-500" />
                           Session Moderator
                         </span>
-                        <span className="text-green-600 font-semibold">+{settings.points_per_moderation}</span>
+                        <span className="text-green-600 font-semibold">+{settings?.points_per_moderation || 15}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <UserPlus className="w-4 h-4 mr-3 text-gray-500" />
                           Refer a Friend
                         </span>
-                        <span className="text-green-600 font-semibold">+{settings.points_per_referral}</span>
+                        <span className="text-green-600 font-semibold">+{settings?.points_per_referral || 10}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <Calendar className="w-4 h-4 mr-3 text-gray-500" />
                           Perfect Attendance (Month)
                         </span>
-                        <span className="text-green-600 font-semibold">+{settings.points_per_perfect_attendance}</span>
+                        <span className="text-green-600 font-semibold">+{settings?.points_per_perfect_attendance || 50}</span>
                       </div>
                     </>
                   )}
@@ -337,7 +339,7 @@ const Leaderboard = () => {
                     </DialogHeader>
                     <div className="space-y-4">
                       <p className="text-sm text-gray-600">
-                        Share your referral code or link and earn {settings.points_per_referral} points when your friend joins and attends their first GD!
+                        Share your referral code or link and earn {settings?.points_per_referral || 10} points when your friend joins and attends their first GD!
                       </p>
                       
                       <div className="space-y-2">
@@ -431,7 +433,7 @@ const Leaderboard = () => {
 
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="text-sm text-blue-800">
-                          <strong>How it works:</strong> When someone uses your referral code to sign up and attends their first GD, you'll automatically earn {settings.points_per_referral} points!
+                          <strong>How it works:</strong> When someone uses your referral code to sign up and attends their first GD, you'll automatically earn {settings?.points_per_referral || 10} points!
                         </p>
                       </div>
                     </div>
