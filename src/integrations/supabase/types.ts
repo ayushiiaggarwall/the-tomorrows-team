@@ -33,6 +33,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_settings: {
+        Row: {
+          created_at: string
+          id: string
+          points_per_attendance: number
+          points_per_best_speaker: number
+          points_per_moderation: number
+          points_per_perfect_attendance: number
+          points_per_referral: number
+          site_announcement: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points_per_attendance?: number
+          points_per_best_speaker?: number
+          points_per_moderation?: number
+          points_per_perfect_attendance?: number
+          points_per_referral?: number
+          site_announcement?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points_per_attendance?: number
+          points_per_best_speaker?: number
+          points_per_moderation?: number
+          points_per_perfect_attendance?: number
+          points_per_referral?: number
+          site_announcement?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blogs: {
         Row: {
           author_id: string
