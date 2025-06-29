@@ -4,7 +4,7 @@ import Footer from '@/components/Footer';
 import TestimonialForm from '@/components/TestimonialForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +42,7 @@ const getEmbeddableUrl = (url: string): string => {
 const Index = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = 'Home - The Tomorrows Team';
@@ -242,6 +243,14 @@ const Index = () => {
     enabled: !!user?.id
   });
 
+  const handleJoinGDClick = () => {
+    if (user) {
+      navigate('/join-gd');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -258,11 +267,9 @@ const Index = () => {
               Join a growing community of bold thinkers improving their communication skills through live group discussions, podcasts, and resources that matter.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
-              <Link to="/join-gd">
-                <Button size="lg" className="btn-join-gd text-lg">
-                  Join a Group Discussion
-                </Button>
-              </Link>
+              <Button size="lg" className="btn-join-gd text-lg" onClick={handleJoinGDClick}>
+                Join a Group Discussion
+              </Button>
               <Link to="/watch-learn">
                 <Button size="lg" className="btn-watch-gd text-lg">
                   <Play className="w-5 h-5 mr-2" />
@@ -461,11 +468,9 @@ const Index = () => {
             Join thousands of young professionals who've already started their journey with us.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/join-gd">
-              <Button size="lg" className="btn-join-gd text-lg">
-                Join Your First GD
-              </Button>
-            </Link>
+            <Button size="lg" className="btn-join-gd text-lg" onClick={handleJoinGDClick}>
+              Join Your First GD
+            </Button>
             <Link to="/leaderboard">
               <Button size="lg" className="btn-secondary text-lg">
                 See Rewards & Leaderboard

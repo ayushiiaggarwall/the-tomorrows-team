@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, Users, MapPin } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, Clock, Users, MapPin, LogIn } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +16,7 @@ import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
 import { ConsentModal } from '@/components/ConsentModal';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import { Link } from 'react-router-dom';
 
 const JoinGD = () => {
   useEffect(() => {
@@ -456,6 +458,21 @@ const JoinGD = () => {
                       </div>
                     ) : (
                       <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Show yellow message if user is not signed in */}
+                        {!user && (
+                          <Alert className="border-yellow-400 bg-yellow-50 text-yellow-800">
+                            <LogIn className="h-4 w-4" />
+                            <AlertDescription className="flex items-center justify-between">
+                              <span>Please sign in to register for this session.</span>
+                              <Link to="/login">
+                                <Button size="sm" variant="outline" className="ml-2">
+                                  Sign In
+                                </Button>
+                              </Link>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
                         {selectedGd && (
                           <div className="mb-4 p-3 bg-muted/50 rounded-lg">
                             <p className="text-sm text-muted-foreground">
@@ -472,6 +489,7 @@ const JoinGD = () => {
                             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                             required
                             placeholder="Enter your full name"
+                            disabled={!user}
                           />
                         </div>
 
@@ -483,6 +501,7 @@ const JoinGD = () => {
                             onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                             required
                             placeholder="Enter your phone number"
+                            disabled={!user}
                           />
                         </div>
 
@@ -500,6 +519,7 @@ const JoinGD = () => {
                               professionalRole: '',
                               selfEmployedProfession: ''
                             }))}
+                            disabled={!user}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select your occupation" />
@@ -518,9 +538,9 @@ const JoinGD = () => {
                         <Button 
                           type="submit" 
                           className="w-full"
-                          disabled={registerMutation.isPending || selectedGd?.isFull}
+                          disabled={registerMutation.isPending || selectedGd?.isFull || !user}
                         >
-                          {registerMutation.isPending ? 'Registering...' : 'Register for GD'}
+                          {!user ? 'Please Sign In First' : registerMutation.isPending ? 'Registering...' : 'Register for GD'}
                         </Button>
                       </form>
                     )}
