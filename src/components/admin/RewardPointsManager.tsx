@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -217,9 +216,41 @@ const RewardPointsManager = () => {
 
       console.log('Points added successfully:', insertedData);
 
+      // Send automatic notification to the user
+      try {
+        const notificationTitle = pointsValue > 0 ? '🎉 Reward Points Earned!' : '⚠️ Points Deducted';
+        const notificationMessage = pointsValue > 0 
+          ? `You've earned +${pointsValue} reward points! ${formData.reason}`
+          : `${Math.abs(pointsValue)} points have been deducted. ${formData.reason}`;
+
+        const { error: notificationError } = await supabase.rpc('create_notification', {
+          p_user_id: userData.id,
+          p_title: notificationTitle,
+          p_message: notificationMessage,
+          p_type: 'reward',
+          p_is_global: false,
+          p_expires_at: null,
+          p_metadata: {
+            points: pointsValue,
+            reason: formData.reason,
+            type: typeValue
+          }
+        });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          // Don't fail the whole operation, just log the error
+        } else {
+          console.log('Notification sent successfully to user');
+        }
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // Don't fail the whole operation
+      }
+
       toast({
         title: "Success",
-        description: `Added ${pointsValue} points to ${userData.full_name || userData.email}`
+        description: `Added ${pointsValue} points to ${userData.full_name || userData.email}. Notification sent!`
       });
 
       // Reset form
@@ -351,7 +382,7 @@ const RewardPointsManager = () => {
                   <SelectItem value="Best Speaker">Best Speaker</SelectItem>
                   <SelectItem value="Moderator">Moderator</SelectItem>
                   <SelectItem value="Referral">Referral</SelectItem>
-                  <SelectItem value="Perfect Attendance">Perfect Attendance</SelectItem>
+                  <SelectItem value="Perf Attendance">Perf Attendance</SelectItem>
                   <SelectItem value="Penalty">Penalty</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
