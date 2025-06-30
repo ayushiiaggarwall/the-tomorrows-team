@@ -170,7 +170,7 @@ export const useLeaderboardData = () => {
         // Find users with perfect attendance (if they have perfect attendance points)
         allStats.forEach(([userId, stats]) => {
           if (stats.perfectAttendanceCount > 0 && userPointsMap.has(userId)) {
-            userPointsMap.get(userId)!.tags.push('Perfect Attendance');
+            userPointsMap.get(userId)!.tags.push('Perf Attendance');
           }
         });
 

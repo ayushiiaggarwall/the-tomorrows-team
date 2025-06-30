@@ -185,7 +185,7 @@ const Leaderboard = () => {
                                         tag === 'Most Consistent' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                                         tag === 'Top Moderator' ? 'bg-red-100 text-red-800 border-red-200' :
                                         tag === 'Top Referrer' ? 'bg-green-100 text-green-800 border-green-200' :
-                                        tag === 'Perfect Attendance' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                                        tag === 'Perf Attendance' ? 'bg-purple-100 text-purple-800 border-purple-200' :
                                         'bg-gray-100 text-gray-800 border-gray-200'
                                       }`}
                                     >
@@ -267,7 +267,7 @@ const Leaderboard = () => {
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <Calendar className="w-4 h-4 mr-3 text-gray-500" />
-                          Perfect Attendance (Month)
+                          Perf Attendance (Month)
                         </span>
                         <span className="text-green-600 font-semibold">+{settings.points_per_perfect_attendance}</span>
                       </div>
@@ -296,7 +296,7 @@ const Leaderboard = () => {
                       Top Referrer
                     </Badge>
                     <Badge className="bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 justify-center py-2">
-                      Perfect Attendance
+                      Perf Attendance
                     </Badge>
                     <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-100 justify-center py-2">
                       Critical Thinker
