@@ -183,8 +183,8 @@ const RewardPointsManager = () => {
 
       // Determine the correct type value
       let typeValue = formData.type;
-      if (pointsValue < 0 && formData.type !== 'penalty') {
-        typeValue = 'penalty';
+      if (pointsValue < 0 && formData.type !== 'Penalty') {
+        typeValue = 'Penalty';
       }
 
       // Add the reward points
@@ -349,8 +349,10 @@ const RewardPointsManager = () => {
                 <SelectContent>
                   <SelectItem value="Attendance">Attendance</SelectItem>
                   <SelectItem value="Best Speaker">Best Speaker</SelectItem>
+                  <SelectItem value="Moderator">Moderator</SelectItem>
                   <SelectItem value="Referral">Referral</SelectItem>
-                  <SelectItem value="penalty">Penalty</SelectItem>
+                  <SelectItem value="Perfect Attendance">Perfect Attendance</SelectItem>
+                  <SelectItem value="Penalty">Penalty</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>

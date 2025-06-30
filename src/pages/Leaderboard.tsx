@@ -172,9 +172,28 @@ const Leaderboard = () => {
                         <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
                           <div className="flex items-center space-x-3">
                             <span className="text-2xl">{getMedalEmoji(index)}</span>
-                            <div>
+                            <div className="flex-1">
                               <div className="font-medium text-gray-900">{performer.name}</div>
                               <div className="text-sm text-gray-500">Rank #{index + 1}</div>
+                              {performer.tags && performer.tags.length > 0 && (
+                                <div className="flex gap-1 mt-2">
+                                  {performer.tags.map((tag, tagIndex) => (
+                                    <Badge 
+                                      key={tagIndex} 
+                                      className={`text-xs ${
+                                        tag === 'Best Speaker' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                        tag === 'Most Consistent' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                        tag === 'Top Moderator' ? 'bg-red-100 text-red-800 border-red-200' :
+                                        tag === 'Top Referrer' ? 'bg-green-100 text-green-800 border-green-200' :
+                                        tag === 'Perfect Attendance' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                                        'bg-gray-100 text-gray-800 border-gray-200'
+                                      }`}
+                                    >
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -270,14 +289,14 @@ const Leaderboard = () => {
                     <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 justify-center py-2">
                       Most Consistent
                     </Badge>
+                    <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100 justify-center py-2">
+                      Top Moderator
+                    </Badge>
                     <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100 justify-center py-2">
-                      Early Bird
+                      Top Referrer
                     </Badge>
                     <Badge className="bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 justify-center py-2">
-                      Team Player
-                    </Badge>
-                    <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100 justify-center py-2">
-                      Moderator
+                      Perfect Attendance
                     </Badge>
                     <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-100 justify-center py-2">
                       Critical Thinker
