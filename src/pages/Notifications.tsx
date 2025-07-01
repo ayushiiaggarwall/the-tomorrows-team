@@ -15,6 +15,13 @@ const Notifications = () => {
     document.title = 'Notifications - The Tomorrows Team';
   }, []);
 
+  // Automatically mark all notifications as read when the page loads
+  useEffect(() => {
+    if (unreadCount > 0 && !isLoading) {
+      markAllAsRead();
+    }
+  }, [unreadCount, isLoading, markAllAsRead]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">

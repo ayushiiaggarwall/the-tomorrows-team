@@ -143,13 +143,13 @@ const TestimonialsCarousel = () => {
                             <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                           ))}
                         </div>
-                        <p className="text-sm text-muted-foreground italic">
+                        <p className="text-sm text-muted-foreground italic break-words overflow-wrap-anywhere">
                           "{testimonial.content}"
                         </p>
                         <div>
-                          <p className="font-semibold text-sm">{testimonial.user_name}</p>
+                          <p className="font-semibold text-sm break-words">{testimonial.user_name}</p>
                           {testimonial.user_role && (
-                            <p className="text-xs text-muted-foreground">{testimonial.user_role}</p>
+                            <p className="text-xs text-muted-foreground break-words">{testimonial.user_role}</p>
                           )}
                         </div>
                       </div>

@@ -50,17 +50,17 @@ const NotificationItem = ({ notification, onMarkAsRead }: NotificationItemProps)
           
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-sm truncate">
+                  <h3 className="font-semibold text-sm break-words overflow-wrap-anywhere">
                     {notification.title}
                   </h3>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs flex-shrink-0">
                     {getTypeLabel(notification.type)}
                   </Badge>
                 </div>
                 
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="text-sm text-muted-foreground mb-2 break-words overflow-wrap-anywhere">
                   {notification.message}
                 </p>
                 
