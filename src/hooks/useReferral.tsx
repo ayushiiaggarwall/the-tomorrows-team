@@ -9,10 +9,12 @@ export const useReferral = () => {
 
   const processReferral = async (referralCode: string, newUserId: string) => {
     try {
+      console.log('Processing referral code:', referralCode, 'for user:', newUserId);
+      
       // Find the referrer by matching the referral code (first 8 chars of user_id)
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, full_name')
         .ilike('id', `${referralCode.toLowerCase()}%`);
 
       if (profileError) {
@@ -26,10 +28,23 @@ export const useReferral = () => {
       }
 
       const referrerId = profiles[0].id;
+      console.log('Found referrer:', referrerId);
 
       // Don't allow self-referrals
       if (referrerId === newUserId) {
         console.log('Self-referral attempted, ignoring');
+        return;
+      }
+
+      // Check if referral relationship already exists
+      const { data: existingReferral } = await supabase
+        .from('user_referrals')
+        .select('id')
+        .eq('referred_id', newUserId)
+        .single();
+
+      if (existingReferral) {
+        console.log('Referral relationship already exists');
         return;
       }
 
@@ -39,7 +54,7 @@ export const useReferral = () => {
         .insert({
           referrer_id: referrerId,
           referred_id: newUserId,
-          referral_code: referralCode,
+          referral_code: referralCode.toUpperCase(),
           status: 'pending'
         });
 
@@ -47,22 +62,106 @@ export const useReferral = () => {
         console.error('Error storing referral:', referralError);
       } else {
         console.log('Referral relationship stored successfully');
-        // The signup notification will be sent automatically by the database trigger
+        
+        // Manual notification for signup (as backup to trigger)
+        try {
+          const { data: newUserProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', newUserId)
+            .single();
+
+          await supabase.rpc('create_notification', {
+            p_user_id: referrerId,
+            p_title: '👥 Friend Joined!',
+            p_message: `${newUserProfile?.full_name || 'Someone'} just signed up using your referral code! They'll need to attend their first GD for you to earn bonus points.`,
+            p_type: 'info',
+            p_metadata: JSON.stringify({
+              referred_user_id: newUserId,
+              referred_user_name: newUserProfile?.full_name,
+              referral_code: referralCode.toUpperCase()
+            })
+          });
+          
+          console.log('Backup signup notification sent');
+        } catch (notificationError) {
+          console.error('Error sending backup notification:', notificationError);
+        }
       }
     } catch (error) {
       console.error('Error processing referral:', error);
     }
   };
 
-  // This function is now handled automatically by database triggers
-  // but kept for backward compatibility if needed
+  // Function to manually complete referral (for testing)
   const completeReferral = async (userId: string) => {
-    console.log('Referral completion is now handled automatically by database triggers');
-    // The database trigger will automatically:
-    // 1. Find pending referrals for the user
-    // 2. Mark them as completed when they get their first attendance points
-    // 3. Award 10 points to the referrer
-    // 4. Send notification to the referrer
+    try {
+      console.log('Manually completing referral for user:', userId);
+      
+      // Find pending referral for this user
+      const { data: referral } = await supabase
+        .from('user_referrals')
+        .select('*')
+        .eq('referred_id', userId)
+        .eq('status', 'pending')
+        .single();
+
+      if (!referral) {
+        console.log('No pending referral found for user:', userId);
+        return;
+      }
+
+      // Mark referral as completed
+      const { error: updateError } = await supabase
+        .from('user_referrals')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        })
+        .eq('id', referral.id);
+
+      if (updateError) {
+        console.error('Error updating referral status:', updateError);
+        return;
+      }
+
+      // Award points to referrer
+      const { error: pointsError } = await supabase
+        .from('reward_points')
+        .insert({
+          user_id: referral.referrer_id,
+          points: 10,
+          reason: 'Friend Referral Completed',
+          type: 'referral'
+        });
+
+      if (pointsError) {
+        console.error('Error awarding referral points:', pointsError);
+        return;
+      }
+
+      // Send notification to referrer
+      await supabase.rpc('create_notification', {
+        p_user_id: referral.referrer_id,
+        p_title: '🎉 Referral Bonus Earned!',
+        p_message: 'Your referred friend attended their first GD! You\'ve earned +10 bonus points.',
+        p_type: 'reward',
+        p_metadata: JSON.stringify({
+          points: 10,
+          reason: 'Friend Referral Completed',
+          referred_user_id: userId
+        })
+      });
+
+      console.log('Referral completed successfully');
+      toast({
+        title: "Referral Completed",
+        description: "Referral bonus has been awarded!"
+      });
+
+    } catch (error) {
+      console.error('Error completing referral:', error);
+    }
   };
 
   const generateReferralCode = () => {
@@ -96,10 +195,19 @@ export const useReferral = () => {
     }
   };
 
+  // Function to check and process referral for existing user
+  const checkAndProcessReferral = async (referralCode: string) => {
+    if (!user?.id || !referralCode) return;
+    
+    console.log('Checking referral for existing user:', user.id, 'with code:', referralCode);
+    await processReferral(referralCode, user.id);
+  };
+
   return {
     processReferral,
     completeReferral,
     generateReferralCode,
-    getReferralStats
+    getReferralStats,
+    checkAndProcessReferral
   };
 };

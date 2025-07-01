@@ -1,224 +1,103 @@
-import { useState, useEffect } from 'react';
+
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Navigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import RewardPointsManager from '@/components/admin/RewardPointsManager';
-import GroupDiscussionManager from '@/components/admin/GroupDiscussionManager';
-import BlogManager from '@/components/admin/BlogManager';
-import MediaManager from '@/components/admin/MediaManager';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ParticipantOverview from '@/components/admin/ParticipantOverview';
-import AdminSettings from '@/components/admin/AdminSettings';
-import ResourceManager from '@/components/admin/ResourceManager';
-import GDRegistrationsView from '@/components/admin/GDRegistrationsView';
-import AnnouncementManager from '@/components/admin/AnnouncementManager';
+import GroupDiscussionManager from '@/components/admin/GroupDiscussionManager';
+import RewardPointsManager from '@/components/admin/RewardPointsManager';
 import NotificationManager from '@/components/admin/NotificationManager';
-import { Users, Calendar, Trophy, BookOpen, Mic, Settings, AlertCircle, FileText, ClipboardList, Megaphone, Bell } from 'lucide-react';
-
-const ErrorBoundary = ({ children, error, onRetry }: { children: React.ReactNode; error?: string; onRetry?: () => void }) => {
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive" />
-            <h3 className="text-lg font-medium mb-2">Something went wrong</h3>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            {onRetry && (
-              <button 
-                onClick={onRetry}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-              >
-                Try Again
-              </button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-  return <>{children}</>;
-};
+import MediaManager from '@/components/admin/MediaManager';
+import BlogManager from '@/components/admin/BlogManager';
+import ResourceManager from '@/components/admin/ResourceManager';
+import AdminSettings from '@/components/admin/AdminSettings';
+import AnnouncementManager from '@/components/admin/AnnouncementManager';
+import SecurityMonitor from '@/components/admin/SecurityMonitor';
+import ReferralTestingPanel from '@/components/admin/ReferralTestingPanel';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('rewards');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { user, isAdmin, loading } = useAuth();
 
-  useEffect(() => {
-    document.title = 'Admin Dashboard - The Tomorrows Team';
-  }, []);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-  console.log('🏠 AdminDashboard rendering with activeTab:', activeTab);
-
-  const adminName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin';
-
-  const handleTabError = (tabName: string, error: string) => {
-    console.error(`Error in ${tabName} tab:`, error);
-    setErrors(prev => ({ ...prev, [tabName]: error }));
-  };
-
-  const clearTabError = (tabName: string) => {
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[tabName];
-      return newErrors;
-    });
-  };
-
-  const renderTabContent = (tabName: string, Component: React.ComponentType) => {
-    console.log(`🎯 Rendering tab content for: ${tabName}`);
-    
-    const TabComponent = () => {
-      try {
-        console.log(`✅ Successfully rendering ${tabName} component`);
-        return <Component />;
-      } catch (error) {
-        console.error(`❌ Error rendering ${tabName}:`, error);
-        handleTabError(tabName, `Failed to load ${tabName} content: ${error}`);
-        return null;
-      }
-    };
-
-    return (
-      <ErrorBoundary 
-        error={errors[tabName]} 
-        onRetry={() => {
-          console.log(`🔄 Retrying ${tabName} tab`);
-          clearTabError(tabName);
-          // Force component re-render
-          setActiveTab('');
-          setTimeout(() => setActiveTab(tabName), 100);
-        }}
-      >
-        <TabComponent />
-      </ErrorBoundary>
-    );
-  };
-
-  console.log('🎨 About to render AdminDashboard UI');
+  if (!user || !isAdmin) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <div className="py-8 px-4">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              Welcome Admin 👨‍💼
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Manage discussions, content, and participants in one place.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Logged in as: {adminName}
-            </p>
-          </div>
-
-          {/* Debug info */}
-          <Card className="mb-6 border-green-200 bg-green-50">
-            <CardContent className="py-4">
-              <p className="text-sm text-green-800">
-                <strong>Debug:</strong> Active Tab: {activeTab} | 
-                Errors: {Object.keys(errors).length} | 
-                Time: {new Date().toLocaleTimeString()}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Tabs value={activeTab} onValueChange={(value) => {
-            console.log('🔄 Tab changed to:', value);
-            setActiveTab(value);
-          }} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-10">
-              <TabsTrigger value="rewards" className="flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
-                Rewards
-              </TabsTrigger>
-              <TabsTrigger value="discussions" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                GDs
-              </TabsTrigger>
-              <TabsTrigger value="registrations" className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4" />
-                Registrations
-              </TabsTrigger>
-              <TabsTrigger value="blogs" className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                Blogs
-              </TabsTrigger>
-              <TabsTrigger value="media" className="flex items-center gap-2">
-                <Mic className="w-4 h-4" />
-                Media
-              </TabsTrigger>
-              <TabsTrigger value="resources" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Resources
-              </TabsTrigger>
-              <TabsTrigger value="participants" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger value="announcements" className="flex items-center gap-2">
-                <Megaphone className="w-4 h-4" />
-                Announcements
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="rewards">
-              {renderTabContent('rewards', RewardPointsManager)}
-            </TabsContent>
-
-            <TabsContent value="discussions">
-              {renderTabContent('discussions', GroupDiscussionManager)}
-            </TabsContent>
-
-            <TabsContent value="registrations">
-              {renderTabContent('registrations', GDRegistrationsView)}
-            </TabsContent>
-
-            <TabsContent value="blogs">
-              {renderTabContent('blogs', BlogManager)}
-            </TabsContent>
-
-            <TabsContent value="media">
-              {renderTabContent('media', MediaManager)}
-            </TabsContent>
-
-            <TabsContent value="resources">
-              {renderTabContent('resources', ResourceManager)}
-            </TabsContent>
-
-            <TabsContent value="participants">
-              {renderTabContent('participants', ParticipantOverview)}
-            </TabsContent>
-
-            <TabsContent value="announcements">
-              {renderTabContent('announcements', AnnouncementManager)}
-            </TabsContent>
-
-            <TabsContent value="notifications">
-              {renderTabContent('notifications', NotificationManager)}
-            </TabsContent>
-
-            <TabsContent value="settings">
-              {renderTabContent('settings', AdminSettings)}
-            </TabsContent>
-          </Tabs>
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            Admin Dashboard
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Manage your community and content
+          </p>
         </div>
-      </div>
 
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 mb-8">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="gds">GDs</TabsTrigger>
+            <TabsTrigger value="points">Points</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="media">Media</TabsTrigger>
+            <TabsTrigger value="blog">Blog</TabsTrigger>
+            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="announcements">Announcements</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <ParticipantOverview />
+            <ReferralTestingPanel />
+          </TabsContent>
+
+          <TabsContent value="gds">
+            <GroupDiscussionManager />
+          </TabsContent>
+
+          <TabsContent value="points">
+            <RewardPointsManager />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <NotificationManager />
+          </TabsContent>
+
+          <TabsContent value="media">
+            <MediaManager />
+          </TabsContent>
+
+          <TabsContent value="blog">
+            <BlogManager />
+          </TabsContent>
+
+          <TabsContent value="resources">
+            <ResourceManager />
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <AnnouncementManager />
+          </TabsContent>
+
+          <TabsContent value="security">
+            <SecurityMonitor />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AdminSettings />
+          </TabsContent>
+        </Tabs>
+      </main>
+      
       <Footer />
     </div>
   );
