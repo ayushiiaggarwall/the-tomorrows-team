@@ -431,13 +431,13 @@ const Index = () => {
                     <div className="flex mb-3">
                       {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
                     </div>
-                    <p className="text-muted-foreground mb-4 italic">
+                    <p className="text-muted-foreground mb-4 italic break-words overflow-wrap-anywhere">
                       "{testimonial.content}"
                     </p>
                     <div>
-                      <p className="font-semibold">{testimonial.user_name}</p>
+                      <p className="font-semibold break-words">{testimonial.user_name}</p>
                       {testimonial.user_role && (
-                        <p className="text-sm text-muted-foreground">{testimonial.user_role}</p>
+                        <p className="text-sm text-muted-foreground break-words">{testimonial.user_role}</p>
                       )}
                     </div>
                   </CardContent>
