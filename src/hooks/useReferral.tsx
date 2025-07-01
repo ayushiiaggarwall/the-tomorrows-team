@@ -12,10 +12,11 @@ export const useReferral = () => {
       console.log('Processing referral code:', referralCode, 'for user:', newUserId);
       
       // Find the referrer by matching the referral code (first 8 chars of user_id)
+      // Convert UUID to text first, then use ilike for case-insensitive matching
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .ilike('id', `${referralCode.toLowerCase()}%`);
+        .filter('id::text', 'ilike', `${referralCode.toLowerCase()}%`);
 
       if (profileError) {
         console.error('Error finding referrer:', profileError);
