@@ -136,25 +136,17 @@ const Achievements = () => {
             </p>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {achievements.map((achievement, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                  <div className="text-2xl">{achievement.icon}</div>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{achievement.title}</div>
-                    <div className="text-xs text-muted-foreground">{achievement.description}</div>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {achievements.map((achievement, index) => (
+              <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                <div className="text-2xl">{achievement.icon}</div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{achievement.title}</div>
+                  <div className="text-xs text-muted-foreground">{achievement.description}</div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="mt-4">
-              <Button variant="outline" size="sm">
-                📎 Download Certificate
-              </Button>
-            </div>
-          </>
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
