@@ -27,6 +27,12 @@ export const useReferral = () => {
 
       const referrerId = profiles[0].id;
 
+      // Don't allow self-referrals
+      if (referrerId === newUserId) {
+        console.log('Self-referral attempted, ignoring');
+        return;
+      }
+
       // Store the referral relationship
       const { error: referralError } = await supabase
         .from('user_referrals')
@@ -41,64 +47,22 @@ export const useReferral = () => {
         console.error('Error storing referral:', referralError);
       } else {
         console.log('Referral relationship stored successfully');
+        // The signup notification will be sent automatically by the database trigger
       }
     } catch (error) {
       console.error('Error processing referral:', error);
     }
   };
 
+  // This function is now handled automatically by database triggers
+  // but kept for backward compatibility if needed
   const completeReferral = async (userId: string) => {
-    try {
-      // Find pending referral for this user
-      const { data: referral, error: findError } = await supabase
-        .from('user_referrals')
-        .select('*')
-        .eq('referred_id', userId)
-        .eq('status', 'pending')
-        .maybeSingle();
-
-      if (findError) {
-        console.error('Error finding referral:', findError);
-        return;
-      }
-
-      if (!referral) {
-        console.log('No pending referral found for user:', userId);
-        return;
-      }
-
-      // Mark referral as completed
-      const { error: updateError } = await supabase
-        .from('user_referrals')
-        .update({ 
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', referral.id);
-
-      if (updateError) {
-        console.error('Error updating referral status:', updateError);
-        return;
-      }
-
-      // Award points to referrer
-      const { error: pointsError } = await supabase
-        .from('reward_points')
-        .insert({
-          user_id: referral.referrer_id,
-          points: 10,
-          reason: 'Friend Referral',
-          type: 'referral'
-        });
-
-      if (pointsError) {
-        console.error('Error awarding referral points:', pointsError);
-      } else {
-        console.log('Referral completed and points awarded');
-      }
-    } catch (error) {
-      console.error('Error completing referral:', error);
-    }
+    console.log('Referral completion is now handled automatically by database triggers');
+    // The database trigger will automatically:
+    // 1. Find pending referrals for the user
+    // 2. Mark them as completed when they get their first attendance points
+    // 3. Award 10 points to the referrer
+    // 4. Send notification to the referrer
   };
 
   const generateReferralCode = () => {
@@ -106,9 +70,36 @@ export const useReferral = () => {
     return user.id.slice(0, 8).toUpperCase();
   };
 
+  // Get referral stats for the current user
+  const getReferralStats = async () => {
+    if (!user?.id) return { totalReferrals: 0, completedReferrals: 0, pendingReferrals: 0 };
+
+    try {
+      const { data: referrals, error } = await supabase
+        .from('user_referrals')
+        .select('status')
+        .eq('referrer_id', user.id);
+
+      if (error) {
+        console.error('Error fetching referral stats:', error);
+        return { totalReferrals: 0, completedReferrals: 0, pendingReferrals: 0 };
+      }
+
+      const totalReferrals = referrals?.length || 0;
+      const completedReferrals = referrals?.filter(r => r.status === 'completed').length || 0;
+      const pendingReferrals = referrals?.filter(r => r.status === 'pending').length || 0;
+
+      return { totalReferrals, completedReferrals, pendingReferrals };
+    } catch (error) {
+      console.error('Error calculating referral stats:', error);
+      return { totalReferrals: 0, completedReferrals: 0, pendingReferrals: 0 };
+    }
+  };
+
   return {
     processReferral,
     completeReferral,
-    generateReferralCode
+    generateReferralCode,
+    getReferralStats
   };
 };

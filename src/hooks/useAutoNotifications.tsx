@@ -50,8 +50,17 @@ export const useAutoNotifications = () => {
     }
   };
 
+  // Note: Referral notifications are now handled automatically by database triggers
+  // This ensures they fire reliably whenever:
+  // 1. Someone signs up with a referral code (signup notification)
+  // 2. Someone earns their first attendance points (completion notification + points award)
+  const triggerReferralNotifications = () => {
+    console.log('Referral notifications are now handled automatically by database triggers');
+  };
+
   return {
     triggerGDRegistrationNotification,
-    triggerRewardPointsNotification
+    triggerRewardPointsNotification,
+    triggerReferralNotifications
   };
 };
