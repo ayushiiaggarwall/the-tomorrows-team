@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -12,14 +11,54 @@ export const useReferral = () => {
       console.log('Processing referral code:', referralCode, 'for user:', newUserId);
       
       // Find the referrer by matching the referral code (first 8 chars of user_id)
-      // Convert UUID to text first, then use ilike for case-insensitive matching
+      // Use RPC function or direct SQL to handle UUID text conversion properly
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .filter('id::text', 'ilike', `${referralCode.toLowerCase()}%`);
+        .textSearch('id::text', `${referralCode.toLowerCase()}*`, {
+          type: 'plain',
+          config: 'english'
+        });
 
-      if (profileError) {
-        console.error('Error finding referrer:', profileError);
+      // If textSearch doesn't work, try with rpc or raw query
+      if (profileError || !profiles || profiles.length === 0) {
+        console.log('Trying alternative query method...');
+        
+        // Alternative: Use eq with exact match first
+        const { data: exactMatch, error: exactError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('id', referralCode); // Try exact UUID match first
+          
+        if (exactMatch && exactMatch.length > 0) {
+          console.log('Found exact UUID match:', exactMatch[0].id);
+          const referrerId = exactMatch[0].id;
+          await createReferralRelationship(referrerId, newUserId, referralCode);
+          return;
+        }
+        
+        // If no exact match, fetch all profiles and filter client-side
+        const { data: allProfiles, error: allError } = await supabase
+          .from('profiles')
+          .select('id, full_name');
+          
+        if (allError) {
+          console.error('Error fetching profiles:', allError);
+          return;
+        }
+        
+        // Filter client-side for UUID starting with referral code
+        const matchingProfile = allProfiles?.find(profile => 
+          profile.id.toLowerCase().startsWith(referralCode.toLowerCase())
+        );
+        
+        if (!matchingProfile) {
+          console.log('No referrer found for code:', referralCode);
+          return;
+        }
+        
+        console.log('Found referrer via client-side filtering:', matchingProfile.id);
+        await createReferralRelationship(matchingProfile.id, newUserId, referralCode);
         return;
       }
 
@@ -30,67 +69,71 @@ export const useReferral = () => {
 
       const referrerId = profiles[0].id;
       console.log('Found referrer:', referrerId);
+      await createReferralRelationship(referrerId, newUserId, referralCode);
 
-      // Don't allow self-referrals
-      if (referrerId === newUserId) {
-        console.log('Self-referral attempted, ignoring');
-        return;
-      }
-
-      // Check if referral relationship already exists
-      const { data: existingReferral } = await supabase
-        .from('user_referrals')
-        .select('id')
-        .eq('referred_id', newUserId)
-        .single();
-
-      if (existingReferral) {
-        console.log('Referral relationship already exists');
-        return;
-      }
-
-      // Store the referral relationship
-      const { error: referralError } = await supabase
-        .from('user_referrals')
-        .insert({
-          referrer_id: referrerId,
-          referred_id: newUserId,
-          referral_code: referralCode.toUpperCase(),
-          status: 'pending'
-        });
-
-      if (referralError) {
-        console.error('Error storing referral:', referralError);
-      } else {
-        console.log('Referral relationship stored successfully');
-        
-        // Manual notification for signup (as backup to trigger)
-        try {
-          const { data: newUserProfile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', newUserId)
-            .single();
-
-          await supabase.rpc('create_notification', {
-            p_user_id: referrerId,
-            p_title: '👥 Friend Joined!',
-            p_message: `${newUserProfile?.full_name || 'Someone'} just signed up using your referral code! They'll need to attend their first GD for you to earn bonus points.`,
-            p_type: 'info',
-            p_metadata: JSON.stringify({
-              referred_user_id: newUserId,
-              referred_user_name: newUserProfile?.full_name,
-              referral_code: referralCode.toUpperCase()
-            })
-          });
-          
-          console.log('Backup signup notification sent');
-        } catch (notificationError) {
-          console.error('Error sending backup notification:', notificationError);
-        }
-      }
     } catch (error) {
       console.error('Error processing referral:', error);
+    }
+  };
+
+  const createReferralRelationship = async (referrerId: string, newUserId: string, referralCode: string) => {
+    // Don't allow self-referrals
+    if (referrerId === newUserId) {
+      console.log('Self-referral attempted, ignoring');
+      return;
+    }
+
+    // Check if referral relationship already exists
+    const { data: existingReferral } = await supabase
+      .from('user_referrals')
+      .select('id')
+      .eq('referred_id', newUserId)
+      .single();
+
+    if (existingReferral) {
+      console.log('Referral relationship already exists');
+      return;
+    }
+
+    // Store the referral relationship
+    const { error: referralError } = await supabase
+      .from('user_referrals')
+      .insert({
+        referrer_id: referrerId,
+        referred_id: newUserId,
+        referral_code: referralCode.toUpperCase(),
+        status: 'pending'
+      });
+
+    if (referralError) {
+      console.error('Error storing referral:', referralError);
+    } else {
+      console.log('Referral relationship stored successfully');
+      
+      // Manual notification for signup (as backup to trigger)
+      try {
+        const { data: newUserProfile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', newUserId)
+          .single();
+
+        await supabase.rpc('create_notification', {
+          p_user_id: referrerId,
+          p_title: '👥 Friend Joined!',
+          p_message: `${newUserProfile?.full_name || 'Someone'} just signed up using your referral code! They'll need to attend their first GD for you to earn bonus points.`,
+          p_type: 'info',
+          p_metadata: JSON.stringify({
+            referred_user_id: newUserId,
+            referred_user_name: newUserProfile?.full_name,
+            referral_code: referralCode.toUpperCase()
+          })
+        });
+        
+        console.log('Backup signup notification sent');
+      } catch (notificationError) {
+        console.error('Error sending backup notification:', notificationError);
+      }
     }
   };
 
