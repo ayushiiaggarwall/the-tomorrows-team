@@ -22,3 +22,12 @@ verify_jwt = false
 
 [functions.send-contact-email]
 verify_jwt = true
+
+[functions.gd-management]
+verify_jwt = true
+
+[functions.profile-management]
+verify_jwt = true
+
+[functions.notification-system]
+verify_jwt = true
