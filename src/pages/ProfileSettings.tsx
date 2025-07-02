@@ -152,20 +152,50 @@ const ProfileSettings = () => {
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      // Simply sign out the user - actual deletion handled server-side
+      // Create deletion request and send email notification
+      const { error: insertError } = await supabase
+        .from('account_deletion_requests')
+        .insert({
+          user_id: user!.id,
+          status: 'pending'
+        });
+
+      if (insertError) throw insertError;
+
+      // Send email notification to admin
+      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          name: 'System Notification',
+          email: 'thetomorrowsteam@gmail.com',
+          topic: 'Account Deletion Request',
+          message: `A user has requested account deletion:
+          
+User: ${fullName || 'Unknown'} (${user!.email})
+User ID: ${user!.id}
+Requested: ${new Date().toLocaleString()}
+
+Please review this request in the admin dashboard and process the deletion if appropriate.
+
+The user has been signed out and notified that their account will be deleted within 24 hours pending admin review.`
+        }
+      });
+
+      if (emailError) throw emailError;
+
+      // Sign out the user
       await signOut();
     },
     onSuccess: () => {
       toast({
         title: "Account deletion requested",
-        description: "You have been signed out. Your account will be permanently deleted within 24 hours.",
+        description: "You have been signed out. Your deletion request has been sent to our team for review and will be processed within 24 hours.",
       });
       navigate('/');
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
-        title: "Error processing deletion",
-        description: "Unable to process account deletion. Please try again.",
+        title: "Error processing deletion request",
+        description: error.message || "Unable to process account deletion request. Please try again.",
         variant: "destructive",
       });
     }
@@ -598,7 +628,7 @@ const ProfileSettings = () => {
                   Danger Zone
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data. This action cannot be undone.
+                  Request permanent deletion of your account. This will send a notification to our admin team for review.
                 </p>
               </CardHeader>
               <CardContent>
@@ -610,7 +640,7 @@ const ProfileSettings = () => {
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  {deleteAccountMutation.isPending ? 'Processing...' : 'Delete Account'}
+                  {deleteAccountMutation.isPending ? 'Processing...' : 'Request Account Deletion'}
                 </Button>
               </CardContent>
             </Card>
@@ -622,9 +652,9 @@ const ProfileSettings = () => {
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteAccount}
-        title="Delete Account Permanently"
-        description="Are you sure you want to delete your account? This action will permanently remove all your data, including your profile, participation history, and reward points. This action cannot be undone."
-        confirmText="Delete Account"
+        title="Request Account Deletion"
+        description="Are you sure you want to request deletion of your account? This will send a request to our admin team for review. You will be signed out immediately, and your account will be permanently deleted within 24 hours after admin approval. This action cannot be undone."
+        confirmText="Request Deletion"
         cancelText="Cancel"
         variant="destructive"
       />

@@ -1,0 +1,235 @@
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAdminSecurity } from '@/hooks/useAdminSecurity';
+import { Trash2, Mail, Clock, CheckCircle } from 'lucide-react';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+
+interface DeletionRequest {
+  id: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  requested_at: string;
+  status: 'pending' | 'completed';
+  admin_notes?: string;
+}
+
+const AccountDeletionManager = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { executeAdminAction } = useAdminSecurity();
+  const [selectedRequest, setSelectedRequest] = useState<DeletionRequest | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const { data: deletionRequests = [], isLoading } = useQuery({
+    queryKey: ['account-deletion-requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('account_deletion_requests')
+        .select(`
+          id,
+          user_id,
+          requested_at,
+          status,
+          admin_notes,
+          profiles!inner(email, full_name)
+        `)
+        .order('requested_at', { ascending: false });
+
+      if (error) throw error;
+
+      return data.map(request => ({
+        id: request.id,
+        user_id: request.user_id,
+        user_email: request.profiles?.email || 'Unknown',
+        user_name: request.profiles?.full_name || 'Unknown',
+        requested_at: request.requested_at,
+        status: request.status,
+        admin_notes: request.admin_notes
+      })) as DeletionRequest[];
+    }
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async (request: DeletionRequest) => {
+      const result = await executeAdminAction(
+        'delete_user_account',
+        async () => {
+          // Delete user account using admin API
+          const { error: deleteError } = await supabase.auth.admin.deleteUser(request.user_id);
+          if (deleteError) throw deleteError;
+
+          // Mark deletion request as completed
+          const { error: updateError } = await supabase
+            .from('account_deletion_requests')
+            .update({ 
+              status: 'completed',
+              admin_notes: 'Account permanently deleted by admin'
+            })
+            .eq('id', request.id);
+
+          if (updateError) throw updateError;
+
+          // Send confirmation email
+          await supabase.functions.invoke('send-contact-email', {
+            body: {
+              name: 'Admin Team',
+              email: 'thetomorrowsteam@gmail.com',
+              topic: 'Account Deletion Completed',
+              message: `User account has been permanently deleted:
+              
+User: ${request.user_name} (${request.user_email})
+User ID: ${request.user_id}
+Requested: ${new Date(request.requested_at).toLocaleString()}
+Deleted: ${new Date().toLocaleString()}
+
+This action was completed by an administrator.`
+            }
+          });
+
+          return { success: true };
+        },
+        {
+          userId: request.user_id,
+          userEmail: request.user_email,
+          userName: request.user_name
+        }
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete account');
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Deleted Successfully",
+        description: "The user account has been permanently deleted.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['account-deletion-requests'] });
+      setShowDeleteDialog(false);
+      setSelectedRequest(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Deleting Account",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleDeleteRequest = (request: DeletionRequest) => {
+    setSelectedRequest(request);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedRequest) {
+      deleteAccountMutation.mutate(selectedRequest);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="w-5 h-5" />
+            Account Deletion Requests
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {deletionRequests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No account deletion requests pending.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Requested</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {deletionRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">
+                      {request.user_name}
+                    </TableCell>
+                    <TableCell>{request.user_email}</TableCell>
+                    <TableCell>
+                      {new Date(request.requested_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={request.status === 'completed' ? 'default' : 'secondary'}
+                        className="flex items-center gap-1 w-fit"
+                      >
+                        {request.status === 'completed' ? (
+                          <CheckCircle className="w-3 h-3" />
+                        ) : (
+                          <Clock className="w-3 h-3" />
+                        )}
+                        {request.status === 'completed' ? 'Completed' : 'Pending'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {request.status === 'pending' && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteRequest(request)}
+                          disabled={deleteAccountMutation.isPending}
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete Account
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        title="Permanently Delete User Account"
+        description={`Are you sure you want to permanently delete the account for ${selectedRequest?.user_name} (${selectedRequest?.user_email})? This action cannot be undone and will remove all user data including profile, registrations, and points.`}
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        variant="destructive"
+      />
+    </div>
+  );
+};
+
+export default AccountDeletionManager;

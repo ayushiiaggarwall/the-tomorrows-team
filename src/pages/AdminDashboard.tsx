@@ -15,6 +15,7 @@ import AdminSettings from '@/components/admin/AdminSettings';
 import AnnouncementManager from '@/components/admin/AnnouncementManager';
 import SecurityMonitor from '@/components/admin/SecurityMonitor';
 import ReferralTestingPanel from '@/components/admin/ReferralTestingPanel';
+import AccountDeletionManager from '@/components/admin/AccountDeletionManager';
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading } = useAuth();
@@ -42,7 +43,7 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10 mb-8">
+          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-11 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="gds">GDs</TabsTrigger>
             <TabsTrigger value="points">Points</TabsTrigger>
@@ -51,6 +52,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="blog">Blog</TabsTrigger>
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
+            <TabsTrigger value="deletions">Account Deletions</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -86,6 +88,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="announcements">
             <AnnouncementManager />
+          </TabsContent>
+
+          <TabsContent value="deletions">
+            <AccountDeletionManager />
           </TabsContent>
 
           <TabsContent value="security">
