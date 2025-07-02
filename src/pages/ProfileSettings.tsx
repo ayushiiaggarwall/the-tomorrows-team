@@ -45,6 +45,7 @@ const ProfileSettings = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [referralStats, setReferralStats] = useState({
     totalReferrals: 0,
     completedReferrals: 0,
@@ -333,6 +334,63 @@ The Tomorrows Team`
     });
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setProfilePictureUrl(publicUrl);
+      
+      toast({
+        title: "Upload successful!",
+        description: "Your profile picture has been uploaded.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleDeleteAccount = () => {
     deleteAccountMutation.mutate();
     setShowDeleteDialog(false);
@@ -389,21 +447,41 @@ The Tomorrows Team`
                       <AvatarImage src={profilePictureUrl} />
                       <AvatarFallback>{fullName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div className="space-y-2">
-                      <Label htmlFor="profilePicture">Profile Picture URL</Label>
-                      <div className="flex space-x-2">
-                        <Input
-                          id="profilePicture"
-                          type="url"
-                          placeholder="https://example.com/your-photo.jpg"
-                          value={profilePictureUrl}
-                          onChange={(e) => setProfilePictureUrl(e.target.value)}
-                        />
-                        <Button type="button" variant="outline" size="sm">
-                          <Upload className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="profilePicture">Profile Picture</Label>
+                       <div className="flex space-x-2">
+                         <Input
+                           id="profilePicture"
+                           type="url"
+                           placeholder="https://example.com/your-photo.jpg"
+                           value={profilePictureUrl}
+                           onChange={(e) => setProfilePictureUrl(e.target.value)}
+                         />
+                         <input
+                           type="file"
+                           accept="image/*"
+                           onChange={handleFileUpload}
+                           className="hidden"
+                           id="file-upload"
+                         />
+                         <Button 
+                           type="button" 
+                           variant="outline" 
+                           size="sm"
+                           onClick={() => document.getElementById('file-upload')?.click()}
+                           disabled={isUploading}
+                         >
+                           {isUploading ? (
+                             <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                           ) : (
+                             <Upload className="h-4 w-4" />
+                           )}
+                         </Button>
+                       </div>
+                       <p className="text-xs text-muted-foreground">
+                         Upload an image file or enter a URL above
+                       </p>
+                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
