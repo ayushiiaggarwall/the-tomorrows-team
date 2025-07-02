@@ -25,12 +25,14 @@ const UserProfile = () => {
     queryFn: async () => {
       if (!userId) return null;
       
-      const { data: profile } = await supabase
+      console.log('Fetching profile for userId:', userId);
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
       
+      console.log('Profile query result:', { profile, error });
       return profile;
     },
     enabled: !!userId
