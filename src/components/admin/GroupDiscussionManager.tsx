@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 
 // Helper function to convert UTC datetime to local datetime-local format
 const convertUTCToLocal = (utcDateString: string) => {
@@ -37,6 +38,10 @@ const GroupDiscussionManager = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingGD, setEditingGD] = useState<any>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [newGD, setNewGD] = useState({
     topic_name: '',
     description: '',
@@ -242,7 +247,7 @@ const GroupDiscussionManager = () => {
   };
 
   // Filter discussions
-  const filteredDiscussions = discussions?.filter(discussion => {
+  const allFilteredDiscussions = discussions?.filter(discussion => {
     const matchesSearch = discussion.topic_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          discussion.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -252,6 +257,12 @@ const GroupDiscussionManager = () => {
     
     return matchesSearch && matchesFilter;
   }) || [];
+
+  // Paginate filtered discussions
+  const totalCount = allFilteredDiscussions.length;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const filteredDiscussions = allFilteredDiscussions.slice(startIndex, endIndex);
 
   console.log('🔽 About to render UI with filtered discussions:', filteredDiscussions.length);
 
@@ -561,6 +572,27 @@ const GroupDiscussionManager = () => {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalCount > pageSize && (
+        <Card>
+          <CardContent className="py-4">
+            <DataTablePagination
+              totalCount={totalCount}
+              pageSize={pageSize}
+              currentPage={currentPage}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

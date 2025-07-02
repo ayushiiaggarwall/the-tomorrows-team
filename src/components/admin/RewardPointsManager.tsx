@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useReferral } from '@/hooks/useReferral';
 import { Trash2, Plus } from 'lucide-react';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 
 interface RewardPoint {
   id: string;
@@ -37,22 +38,32 @@ const RewardPointsManager = () => {
     userId: '',
     points: '',
     reason: '',
-    type: 'attendance',
+    type: 'Attendance',
     gdDate: ''
   });
 
-  const { data: rewardPoints, isLoading, refetch } = useQuery({
-    queryKey: ['reward-points'],
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data: rewardPointsData, isLoading, refetch } = useQuery({
+    queryKey: ['reward-points', currentPage, pageSize],
     queryFn: async () => {
-      // First get reward points
+      // Get total count first
+      const { count } = await supabase
+        .from('reward_points')
+        .select('*', { count: 'exact', head: true });
+
+      // Then get paginated reward points
       const { data: pointsData, error: pointsError } = await supabase
         .from('reward_points')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
 
       if (pointsError) throw pointsError;
 
-      // Then get user profiles
+      // Get user profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email');
@@ -71,9 +82,15 @@ const RewardPointsManager = () => {
         };
       }) || [];
 
-      return joinedData as RewardPoint[];
+      return {
+        data: joinedData as RewardPoint[],
+        totalCount: count || 0
+      };
     }
   });
+
+  const rewardPoints = rewardPointsData?.data || [];
+  const totalCount = rewardPointsData?.totalCount || 0;
 
   const { data: users, isLoading: isUsersLoading } = useQuery({
     queryKey: ['users'],
@@ -130,7 +147,7 @@ const RewardPointsManager = () => {
         userId: '',
         points: '',
         reason: '',
-        type: 'attendance',
+        type: 'Attendance',
         gdDate: ''
       });
     },
@@ -255,9 +272,13 @@ const RewardPointsManager = () => {
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="attendance">Attendance</SelectItem>
-                    <SelectItem value="referral">Referral</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="Attendance">Attendance</SelectItem>
+                    <SelectItem value="Best Speaker">Best Speaker</SelectItem>
+                    <SelectItem value="Moderator">Session Moderator</SelectItem>
+                    <SelectItem value="Perf Attendance">Perfect Attendance</SelectItem>
+                    <SelectItem value="Referral">Referral</SelectItem>
+                    <SelectItem value="Penalty">Penalty</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -325,6 +346,20 @@ const RewardPointsManager = () => {
               ))}
             </TableBody>
           </Table>
+          {totalCount > 0 && (
+            <div className="mt-4">
+              <DataTablePagination
+                totalCount={totalCount}
+                pageSize={pageSize}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
