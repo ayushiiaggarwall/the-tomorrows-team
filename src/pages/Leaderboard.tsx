@@ -173,7 +173,12 @@ const Leaderboard = () => {
                           <div className="flex items-center space-x-3">
                             <span className="text-2xl">{getMedalEmoji(index)}</span>
                             <div className="flex-1">
-                              <div className="font-medium text-gray-900">{performer.name}</div>
+                              <button 
+                                onClick={() => navigate(`/user/${performer.userId}`)}
+                                className="text-left hover:text-blue-600 transition-colors"
+                              >
+                                <div className="font-medium text-gray-900 hover:text-blue-600">{performer.name}</div>
+                              </button>
                               <div className="text-sm text-gray-500">Rank #{index + 1}</div>
                               {performer.tags && performer.tags.length > 0 && (
                                 <div className="flex gap-1 mt-2">

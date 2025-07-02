@@ -5,6 +5,7 @@ import { validateInput } from '@/utils/securityValidation';
 import { useEffect } from 'react';
 
 interface UserPerformance {
+  userId: string;
   name: string;
   points: number;
   tags: string[];
@@ -56,7 +57,7 @@ export const useLeaderboardData = () => {
         allUsers.forEach(user => {
           const displayName = user.full_name || user.email?.split('@')[0] || `User ${user.id.slice(0, 8)}`;
           const sanitizedName = validateInput.sanitizeHtml(displayName);
-          userPointsMap.set(user.id, { name: sanitizedName, points: 0, tags: [] });
+          userPointsMap.set(user.id, { userId: user.id, name: sanitizedName, points: 0, tags: [] });
         });
 
         // Track stats for tag assignment

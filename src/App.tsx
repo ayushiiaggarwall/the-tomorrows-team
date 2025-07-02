@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import ProfileSettings from "./pages/ProfileSettings";
 import ParticipationHistory from "./pages/ParticipationHistory";
 import Achievements from "./pages/Achievements";
+import UserProfile from "./pages/UserProfile";
 import Notifications from "./pages/Notifications";
 import AlreadyRegistered from "./pages/AlreadyRegistered";
 
@@ -134,6 +135,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route path="/user/:userId" element={<UserProfile />} />
               <Route 
                 path="/admin" 
                 element={
