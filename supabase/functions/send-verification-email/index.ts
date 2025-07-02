@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
       webhookData = JSON.parse(payload)
     } catch (parseError) {
       console.error('Failed to parse webhook payload:', parseError)
+      // Return success to avoid blocking auth flow
       return new Response(JSON.stringify({ success: true, message: 'Invalid payload format, but auth continues' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -78,69 +79,73 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Extract first name from full name or use email
-    const fullName = user.user_metadata?.full_name || user.email
-    const firstName = fullName.split(' ')[0] || 'there'
+    // Start email sending process asynchronously to avoid timeout
+    const sendEmailAsync = async () => {
+      try {
+        // Extract first name from full name or use email
+        const fullName = user.user_metadata?.full_name || user.email
+        const firstName = fullName.split(' ')[0] || 'there'
 
-    // Build verification/reset URL
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    if (!supabaseUrl) {
-      throw new Error('SUPABASE_URL not configured')
-    }
-    
-    const actionUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
-    console.log('Action URL built:', actionUrl)
+        // Build verification/reset URL
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')
+        if (!supabaseUrl) {
+          throw new Error('SUPABASE_URL not configured')
+        }
+        
+        const actionUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
+        console.log('Action URL built:', actionUrl)
 
-    console.log('Rendering email template...')
+        console.log('Rendering email template...')
 
-    let html: string
-    let subject: string
+        let html: string
+        let subject: string
 
-    if (email_action_type === 'signup') {
-      // Render the verification email template
-      html = await renderAsync(
-        React.createElement(VerificationEmail, {
-          firstName,
-          verificationUrl: actionUrl,
+        if (email_action_type === 'signup') {
+          // Render the verification email template
+          html = await renderAsync(
+            React.createElement(VerificationEmail, {
+              firstName,
+              verificationUrl: actionUrl,
+            })
+          )
+          subject = '✅ Verify your email to activate your account'
+        } else {
+          // Render the password reset email template
+          html = await renderAsync(
+            React.createElement(PasswordResetEmail, {
+              firstName,
+              resetUrl: actionUrl,
+            })
+          )
+          subject = '🔐 Reset your password for The Tomorrows Team'
+        }
+
+        console.log('Template rendered, sending email...')
+
+        // Send the email
+        const { error } = await resend.emails.send({
+          from: 'hello@thetomorrowsteam.com',
+          to: [user.email],
+          subject,
+          html,
         })
-      )
-      subject = '✅ Verify your email to activate your account'
-    } else {
-      // Render the password reset email template
-      html = await renderAsync(
-        React.createElement(PasswordResetEmail, {
-          firstName,
-          resetUrl: actionUrl,
-        })
-      )
-      subject = '🔐 Reset your password for The Tomorrows Team'
+
+        if (error) {
+          console.error('Error sending email:', error)
+        } else {
+          console.log(`${email_action_type} email sent successfully to:`, user.email)
+        }
+      } catch (error) {
+        console.error('Error in async email sending:', error)
+      }
     }
 
-    console.log('Template rendered, sending email...')
+    // Start the email sending process but don't wait for it
+    sendEmailAsync()
 
-    // Send the email
-    const { error } = await resend.emails.send({
-      from: 'hello@thetomorrowsteam.com',
-      to: [user.email],
-      subject,
-      html,
-    })
-
-    if (error) {
-      console.error('Error sending email:', error)
-      return new Response(JSON.stringify({ 
-        success: true, 
-        warning: 'Email sending failed but auth continues',
-        error: error.message 
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
-    console.log(`${email_action_type} email sent successfully to:`, user.email)
-
-    return new Response(JSON.stringify({ success: true, message: 'Email sent successfully' }), {
+    // Return success immediately to prevent timeout
+    console.log('Returning success response to prevent timeout')
+    return new Response(JSON.stringify({ success: true, message: 'Email processing started' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -148,9 +153,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in send-verification-email function:', error)
     
+    // Always return success to avoid blocking auth flow
     return new Response(JSON.stringify({ 
       success: true, 
-      warning: 'Email processing completed with warnings',
+      message: 'Email processing completed with warnings',
       error: error.message 
     }), {
       status: 200,

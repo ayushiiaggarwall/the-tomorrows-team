@@ -52,23 +52,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email_confirmed_at);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle email confirmation events
-        if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // Check if email was just confirmed
-          if (session.user.email_confirmed_at && window.location.pathname.includes('/auth/v1/verify')) {
-            window.location.href = '/email-verified';
-            return;
+        // Handle different auth events
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in:', session.user.email, 'Email confirmed:', session.user.email_confirmed_at);
+          
+          // Check if email is not confirmed
+          if (!session.user.email_confirmed_at) {
+            console.log('Email not confirmed, user needs to verify email');
           }
         }
         
-        if (event === 'SIGNED_IN' && session?.user) {
-          // If user just signed in and email is confirmed, proceed normally
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('Token refreshed, checking email confirmation status');
+          // Check if email was just confirmed during token refresh
           if (session.user.email_confirmed_at) {
-            // Check if this is coming from email verification
-            if (window.location.pathname.includes('/auth/v1/verify')) {
+            console.log('Email confirmed during token refresh');
+            // Check if we're on a verification page
+            if (window.location.pathname.includes('/auth/v1/verify') || 
+                window.location.search.includes('type=signup')) {
               window.location.href = '/email-verified';
               return;
             }
@@ -121,6 +126,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (error) {
       console.error('Signup error:', error);
+    } else {
+      console.log('Signup successful, user should receive confirmation email');
     }
     
     return { error };
@@ -134,6 +141,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (error) {
       console.error('Sign in error:', error);
+      
+      // Provide more specific error handling
+      if (error.message.includes('Email not confirmed')) {
+        console.log('Email not confirmed error detected');
+      }
+    } else {
+      console.log('Sign in successful');
     }
     
     return { error };
