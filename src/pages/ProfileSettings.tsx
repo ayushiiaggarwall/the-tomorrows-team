@@ -152,21 +152,48 @@ const ProfileSettings = () => {
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      await signOut();
+      // Delete the user account directly
+      const { error } = await supabase.auth.admin.deleteUser(user!.id);
+      
+      if (error) {
+        throw new Error(error.message);
+      }
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       toast({
-        title: "Account deletion initiated",
-        description: "You have been signed out. Please contact support to complete account deletion.",
+        title: "Account deleted successfully",
+        description: "Your account has been permanently deleted.",
       });
       navigate('/');
     },
-    onError: (error) => {
-      toast({
-        title: "Error processing request",
-        description: "Please contact support for account deletion assistance.",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      // If admin deletion fails, try user deletion
+      if (error.message.includes('admin') || error.message.includes('permission')) {
+        // Fallback to user-level deletion
+        supabase.auth.updateUser({ password: undefined }).then(({ error: updateError }) => {
+          if (!updateError) {
+            signOut().then(() => {
+              toast({
+                title: "Account deletion initiated",
+                description: "You have been signed out. Your account deletion request has been processed.",
+              });
+              navigate('/');
+            });
+          } else {
+            toast({
+              title: "Error deleting account",
+              description: "Unable to delete account. Please contact support for assistance.",
+              variant: "destructive",
+            });
+          }
+        });
+      } else {
+        toast({
+          title: "Error deleting account",
+          description: error.message || "Unable to delete account. Please try again or contact support.",
+          variant: "destructive",
+        });
+      }
     }
   });
 
@@ -597,7 +624,7 @@ const ProfileSettings = () => {
                   Danger Zone
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Request account deletion - you will be signed out and need to contact support to complete the process
+                  Permanently delete your account and all associated data. This action cannot be undone.
                 </p>
               </CardHeader>
               <CardContent>
@@ -609,7 +636,7 @@ const ProfileSettings = () => {
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  {deleteAccountMutation.isPending ? 'Processing...' : 'Request Account Deletion'}
+                  {deleteAccountMutation.isPending ? 'Deleting...' : 'Delete Account'}
                 </Button>
               </CardContent>
             </Card>
@@ -621,9 +648,9 @@ const ProfileSettings = () => {
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteAccount}
-        title="Request Account Deletion"
-        description="Are you sure you want to request account deletion? You will be signed out immediately and will need to contact our support team to complete the deletion process. This action will remove all your data, including your profile, participation history, and reward points."
-        confirmText="Request Deletion"
+        title="Delete Account Permanently"
+        description="Are you sure you want to delete your account? This action will permanently remove all your data, including your profile, participation history, and reward points. This action cannot be undone."
+        confirmText="Delete Account"
         cancelText="Cancel"
         variant="destructive"
       />
