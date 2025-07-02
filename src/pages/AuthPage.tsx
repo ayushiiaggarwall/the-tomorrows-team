@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,6 +57,13 @@ const AuthPage = () => {
           });
           return;
         }
+
+        // Store signup data temporarily for potential resend
+        localStorage.setItem('pendingSignupData', JSON.stringify({
+          email: formData.email,
+          fullName: formData.fullName,
+          timestamp: Date.now()
+        }));
 
         const { error } = await signUp(formData.email, formData.password, formData.fullName);
         
