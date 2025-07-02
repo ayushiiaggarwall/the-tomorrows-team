@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,12 @@ const RewardPointsManager = () => {
       // If this is attendance points, check for referral completion
       if (data.type === 'attendance') {
         console.log('Attendance points awarded, checking for referral completion');
-        await completeReferralOnAttendance(data.userId);
+        try {
+          await completeReferralOnAttendance(data.userId);
+        } catch (error) {
+          console.error('Error completing referral:', error);
+          // Don't throw here, as the points were successfully added
+        }
       }
     },
     onSuccess: () => {

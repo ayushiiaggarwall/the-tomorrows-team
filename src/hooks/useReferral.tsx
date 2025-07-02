@@ -94,15 +94,15 @@ export const useReferral = () => {
     try {
       console.log('Checking for referral completion for user:', userId);
       
-      // Check if this is the user's first attendance points
+      // Check if this user has any attendance points
       const { data: attendancePoints } = await supabase
         .from('reward_points')
         .select('id')
         .eq('user_id', userId)
         .eq('type', 'attendance');
 
-      if (!attendancePoints || attendancePoints.length !== 1) {
-        console.log('Not first attendance or no attendance points found');
+      if (!attendancePoints || attendancePoints.length === 0) {
+        console.log('No attendance points found for user');
         return;
       }
 
