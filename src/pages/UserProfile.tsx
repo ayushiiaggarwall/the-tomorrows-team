@@ -30,12 +30,14 @@ const UserProfile = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       console.log('Profile query result:', { profile, error });
+      console.log('Profile object details:', profile);
       return profile;
     },
-    enabled: !!userId
+    enabled: !!userId,
+    staleTime: 0 // Force fresh data
   });
 
   // Get user stats
