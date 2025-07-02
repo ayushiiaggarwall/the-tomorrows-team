@@ -101,8 +101,10 @@ export const useAtomicGDRegistration = () => {
       
       toast.error('Registration Failed', {
         description: error.message,
-        duration: 5000,
+        duration: 8000,
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
     }
   });
