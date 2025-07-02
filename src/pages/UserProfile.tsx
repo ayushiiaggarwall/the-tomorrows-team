@@ -73,9 +73,10 @@ const UserProfile = () => {
 
   // Get leaderboard data to find rank
   const { data: leaderboardData } = useLeaderboardData();
-  const userRank = leaderboardData?.findIndex(performer => 
+  const userIndex = leaderboardData?.findIndex(performer => 
     performer.userId === profile?.id
-  ) + 1 || 0;
+  ) ?? -1;
+  const userRank = userIndex >= 0 ? userIndex + 1 : 0;
 
   if (profileLoading || statsLoading) {
     return (
