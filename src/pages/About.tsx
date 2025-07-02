@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, Target, Users } from 'lucide-react';
 
@@ -29,6 +30,13 @@ const About = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="About Us - The Tomorrows Team Leadership Development"
+        description="Learn about The Tomorrows Team's mission to develop leadership skills through structured group discussions. Discover our story, values, and commitment to building tomorrow's leaders."
+        keywords="about the tomorrows team, leadership development mission, group discussion platform, communication skills training, team building, professional development story"
+        url="/about"
+        type="website"
+      />
       <Navigation />
       
       {/* Hero Section */}

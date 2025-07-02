@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import TestimonialForm from '@/components/TestimonialForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -253,6 +254,13 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="The Tomorrows Team - Leadership Through Group Discussions"
+        description="Join engaging group discussions, earn reward points, and develop leadership skills with The Tomorrows Team. Participate in structured debates and build your communication expertise."
+        keywords="group discussions, leadership development, communication skills, debate, reward points, team building, professional development, public speaking, career growth"
+        url="/"
+        type="website"
+      />
       <Navigation />
       
       {/* Hero Section */}
