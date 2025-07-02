@@ -83,13 +83,66 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Delete the user using admin client
+    console.log(`Starting deletion process for user ${userId} (${userEmail})`);
+
+    // Delete all related data first (using admin client to bypass RLS)
+    const deleteOperations = [
+      // Delete user referrals (both as referrer and referred)
+      supabaseAdmin.from('user_referrals').delete().eq('referrer_id', userId),
+      supabaseAdmin.from('user_referrals').delete().eq('referred_id', userId),
+      
+      // Delete reward points
+      supabaseAdmin.from('reward_points').delete().eq('user_id', userId),
+      
+      // Delete GD registrations
+      supabaseAdmin.from('gd_registrations').delete().eq('user_id', userId),
+      
+      // Delete notifications
+      supabaseAdmin.from('notifications').delete().eq('user_id', userId),
+      
+      // Delete testimonials
+      supabaseAdmin.from('testimonials').delete().eq('user_id', userId),
+      
+      // Delete admin logs (if any)
+      supabaseAdmin.from('admin_logs').delete().eq('admin_id', userId),
+      
+      // Delete user roles
+      supabaseAdmin.from('user_roles').delete().eq('user_id', userId),
+      
+      // Delete account deletion requests
+      supabaseAdmin.from('account_deletion_requests').delete().eq('user_id', userId),
+    ];
+
+    // Execute all deletion operations
+    for (const operation of deleteOperations) {
+      const { error } = await operation;
+      if (error) {
+        console.error(`Error deleting related data:`, error);
+        // Continue with other deletions even if one fails
+      }
+    }
+
+    // Delete the profile last (this has the foreign key constraint)
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+
+    if (profileError) {
+      console.error("Error deleting profile:", profileError);
+      return new Response(
+        JSON.stringify({ error: `Failed to delete profile: ${profileError.message}` }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Finally, delete the user from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (deleteError) {
-      console.error("Error deleting user:", deleteError);
+      console.error("Error deleting user from auth:", deleteError);
       return new Response(
-        JSON.stringify({ error: deleteError.message }),
+        JSON.stringify({ error: `Failed to delete user from auth: ${deleteError.message}` }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
