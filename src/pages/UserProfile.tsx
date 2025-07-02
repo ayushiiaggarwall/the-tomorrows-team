@@ -14,6 +14,9 @@ import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 const UserProfile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  
+  // Very first log to see if component loads at all
+  console.log('UserProfile component mounted with userId:', userId);
 
   useEffect(() => {
     document.title = 'User Profile - The Tomorrows Team';
