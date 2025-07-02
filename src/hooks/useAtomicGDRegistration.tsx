@@ -3,6 +3,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface RegistrationResponse {
+  success: boolean;
+  registration_id: string;
+  spots_left: number;
+  total_capacity: number;
+  message: string;
+}
+
 export const useAtomicGDRegistration = () => {
   const queryClient = useQueryClient();
 
@@ -59,9 +67,9 @@ export const useAtomicGDRegistration = () => {
       }
 
       console.log('Registration successful:', data);
-      return data;
+      return data as RegistrationResponse;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: RegistrationResponse) => {
       console.log('Registration mutation successful:', data);
       
       // Show success toast with correct spots left count

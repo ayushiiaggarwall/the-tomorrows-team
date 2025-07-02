@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ interface RewardPoint {
   gd_date: string | null;
   awarded_by: string | null;
   created_at: string;
-  profiles: {
+  user_profile: {
     full_name: string | null;
     email: string;
   } | null;
@@ -47,7 +48,7 @@ const RewardPointsManager = () => {
         .from('reward_points')
         .select(`
           *,
-          profiles (
+          user_profile:profiles!reward_points_user_id_fkey (
             full_name,
             email
           )
@@ -281,7 +282,7 @@ const RewardPointsManager = () => {
             <TableBody>
               {rewardPoints?.map((point) => (
                 <TableRow key={point.id}>
-                  <TableCell>{point.profiles?.full_name} ({point.profiles?.email})</TableCell>
+                  <TableCell>{point.user_profile?.full_name} ({point.user_profile?.email})</TableCell>
                   <TableCell>{point.points}</TableCell>
                   <TableCell>{point.reason}</TableCell>
                   <TableCell>
@@ -295,7 +296,7 @@ const RewardPointsManager = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(point.id)}
-                      disabled={deletePointsMutation.isLoading}
+                      disabled={deletePointsMutation.isPending}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
