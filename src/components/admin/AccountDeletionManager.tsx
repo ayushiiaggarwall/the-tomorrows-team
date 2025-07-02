@@ -71,9 +71,17 @@ const AccountDeletionManager = () => {
       const result = await executeAdminAction(
         'delete_user_account',
         async () => {
-          // Delete user account using admin API
-          const { error: deleteError } = await supabase.auth.admin.deleteUser(request.user_id);
-          if (deleteError) throw deleteError;
+          // Use the edge function to delete the user
+          const { data, error } = await supabase.functions.invoke('delete-user-account', {
+            body: {
+              userId: request.user_id,
+              userEmail: request.user_email,
+              userName: request.user_name
+            }
+          });
+
+          if (error) throw error;
+          if (!data?.success) throw new Error(data?.error || 'Failed to delete user');
 
           // Mark deletion request as completed
           const { error: updateError } = await supabase
