@@ -1,99 +1,33 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-
-interface RegistrationData {
-  participantName: string;
-  participantEmail: string;
-  participantPhone: string;
-  participantOccupation?: string;
-  participantOccupationOther?: string;
-  studentInstitution?: string;
-  studentYear?: string;
-  professionalCompany?: string;
-  professionalRole?: string;
-  selfEmployedProfession?: string;
-}
-
-interface RegistrationResponse {
-  success: boolean;
-  registration_id: string;
-  spots_left: number;
-  total_capacity: number;
-  message: string;
-}
+import { toast } from 'sonner';
 
 export const useAtomicGDRegistration = () => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const registerForGD = useMutation({
+  return useMutation({
     mutationFn: async ({ 
       gdId, 
       userId, 
       registrationData 
-    }: { 
-      gdId: string; 
-      userId: string; 
-      registrationData: RegistrationData;
+    }: {
+      gdId: string;
+      userId: string;
+      registrationData: {
+        participantName: string;
+        participantEmail: string;
+        participantPhone: string;
+        participantOccupation: string;
+        participantOccupationOther?: string;
+        studentInstitution?: string;
+        studentYear?: string;
+        professionalCompany?: string;
+        professionalRole?: string;
+        selfEmployedProfession?: string;
+      };
     }) => {
       console.log('Attempting atomic registration for GD:', gdId, 'User:', userId);
-      
-      // First check if user has any registration (including cancelled ones)
-      const { data: existingRegs, error: checkError } = await supabase
-        .from('gd_registrations')
-        .select('id, cancelled_at, cancellation_type')
-        .eq('gd_id', gdId)
-        .eq('user_id', userId);
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking existing registration:', checkError);
-        throw checkError;
-      }
-
-      // Check if user has an active (non-cancelled) registration
-      const activeReg = existingRegs?.find(reg => !reg.cancelled_at);
-      if (activeReg) {
-        throw new Error('ALREADY_REGISTERED: You are already registered for this GD');
-      }
-
-      // Check if user previously dropped out and reverse penalty
-      const droppedOutReg = existingRegs?.find(reg => reg.cancelled_at && reg.cancellation_type === 'dropout');
-      if (droppedOutReg) {
-        console.log('User previously dropped out, reversing penalty');
-        
-        // Add back the 10 points that were deducted (reverse the penalty)
-        const { error: pointsError } = await supabase
-          .from('reward_points')
-          .insert({
-            user_id: userId,
-            points: 10,
-            reason: 'Penalty reversal for re-registering after drop out',
-            type: 'bonus',
-            gd_date: new Date().toISOString().split('T')[0],
-            created_at: new Date().toISOString()
-          });
-
-        if (pointsError) {
-          console.error('Error reversing penalty points:', pointsError);
-          // Don't throw error here, just log it - registration can still proceed
-        }
-      }
-
-      // If user has any previous registration (cancelled), delete it before creating new one
-      if (existingRegs && existingRegs.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('gd_registrations')
-          .delete()
-          .eq('gd_id', gdId)
-          .eq('user_id', userId);
-
-        if (deleteError) {
-          console.error('Error deleting old registrations:', deleteError);
-          // Continue anyway, the atomic function will handle duplicates
-        }
-      }
 
       const { data, error } = await supabase.rpc('register_for_gd_atomic', {
         p_gd_id: gdId,
@@ -112,57 +46,44 @@ export const useAtomicGDRegistration = () => {
 
       if (error) {
         console.error('Registration error:', error);
-        throw error;
+        
+        if (error.message.includes('GD_FULL')) {
+          throw new Error('This group discussion is now full. Please try another session.');
+        } else if (error.message.includes('ALREADY_REGISTERED')) {
+          throw new Error('You are already registered for this group discussion.');
+        } else if (error.message.includes('GD_NOT_FOUND')) {
+          throw new Error('Group discussion not found or no longer active.');
+        } else {
+          throw new Error(error.message || 'Registration failed. Please try again.');
+        }
       }
 
       console.log('Registration successful:', data);
-      return data as unknown as RegistrationResponse;
+      return data;
     },
     onSuccess: (data) => {
-      const message = data?.message || 'Registration successful';
-      const spotsLeft = data?.spots_left || 0;
+      console.log('Registration mutation successful:', data);
       
-      toast({
-        title: "Registration Successful! 🎉",
-        description: `${message}. ${spotsLeft} spots remaining.`,
+      // Show success toast with correct spots left count
+      toast.success('Registration Successful!', {
+        description: `You've been registered for the GD. ${data.spots_left} spots remaining.`,
+        duration: 5000,
       });
-      
-      // Invalidate and refetch all related queries
-      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-      queryClient.invalidateQueries({ queryKey: ['gd-registration-count'] });
+
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
+      queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
       queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
+      queryClient.invalidateQueries({ queryKey: ['gd-registration-count'] });
+      queryClient.invalidateQueries({ queryKey: ['user-registrations'] });
     },
-    onError: (error: any) => {
-      console.error('Registration mutation error:', error);
+    onError: (error: Error) => {
+      console.error('Registration mutation failed:', error);
       
-      if (error.message?.includes('ALREADY_REGISTERED')) {
-        toast({
-          title: "Already Registered",
-          description: "You are already registered for this group discussion.",
-          variant: "destructive"
-        });
-      } else if (error.message?.includes('GD_FULL')) {
-        toast({
-          title: "Group Discussion Full",
-          description: "This session is now full. Please try another session.",
-          variant: "destructive"
-        });
-      } else if (error.message?.includes('GD_NOT_FOUND')) {
-        toast({
-          title: "Session Not Found",
-          description: "This group discussion session is no longer available.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Registration Failed",
-          description: error.message || "Something went wrong. Please try again.",
-          variant: "destructive"
-        });
-      }
+      toast.error('Registration Failed', {
+        description: error.message,
+        duration: 5000,
+      });
     }
   });
-
-  return registerForGD;
 };

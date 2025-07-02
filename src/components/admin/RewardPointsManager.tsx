@@ -5,502 +5,305 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, Plus, Undo, Trophy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useReferral } from '@/hooks/useReferral';
+import { Trash2, Plus } from 'lucide-react';
 
-interface RewardEntry {
+interface RewardPoint {
   id: string;
   user_id: string;
   points: number;
   reason: string;
   type: string;
   gd_date: string | null;
+  awarded_by: string | null;
   created_at: string;
-  user_email?: string;
-  user_name?: string;
+  profiles: {
+    full_name: string | null;
+    email: string;
+  } | null;
 }
 
 const RewardPointsManager = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [rewardEntries, setRewardEntries] = useState<RewardEntry[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalEntries, setTotalEntries] = useState(0);
-  const itemsPerPage = 5;
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { completeReferralOnAttendance } = useReferral();
+  
   const [formData, setFormData] = useState({
-    email: '',
+    userId: '',
     points: '',
     reason: '',
-    type: 'Attendance',
+    type: 'attendance',
     gdDate: ''
   });
-  const { toast } = useToast();
 
-  const fetchRewardEntries = async (page = 1) => {
-    try {
-      const start = (page - 1) * itemsPerPage;
-      const end = start + itemsPerPage - 1;
-
-      // Get total count first
-      const { count } = await supabase
+  const { data: rewardPoints, isLoading, refetch } = useQuery({
+    queryKey: ['reward-points'],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('reward_points')
-        .select('*', { count: 'exact', head: true });
+        .select(`
+          *,
+          profiles (
+            full_name,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-      setTotalEntries(count || 0);
-
-      // Get paginated data
-      const { data: rewardData, error: rewardError } = await supabase
-        .from('reward_points')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(start, end);
-
-      if (rewardError) throw rewardError;
-
-      // Get user details for each reward entry
-      const entriesWithUsers = await Promise.all(
-        (rewardData || []).map(async (entry) => {
-          const { data: userData } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('id', entry.user_id)
-            .single();
-
-          return {
-            ...entry,
-            user_email: userData?.email || '',
-            user_name: userData?.full_name || 'Unknown'
-          };
-        })
-      );
-
-      setRewardEntries(entriesWithUsers);
-    } catch (error) {
-      console.error('Error fetching reward entries:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch reward entries",
-        variant: "destructive"
-      });
+      if (error) throw error;
+      return data as RewardPoint[];
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchRewardEntries(currentPage);
-  }, [currentPage]);
-
-  // Set up real-time subscription for reward points changes
-  useEffect(() => {
-    console.log('Setting up real-time subscription for reward points manager');
-
-    const channel = supabase
-      .channel('reward-points-admin-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reward_points'
-        },
-        (payload) => {
-          console.log('Real-time reward points admin change:', payload);
-          // Refetch data when any change occurs
-          fetchRewardEntries(currentPage);
-        }
-      )
-      .subscribe((status) => {
-        console.log('Reward points admin subscription status:', status);
-      });
-
-    return () => {
-      console.log('Cleaning up reward points admin real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [currentPage]);
-
-  const handleAddPoints = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      console.log('Starting point addition process with data:', formData);
-
-      // Validate form data
-      if (!formData.email || !formData.points || !formData.reason) {
-        toast({
-          title: "Validation Error",
-          description: "Please fill in all required fields",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      const pointsValue = parseInt(formData.points);
-      if (isNaN(pointsValue)) {
-        toast({
-          title: "Validation Error",
-          description: "Points must be a valid number",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      // First, find the user by email
-      console.log('Looking up user by email:', formData.email);
-      const { data: userData, error: userError } = await supabase
+  const { data: users, isLoading: isUsersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name')
-        .eq('email', formData.email)
-        .single();
+        .select('id, full_name, email')
+        .order('full_name', { ascending: true });
 
-      if (userError) {
-        console.error('User lookup error:', userError);
-        toast({
-          title: "Error",
-          description: userError.code === 'PGRST116' ? "User not found with that email" : "Error looking up user",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
+      if (error) throw error;
+      return data;
+    }
+  });
 
-      if (!userData) {
-        toast({
-          title: "Error",
-          description: "User not found with that email",
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      console.log('User found:', userData);
-
-      // Determine the correct type value
-      let typeValue = formData.type;
-      if (pointsValue < 0 && formData.type !== 'Penalty') {
-        typeValue = 'Penalty';
-      }
-
-      // Add the reward points
-      const rewardData = {
-        user_id: userData.id,
-        points: pointsValue,
-        reason: formData.reason.trim(),
-        type: typeValue,
-        gd_date: formData.gdDate || null
-      };
-
-      console.log('Inserting reward points:', rewardData);
-
-      const { data: insertedData, error: insertError } = await supabase
+  const addPointsMutation = useMutation({
+    mutationFn: async (data: {
+      userId: string;
+      points: number;
+      reason: string;
+      type: string;
+      gdDate?: string;
+    }) => {
+      const { error } = await supabase
         .from('reward_points')
-        .insert([rewardData])
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        toast({
-          title: "Database Error",
-          description: `Failed to add points: ${insertError.message}`,
-          variant: "destructive"
-        });
-        setLoading(false);
-        return;
-      }
-
-      console.log('Points added successfully:', insertedData);
-
-      // Send automatic notification to the user
-      try {
-        const notificationTitle = pointsValue > 0 ? '🎉 Reward Points Earned!' : '⚠️ Points Deducted';
-        const notificationMessage = pointsValue > 0 
-          ? `You've earned +${pointsValue} reward points! ${formData.reason}`
-          : `${Math.abs(pointsValue)} points have been deducted. ${formData.reason}`;
-
-        const { error: notificationError } = await supabase.rpc('create_notification', {
-          p_user_id: userData.id,
-          p_title: notificationTitle,
-          p_message: notificationMessage,
-          p_type: 'reward',
-          p_is_global: false,
-          p_expires_at: null,
-          p_metadata: {
-            points: pointsValue,
-            reason: formData.reason,
-            type: typeValue
-          }
+        .insert({
+          user_id: data.userId,
+          points: data.points,
+          reason: data.reason,
+          type: data.type,
+          gd_date: data.gdDate || null
         });
 
-        if (notificationError) {
-          console.error('Error creating notification:', notificationError);
-          // Don't fail the whole operation, just log the error
-        } else {
-          console.log('Notification sent successfully to user');
-        }
-      } catch (notificationError) {
-        console.error('Failed to send notification:', notificationError);
-        // Don't fail the whole operation
-      }
+      if (error) throw error;
 
+      // If this is attendance points, check for referral completion
+      if (data.type === 'attendance') {
+        console.log('Attendance points awarded, checking for referral completion');
+        await completeReferralOnAttendance(data.userId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reward-points'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       toast({
         title: "Success",
-        description: `Added ${pointsValue} points to ${userData.full_name || userData.email}. Notification sent!`
+        description: "Reward points added successfully"
       });
-
-      // Reset form
       setFormData({
-        email: '',
+        userId: '',
         points: '',
         reason: '',
-        type: 'Attendance',
+        type: 'attendance',
         gdDate: ''
       });
-      
-      // Force immediate refresh
-      setTimeout(() => {
-        fetchRewardEntries(currentPage);
-      }, 100);
-
-    } catch (error) {
-      console.error('Unexpected error adding points:', error);
+    },
+    onError: (error: any) => {
+      console.error('Error adding points:', error);
       toast({
-        title: "Unexpected Error",
-        description: "An unexpected error occurred. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to add reward points",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  });
 
-  const handleUndo = async (id: string) => {
-    try {
-      console.log('Removing reward points entry:', id);
-      
+  const deletePointsMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('reward_points')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
-      }
-
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reward-points'] });
       toast({
         title: "Success",
-        description: "Points entry removed"
+        description: "Reward points deleted successfully"
       });
-      
-      // Force immediate refresh
-      setTimeout(() => {
-        fetchRewardEntries(currentPage);
-      }, 100);
-      
-    } catch (error) {
-      console.error('Error removing entry:', error);
+    },
+    onError: (error: any) => {
+      console.error('Error deleting points:', error);
       toast({
         title: "Error",
-        description: "Failed to remove entry",
+        description: error.message || "Failed to delete reward points",
         variant: "destructive"
       });
     }
+  });
+
+  const handleDelete = (id: string) => {
+    deletePointsMutation.mutate(id);
   };
 
-  const filteredEntries = rewardEntries.filter(entry =>
-    entry.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entry.user_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const formatPoints = (points: number) => {
-    if (points > 0) {
-      return `+${points}`;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.userId || !formData.points || !formData.reason) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
     }
-    return points.toString();
+
+    addPointsMutation.mutate({
+      userId: formData.userId,
+      points: parseInt(formData.points),
+      reason: formData.reason,
+      type: formData.type,
+      gdDate: formData.gdDate || undefined
+    });
   };
 
-  const getPointsColor = (points: number) => {
-    if (points > 0) {
-      return "text-green-600";
-    } else if (points < 0) {
-      return "text-red-600";
-    }
-    return "text-gray-600";
-  };
-
-  const totalPages = Math.ceil(totalEntries / itemsPerPage);
+  if (isLoading || isUsersLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="w-5 h-5" />
-            Reward Points Manager
-          </CardTitle>
+          <CardTitle>Add Reward Points</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAddPoints} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div>
-              <Label htmlFor="email">Participant Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="user@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                required
-              />
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="userId">User</Label>
+                <Select
+                  onValueChange={(value) => setFormData({ ...formData, userId: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users?.map((user: any) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.full_name} ({user.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="points">Points</Label>
+                <Input
+                  type="number"
+                  id="points"
+                  value={formData.points}
+                  onChange={(e) => setFormData({ ...formData, points: e.target.value })}
+                />
+              </div>
             </div>
-            
-            <div>
-              <Label htmlFor="points">Points *</Label>
-              <Input
-                id="points"
-                type="number"
-                placeholder="10 or -10"
-                value={formData.points}
-                onChange={(e) => setFormData(prev => ({ ...prev, points: e.target.value }))}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="reason">Reason</Label>
+                <Input
+                  type="text"
+                  id="reason"
+                  value={formData.reason}
+                  onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="attendance">Attendance</SelectItem>
+                    <SelectItem value="referral">Referral</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            
-            <div>
-              <Label htmlFor="type">Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Attendance">Attendance</SelectItem>
-                  <SelectItem value="Best Speaker">Best Speaker</SelectItem>
-                  <SelectItem value="Moderator">Moderator</SelectItem>
-                  <SelectItem value="Referral">Referral</SelectItem>
-                  <SelectItem value="Perf Attendance">Perf Attendance</SelectItem>
-                  <SelectItem value="Penalty">Penalty</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="gdDate">GD Date (Optional)</Label>
-              <Input
-                id="gdDate"
-                type="date"
-                value={formData.gdDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, gdDate: e.target.value }))}
-              />
-            </div>
-            
-            <div className="md:col-span-2">
-              <Label htmlFor="reason">Reason *</Label>
-              <Input
-                id="reason"
-                placeholder="Attended GD on AI in Education"
-                value={formData.reason}
-                onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                required
-              />
-            </div>
-            
-            <div className="flex items-end">
-              <Button type="submit" disabled={loading} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                {loading ? 'Adding...' : 'Add Points'}
-              </Button>
-            </div>
+            {formData.type === 'attendance' && (
+              <div>
+                <Label htmlFor="gdDate">GD Date (Optional)</Label>
+                <Input
+                  type="date"
+                  id="gdDate"
+                  value={formData.gdDate}
+                  onChange={(e) => setFormData({ ...formData, gdDate: e.target.value })}
+                />
+              </div>
+            )}
+            <Button disabled={addPointsMutation.isPending} type="submit">
+              {addPointsMutation.isPending ? "Adding..." : "Add Points"}
+              <Plus className="ml-2 h-4 w-4" />
+            </Button>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Recent Point Awards ({totalEntries} total)</CardTitle>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by email or name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <CardTitle>Reward Points List</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Participant</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>User</TableHead>
                 <TableHead>Points</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Reason</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>GD Date</TableHead>
+                <TableHead>Awarded By</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEntries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell>{entry.user_name || 'N/A'}</TableCell>
-                  <TableCell>{entry.user_email}</TableCell>
-                  <TableCell className={`font-semibold ${getPointsColor(entry.points)}`}>
-                    {formatPoints(entry.points)}
-                  </TableCell>
-                  <TableCell>{entry.type}</TableCell>
-                  <TableCell>{entry.reason}</TableCell>
-                  <TableCell>{new Date(entry.created_at).toLocaleDateString()}</TableCell>
+              {rewardPoints?.map((point) => (
+                <TableRow key={point.id}>
+                  <TableCell>{point.profiles?.full_name} ({point.profiles?.email})</TableCell>
+                  <TableCell>{point.points}</TableCell>
+                  <TableCell>{point.reason}</TableCell>
                   <TableCell>
+                    <Badge variant="secondary">{point.type}</Badge>
+                  </TableCell>
+                  <TableCell>{point.gd_date}</TableCell>
+                  <TableCell>{point.awarded_by}</TableCell>
+                  <TableCell>{new Date(point.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      onClick={() => handleUndo(entry.id)}
+                      onClick={() => handleDelete(point.id)}
+                      disabled={deletePointsMutation.isLoading}
                     >
-                      <Undo className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          
-          {totalPages > 1 && (
-            <div className="mt-4">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={currentPage === 1 ? undefined : () => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={currentPage === totalPages ? undefined : () => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

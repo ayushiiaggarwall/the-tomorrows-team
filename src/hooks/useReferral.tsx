@@ -89,11 +89,23 @@ export const useReferral = () => {
     }
   };
 
-  // Function to manually complete referral (for testing)
-  const completeReferral = async (userId: string) => {
+  // Function to manually complete referral when attendance points are awarded
+  const completeReferralOnAttendance = async (userId: string) => {
     try {
-      console.log('Manually completing referral for user:', userId);
+      console.log('Checking for referral completion for user:', userId);
       
+      // Check if this is the user's first attendance points
+      const { data: attendancePoints } = await supabase
+        .from('reward_points')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'attendance');
+
+      if (!attendancePoints || attendancePoints.length !== 1) {
+        console.log('Not first attendance or no attendance points found');
+        return;
+      }
+
       // Find pending referral for this user
       const { data: referral } = await supabase
         .from('user_referrals')
@@ -106,6 +118,8 @@ export const useReferral = () => {
         console.log('No pending referral found for user:', userId);
         return;
       }
+
+      console.log('Found pending referral, completing it:', referral);
 
       // Mark referral as completed
       const { error: updateError } = await supabase
@@ -137,7 +151,7 @@ export const useReferral = () => {
       }
 
       // Send notification to referrer
-      await supabase.rpc('create_notification', {
+      const { error: notificationError } = await supabase.rpc('create_notification', {
         p_user_id: referral.referrer_id,
         p_title: '🎉 Referral Bonus Earned!',
         p_message: 'Your referred friend attended their first GD! You\'ve earned +10 bonus points.',
@@ -149,15 +163,22 @@ export const useReferral = () => {
         })
       });
 
-      console.log('Referral completed successfully');
-      toast({
-        title: "Referral Completed",
-        description: "Referral bonus has been awarded!"
-      });
+      if (notificationError) {
+        console.error('Error creating completion notification:', notificationError);
+      } else {
+        console.log('Referral completion notification sent successfully');
+      }
+
+      console.log('Referral completed successfully for user:', userId);
 
     } catch (error) {
       console.error('Error completing referral:', error);
     }
+  };
+
+  // Function to manually complete referral (for testing)
+  const completeReferral = async (userId: string) => {
+    await completeReferralOnAttendance(userId);
   };
 
   const generateReferralCode = () => {
@@ -228,6 +249,7 @@ export const useReferral = () => {
   return {
     processReferral,
     completeReferral,
+    completeReferralOnAttendance,
     generateReferralCode,
     getReferralStats,
     getReferralDetails,
