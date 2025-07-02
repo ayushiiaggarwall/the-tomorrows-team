@@ -86,6 +86,7 @@ export const useAtomicGDRegistration = () => {
       toast.success('Registration Successful!', {
         description: `You've been registered for the GD. ${data.spots_left} spots remaining.`,
         duration: 5000,
+        position: 'top-right',
       });
 
       // Invalidate all relevant queries
@@ -101,6 +102,7 @@ export const useAtomicGDRegistration = () => {
       toast.error('Registration Failed', {
         description: error.message,
         duration: 5000,
+        position: 'top-right',
       });
     }
   });

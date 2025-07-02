@@ -109,28 +109,32 @@ const JoinGD = () => {
     
     if (!user) {
       toast.error("Authentication Required", {
-        description: "Please log in to register for group discussions."
+        description: "Please log in to register for group discussions.",
+        position: 'top-right',
       });
       return;
     }
 
     if (!formData.selectedGdId) {
       toast.error("No GD Selected", {
-        description: "Please select a group discussion to register for."
+        description: "Please select a group discussion to register for.",
+        position: 'top-right',
       });
       return;
     }
 
     if (!formData.occupation) {
       toast.error("Occupation Required", {
-        description: "Please select your occupation."
+        description: "Please select your occupation.",
+        position: 'top-right',
       });
       return;
     }
 
     if (formData.occupation === 'Others' && !formData.occupationOther.trim()) {
       toast.error("Please Specify", {
-        description: "Please specify your occupation in the text field."
+        description: "Please specify your occupation in the text field.",
+        position: 'top-right',
       });
       return;
     }
@@ -138,21 +142,24 @@ const JoinGD = () => {
     // Validation for occupation-specific fields
     if (formData.occupation === 'Student' && (!formData.studentInstitution.trim() || !formData.studentYear.trim())) {
       toast.error("Student Details Required", {
-        description: "Please provide your institution and year of study."
+        description: "Please provide your institution and year of study.",
+        position: 'top-right',
       });
       return;
     }
 
     if (formData.occupation === 'Working Professional' && (!formData.professionalCompany.trim() || !formData.professionalRole.trim())) {
       toast.error("Professional Details Required", {
-        description: "Please provide your company and role."
+        description: "Please provide your company and role.",
+        position: 'top-right',
       });
       return;
     }
 
     if (formData.occupation === 'Self Employed' && !formData.selfEmployedProfession.trim()) {
       toast.error("Profession Required", {
-        description: "Please specify your profession."
+        description: "Please specify your profession.",
+        position: 'top-right',
       });
       return;
     }
@@ -161,7 +168,8 @@ const JoinGD = () => {
     const selectedGd = upcomingGDs?.find(gd => gd.id === formData.selectedGdId);
     if (selectedGd?.isFull) {
       toast.error("Session Full", {
-        description: "This group discussion is now full. Please try another session."
+        description: "This group discussion is now full. Please try another session.",
+        position: 'top-right',
       });
       return;
     }
