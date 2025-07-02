@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, ArrowLeft } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
@@ -12,7 +12,6 @@ import Footer from '@/components/Footer';
 const CheckEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { signUp } = useAuth();
   const { toast } = useToast();
   const email = searchParams.get('email') || 'your email';
   
@@ -49,12 +48,14 @@ const CheckEmail = () => {
     
     setIsResending(true);
     try {
-      // Get user's name from localStorage if available (from signup form)
-      const userData = localStorage.getItem('pendingSignupData');
-      const fullName = userData ? JSON.parse(userData).fullName || 'User' : 'User';
-      
-      // Attempt to resend verification email by triggering signup again
-      const { error } = await signUp(email, 'temp-password-for-resend', fullName);
+      // Try to resend using the built-in resend method first
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/email-verified`
+        }
+      });
       
       if (error && !error.message.includes('already registered')) {
         throw error;
@@ -70,6 +71,7 @@ const CheckEmail = () => {
       setCanResend(false);
       
     } catch (error: any) {
+      console.error('Resend error:', error);
       toast({
         title: "Resend Failed",
         description: error.message || "Failed to resend verification email. Please try again later.",

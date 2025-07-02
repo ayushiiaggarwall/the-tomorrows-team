@@ -60,15 +60,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('User signed in:', session.user.email, 'Email confirmed:', session.user.email_confirmed_at);
           
-          // Check if email is not confirmed
-          if (!session.user.email_confirmed_at) {
-            console.log('Email not confirmed, user needs to verify email');
+          // If email is confirmed and we're on an auth-related page, redirect to dashboard
+          if (session.user.email_confirmed_at) {
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/login') || currentPath.includes('/auth') || 
+                currentPath.includes('/check-email') || currentPath.includes('/email-verified')) {
+              window.location.href = '/dashboard';
+              return;
+            }
           }
         }
         
         if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('Token refreshed, checking email confirmation status');
-          // Check if email was just confirmed during token refresh
+          // Check if email was confirmed during token refresh
           if (session.user.email_confirmed_at) {
             console.log('Email confirmed during token refresh');
             // Check if we're on a verification page

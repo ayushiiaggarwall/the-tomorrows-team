@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
@@ -22,6 +22,8 @@ const AuthPage = () => {
     fullName: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [showResendOption, setShowResendOption] = useState(false);
   
   const { signUp, signIn, resetPassword } = useAuth();
   const { toast } = useToast();
@@ -34,9 +36,57 @@ const AuthPage = () => {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
+  const handleResendVerification = async () => {
+    if (!formData.email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsResendingVerification(true);
+    try {
+      // Try to resend verification by attempting signup again with the same email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/email-verified`
+        }
+      });
+
+      if (error) {
+        // If resend fails, try the signup approach as fallback
+        const signupResult = await signUp(formData.email, 'temp-password-resend', formData.fullName || 'User');
+        if (signupResult.error && !signupResult.error.message.includes('already')) {
+          throw signupResult.error;
+        }
+      }
+
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email for the verification link.",
+      });
+      
+      navigate(`/check-email?email=${encodeURIComponent(formData.email)}`);
+    } catch (error: any) {
+      console.error('Resend verification error:', error);
+      toast({
+        title: "Resend Failed",
+        description: "Failed to resend verification email. Please try again or contact support.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setShowResendOption(false);
 
     try {
       if (isSignUp) {
@@ -104,11 +154,21 @@ const AuthPage = () => {
         const { error } = await signIn(formData.email, formData.password);
         
         if (error) {
-          toast({
-            title: "Sign in failed",
-            description: error.message,
-            variant: "destructive"
-          });
+          // Check if it's an email not confirmed error
+          if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+            setShowResendOption(true);
+            toast({
+              title: "Email Not Verified",
+              description: "Please verify your email address. Click 'Resend Verification' if you didn't receive the email.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Sign in failed",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
         } else {
           navigate(from, { replace: true });
         }
@@ -226,6 +286,28 @@ const AuthPage = () => {
                 <Button type="submit" className="w-full btn-primary" disabled={loading}>
                   {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
                 </Button>
+
+                {showResendOption && !isSignUp && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleResendVerification}
+                    disabled={isResendingVerification}
+                  >
+                    {isResendingVerification ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4 mr-2" />
+                        Resend Verification Email
+                      </>
+                    )}
+                  </Button>
+                )}
               </form>
 
               <div className="mt-6">
@@ -245,7 +327,10 @@ const AuthPage = () => {
                     {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
                     <button
                       type="button"
-                      onClick={() => setIsSignUp(!isSignUp)}
+                      onClick={() => {
+                        setIsSignUp(!isSignUp);
+                        setShowResendOption(false);
+                      }}
                       className="text-primary hover:underline font-medium"
                     >
                       {isSignUp ? 'Sign in' : 'Sign up'}
