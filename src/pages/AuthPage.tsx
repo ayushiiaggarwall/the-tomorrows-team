@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,29 @@ const AuthPage = () => {
             description: "Full name is required",
             variant: "destructive"
           });
+          return;
+        }
+
+        // Check if user is already registered in profiles table
+        const { data: existingUser, error: checkError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('email', formData.email)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('Error checking existing user:', checkError);
+          toast({
+            title: "Error",
+            description: "Unable to verify registration status. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        if (existingUser) {
+          // User already exists, redirect to already registered page
+          navigate(`/already-registered?email=${encodeURIComponent(formData.email)}`);
           return;
         }
 

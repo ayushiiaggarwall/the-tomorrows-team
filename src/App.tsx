@@ -28,6 +28,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import ParticipationHistory from "./pages/ParticipationHistory";
 import Achievements from "./pages/Achievements";
 import Notifications from "./pages/Notifications";
+import AlreadyRegistered from "./pages/AlreadyRegistered";
 
 const queryClient = new QueryClient();
 
@@ -141,6 +142,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route path="/already-registered" element={<AlreadyRegistered />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthWrapper>
