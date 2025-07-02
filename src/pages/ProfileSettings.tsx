@@ -154,7 +154,7 @@ const ProfileSettings = () => {
     mutationFn: async () => {
       // Create deletion request and send email notification
       const { error: insertError } = await supabase
-        .from('account_deletion_requests')
+        .from('account_deletion_requests' as any)
         .insert({
           user_id: user!.id,
           status: 'pending'

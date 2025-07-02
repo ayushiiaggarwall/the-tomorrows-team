@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminSecurity } from '@/hooks/useAdminSecurity';
-import { Trash2, Mail, Clock, CheckCircle } from 'lucide-react';
+import { Trash2, Clock, CheckCircle } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface DeletionRequest {
@@ -31,29 +31,50 @@ const AccountDeletionManager = () => {
   const { data: deletionRequests = [], isLoading } = useQuery({
     queryKey: ['account-deletion-requests'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('account_deletion_requests')
-        .select(`
-          id,
-          user_id,
-          requested_at,
-          status,
-          admin_notes,
-          profiles!inner(email, full_name)
-        `)
-        .order('requested_at', { ascending: false });
+      // First get the deletion requests
+      const { data: requests, error: requestsError } = await supabase
+        .rpc('get_account_deletion_requests')
+        .then(() => {
+          // Fallback to direct query since RPC might not exist
+          return supabase
+            .from('account_deletion_requests' as any)
+            .select('*')
+            .order('requested_at', { ascending: false });
+        })
+        .catch(() => {
+          // Direct query as fallback
+          return supabase
+            .from('account_deletion_requests' as any)
+            .select('*')
+            .order('requested_at', { ascending: false });
+        });
 
-      if (error) throw error;
+      if (requestsError) throw requestsError;
 
-      return data.map(request => ({
-        id: request.id,
-        user_id: request.user_id,
-        user_email: request.profiles?.email || 'Unknown',
-        user_name: request.profiles?.full_name || 'Unknown',
-        requested_at: request.requested_at,
-        status: request.status,
-        admin_notes: request.admin_notes
-      })) as DeletionRequest[];
+      if (!requests || requests.length === 0) {
+        return [];
+      }
+
+      // Get user profiles for the requests
+      const userIds = requests.map((req: any) => req.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      // Combine the data
+      return requests.map((request: any) => {
+        const profile = profiles?.find(p => p.id === request.user_id);
+        return {
+          id: request.id,
+          user_id: request.user_id,
+          user_email: profile?.email || 'Unknown',
+          user_name: profile?.full_name || 'Unknown',
+          requested_at: request.requested_at,
+          status: request.status,
+          admin_notes: request.admin_notes
+        };
+      }) as DeletionRequest[];
     }
   });
 
@@ -68,7 +89,7 @@ const AccountDeletionManager = () => {
 
           // Mark deletion request as completed
           const { error: updateError } = await supabase
-            .from('account_deletion_requests')
+            .from('account_deletion_requests' as any)
             .update({ 
               status: 'completed',
               admin_notes: 'Account permanently deleted by admin'
