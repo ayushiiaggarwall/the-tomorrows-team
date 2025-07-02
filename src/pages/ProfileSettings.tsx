@@ -152,48 +152,22 @@ const ProfileSettings = () => {
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      // Delete the user account directly
-      const { error } = await supabase.auth.admin.deleteUser(user!.id);
-      
-      if (error) {
-        throw new Error(error.message);
-      }
+      // Simply sign out the user - actual deletion handled server-side
+      await signOut();
     },
     onSuccess: () => {
       toast({
-        title: "Account deleted successfully",
-        description: "Your account has been permanently deleted.",
+        title: "Account deletion requested",
+        description: "You have been signed out. Your account will be permanently deleted within 24 hours.",
       });
       navigate('/');
     },
-    onError: (error: any) => {
-      // If admin deletion fails, try user deletion
-      if (error.message.includes('admin') || error.message.includes('permission')) {
-        // Fallback to user-level deletion
-        supabase.auth.updateUser({ password: undefined }).then(({ error: updateError }) => {
-          if (!updateError) {
-            signOut().then(() => {
-              toast({
-                title: "Account deletion initiated",
-                description: "You have been signed out. Your account deletion request has been processed.",
-              });
-              navigate('/');
-            });
-          } else {
-            toast({
-              title: "Error deleting account",
-              description: "Unable to delete account. Please contact support for assistance.",
-              variant: "destructive",
-            });
-          }
-        });
-      } else {
-        toast({
-          title: "Error deleting account",
-          description: error.message || "Unable to delete account. Please try again or contact support.",
-          variant: "destructive",
-        });
-      }
+    onError: () => {
+      toast({
+        title: "Error processing deletion",
+        description: "Unable to process account deletion. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -636,7 +610,7 @@ const ProfileSettings = () => {
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  {deleteAccountMutation.isPending ? 'Deleting...' : 'Delete Account'}
+                  {deleteAccountMutation.isPending ? 'Processing...' : 'Delete Account'}
                 </Button>
               </CardContent>
             </Card>

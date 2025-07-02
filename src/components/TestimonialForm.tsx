@@ -35,7 +35,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [existingTestimonialId, setExistingTestimonialId] = useState<string | null>(null);
 
-  // Check if user has existing testimonial
+  // Check if user has existing testimonial - fixed query
   const { data: existingTestimonial } = useQuery({
     queryKey: ['user-testimonial', user?.id],
     queryFn: async () => {
@@ -43,9 +43,9 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
       
       const { data, error } = await supabase
         .from('testimonials')
-        .select('*')
+        .select('id, content, rating, user_name, user_role')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching user testimonial:', error);
