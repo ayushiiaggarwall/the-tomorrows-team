@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +90,13 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Contact Us - Get in Touch with The Tomorrows Team"
+        description="Contact The Tomorrows Team for questions about group discussions, partnerships, or support. We're here to help you develop your leadership and communication skills."
+        keywords="contact the tomorrows team, group discussion support, leadership development contact, communication skills help, partnership inquiries"
+        url="/contact"
+        type="website"
+      />
       <Navigation />
       
       {/* Hero Section */}

@@ -1,5 +1,6 @@
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -159,6 +160,13 @@ const Resources = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Communication Resources - GD Tips, Interview Prep & Speaking Skills"
+        description="Access comprehensive resources for group discussions, interview preparation, and public speaking. Download guides, tips, and techniques to improve your communication skills."
+        keywords="group discussion tips, interview preparation, public speaking resources, communication skills guide, GD dos and donts, speaking techniques"
+        url="/resources"
+        type="website"
+      />
       <Navigation />
       
       {/* Hero Section */}

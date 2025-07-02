@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import SEO from '@/components/SEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -260,6 +261,13 @@ const Blog = () => {
   // Blog listing view
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Leadership & Communication Blog - The Tomorrows Team"
+        description="Read expert insights on leadership development, communication skills, and group discussion strategies. Stay updated with tips and articles from The Tomorrows Team."
+        keywords="leadership blog, communication articles, group discussion insights, public speaking tips, professional development blog, leadership skills"
+        url="/blog"
+        type="website"
+      />
       <Navigation />
       
       <section className="py-20 px-4">
