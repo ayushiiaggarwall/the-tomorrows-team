@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
+import HomeGDCard from '@/components/HomeGDCard';
 
 // Helper function to convert video URLs to embeddable format
 const getEmbeddableUrl = (url: string): string => {
@@ -180,7 +181,7 @@ const Index = () => {
     };
   }, [queryClient, user?.id]);
 
-  // Fetch featured video from media_content table
+  // Fetch featured video from media_content table with optimized caching
   const { data: featuredVideo } = useQuery({
     queryKey: ['featured-video'],
     queryFn: async () => {
@@ -199,10 +200,12 @@ const Index = () => {
       }
 
       return data;
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Fetch real testimonials from database
+  // Fetch real testimonials from database with optimized caching
   const { data: testimonials } = useQuery({
     queryKey: ['home-testimonials'],
     queryFn: async () => {
@@ -219,7 +222,9 @@ const Index = () => {
       }
 
       return data || [];
-    }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
   });
 
   // Check if current user has existing testimonial
@@ -495,47 +500,6 @@ const Index = () => {
 
       <Footer />
     </div>
-  );
-};
-
-// Separate component for each GD card on home page to manage its own registration count
-const HomeGDCard = ({ gd }: { gd: any }) => {
-  const { registrationData } = useGDRegistrationCount(gd.id);
-  const { user } = useAuth();
-
-  return (
-    <Card className="feature-card">
-      <CardContent className="p-6">
-        <div className="flex items-center mb-3">
-          <Calendar className="w-5 h-5 text-primary mr-2" />
-          <span className="text-sm font-medium text-primary">{gd.date} • {gd.time}</span>
-        </div>
-        <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
-            {registrationData 
-              ? `${registrationData.spotsLeft} spots left`
-              : 'Loading spots...'
-            }
-          </span>
-          {gd.isRegistered ? (
-            <Button size="sm" variant="secondary" disabled>
-              ✅ Registered
-            </Button>
-          ) : (
-            <Link to={user ? "/join-gd" : "/login"}>
-              <Button 
-                size="sm" 
-                className="btn-primary"
-                disabled={registrationData?.isFull}
-              >
-                {registrationData?.isFull ? 'Full' : 'Register'}
-              </Button>
-            </Link>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 

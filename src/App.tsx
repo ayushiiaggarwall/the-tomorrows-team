@@ -41,7 +41,7 @@ const PageLoader = () => (
   </div>
 );
 
-const queryClient = new QueryClient();
+import { queryClient } from '@/lib/queryClient';
 
 const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, loading } = useAuth();
