@@ -85,9 +85,11 @@ const ReferralTestingPanel = () => {
   const checkReferralTriggers = async () => {
     setIsLoading(true);
     try {
-      // Check if the trigger functions exist
-      const { data: functions, error } = await supabase
-        .rpc('pg_get_functiondef', { funcoid: 'handle_referral_completion'::regproc });
+      // Check if the trigger functions exist by querying the database
+      const { data: triggers, error } = await supabase
+        .from('information_schema.triggers')
+        .select('*')
+        .eq('trigger_name', 'reward_points_referral_trigger');
 
       if (error) {
         toast({
