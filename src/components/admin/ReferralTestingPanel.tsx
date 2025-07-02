@@ -82,31 +82,50 @@ const ReferralTestingPanel = () => {
     }
   };
 
-  const checkReferralTriggers = async () => {
+  const checkReferralStatus = async () => {
+    if (!testUserId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a user ID to check",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Check if the trigger functions exist by querying the database
-      const { data: triggers, error } = await supabase
-        .from('information_schema.triggers')
+      // Check if user has any referrals
+      const { data: referrals, error } = await supabase
+        .from('user_referrals')
         .select('*')
-        .eq('trigger_name', 'reward_points_referral_trigger');
+        .eq('referred_id', testUserId);
 
       if (error) {
         toast({
-          title: "Trigger Check",
-          description: "Could not verify trigger functions. They may not be installed.",
+          title: "Check Failed",
+          description: "Could not check referral status: " + error.message,
           variant: "destructive",
+        });
+        return;
+      }
+
+      if (referrals && referrals.length > 0) {
+        const referral = referrals[0];
+        toast({
+          title: "Referral Status",
+          description: `Found referral: Status is ${referral.status}. ${referral.status === 'pending' ? 'Awaiting first attendance.' : 'Already completed.'}`,
         });
       } else {
         toast({
-          title: "Trigger Check",
-          description: "Referral trigger functions appear to be installed correctly.",
+          title: "No Referral Found",
+          description: "This user was not referred by anyone.",
         });
       }
+
     } catch (error: any) {
       toast({
-        title: "Trigger Check Failed",
-        description: "Could not check trigger status: " + error.message,
+        title: "Check Failed",
+        description: "Could not check referral status: " + error.message,
         variant: "destructive",
       });
     } finally {
@@ -154,18 +173,18 @@ const ReferralTestingPanel = () => {
           </Button>
 
           <Button
-            onClick={checkReferralTriggers}
-            disabled={isLoading}
+            onClick={checkReferralStatus}
+            disabled={isLoading || !testUserId.trim()}
             variant="secondary"
           >
-            Check Triggers
+            Check Referral Status
           </Button>
         </div>
 
         <div className="text-sm text-muted-foreground">
           <p><strong>Test Auto Completion:</strong> Awards attendance points to trigger the database trigger that should complete referrals automatically.</p>
           <p><strong>Manual Completion:</strong> Manually completes any pending referrals for the specified user.</p>
-          <p><strong>Check Triggers:</strong> Verifies that the database triggers are properly installed.</p>
+          <p><strong>Check Referral Status:</strong> Shows if the user has any referrals and their current status.</p>
         </div>
       </CardContent>
     </Card>
