@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { X, Upload, Plus, Eye, EyeOff, Copy, Users, Trash2 } from 'lucide-react';
+import { X, Upload, Plus, Eye, EyeOff, Copy, Users, Trash2, Clock, CheckCircle } from 'lucide-react';
 import { useReferral } from '@/hooks/useReferral';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
@@ -31,7 +31,7 @@ const ProfileSettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { generateReferralCode, getReferralStats } = useReferral();
+  const { generateReferralCode, getReferralStats, getReferralDetails } = useReferral();
   
   const [fullName, setFullName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -61,6 +61,12 @@ const ProfileSettings = () => {
     };
     loadReferralStats();
   }, [getReferralStats]);
+
+  const { data: referralDetails = [] } = useQuery({
+    queryKey: ['referral-details', user?.id],
+    queryFn: getReferralDetails,
+    enabled: !!user?.id
+  });
 
   const { data: userProfile, isLoading: profileLoading } = useQuery({
     queryKey: ['user-profile-settings', user?.id],
@@ -587,6 +593,43 @@ The Tomorrows Team`
                     <div className="text-sm text-muted-foreground">Pending</div>
                   </div>
                 </div>
+
+                {referralDetails.length > 0 && (
+                  <div className="space-y-2 pt-4">
+                    <Label>Your Referrals</Label>
+                    <div className="space-y-2">
+                      {referralDetails.map((referral: any) => (
+                        <div key={referral.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              {referral.status === 'completed' ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-yellow-600" />
+                              )}
+                              <div>
+                                <div className="font-medium">
+                                  {referral.referred_profile?.full_name || 'User'}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {referral.referred_profile?.email}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant={referral.status === 'completed' ? 'default' : 'secondary'}>
+                              {referral.status === 'completed' ? 'Completed' : 'Pending'}
+                            </Badge>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {new Date(referral.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

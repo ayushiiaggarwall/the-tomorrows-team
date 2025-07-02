@@ -86,31 +86,6 @@ export const useReferral = () => {
       console.error('Error storing referral:', referralError);
     } else {
       console.log('Referral relationship stored successfully');
-      
-      // Manual notification for signup (as backup to trigger)
-      try {
-        const { data: newUserProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', newUserId)
-          .single();
-
-        await supabase.rpc('create_notification', {
-          p_user_id: referrerId,
-          p_title: '👥 Friend Joined!',
-          p_message: `${newUserProfile?.full_name || 'Someone'} just signed up using your referral code! They'll need to attend their first GD for you to earn bonus points.`,
-          p_type: 'info',
-          p_metadata: JSON.stringify({
-            referred_user_id: newUserId,
-            referred_user_name: newUserProfile?.full_name,
-            referral_code: referralCode.toUpperCase()
-          })
-        });
-        
-        console.log('Backup signup notification sent');
-      } catch (notificationError) {
-        console.error('Error sending backup notification:', notificationError);
-      }
     }
   };
 
@@ -216,6 +191,32 @@ export const useReferral = () => {
     }
   };
 
+  // Get detailed referral information for the current user
+  const getReferralDetails = async () => {
+    if (!user?.id) return [];
+
+    try {
+      const { data: referrals, error } = await supabase
+        .from('user_referrals')
+        .select(`
+          *,
+          referred_profile:profiles!user_referrals_referred_id_fkey(full_name, email)
+        `)
+        .eq('referrer_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching referral details:', error);
+        return [];
+      }
+
+      return referrals || [];
+    } catch (error) {
+      console.error('Error fetching referral details:', error);
+      return [];
+    }
+  };
+
   // Function to check and process referral for existing user
   const checkAndProcessReferral = async (referralCode: string) => {
     if (!user?.id || !referralCode) return;
@@ -229,6 +230,7 @@ export const useReferral = () => {
     completeReferral,
     generateReferralCode,
     getReferralStats,
+    getReferralDetails,
     checkAndProcessReferral
   };
 };
