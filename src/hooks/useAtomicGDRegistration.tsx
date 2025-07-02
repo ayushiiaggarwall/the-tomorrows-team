@@ -87,6 +87,8 @@ export const useAtomicGDRegistration = () => {
         description: `You've been registered for the GD. ${data.spots_left} spots remaining.`,
         duration: 5000,
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
 
       // Invalidate all relevant queries

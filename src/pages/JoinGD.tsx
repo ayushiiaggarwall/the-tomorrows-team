@@ -111,6 +111,8 @@ const JoinGD = () => {
       toast.error("Authentication Required", {
         description: "Please log in to register for group discussions.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -119,6 +121,8 @@ const JoinGD = () => {
       toast.error("No GD Selected", {
         description: "Please select a group discussion to register for.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -127,6 +131,8 @@ const JoinGD = () => {
       toast.error("Occupation Required", {
         description: "Please select your occupation.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -135,6 +141,8 @@ const JoinGD = () => {
       toast.error("Please Specify", {
         description: "Please specify your occupation in the text field.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -144,6 +152,8 @@ const JoinGD = () => {
       toast.error("Student Details Required", {
         description: "Please provide your institution and year of study.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -152,6 +162,8 @@ const JoinGD = () => {
       toast.error("Professional Details Required", {
         description: "Please provide your company and role.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -160,6 +172,8 @@ const JoinGD = () => {
       toast.error("Profession Required", {
         description: "Please specify your profession.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
@@ -170,6 +184,8 @@ const JoinGD = () => {
       toast.error("Session Full", {
         description: "This group discussion is now full. Please try another session.",
         position: 'top-right',
+        dismissible: true,
+        closeButton: true,
       });
       return;
     }
