@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Lock, User, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, RefreshCw, Users } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
@@ -19,7 +20,8 @@ const AuthPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    fullName: ''
+    fullName: '',
+    referralCode: ''
   });
   const [loading, setLoading] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
@@ -83,6 +85,99 @@ const AuthPage = () => {
     }
   };
 
+  const processReferralCode = async (referralCode: string, newUserId: string) => {
+    if (!referralCode.trim()) return;
+
+    try {
+      console.log('Processing referral code:', referralCode, 'for user:', newUserId);
+      
+      // First try exact match (in case someone enters full UUID)
+      const { data: exactMatch, error: exactError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', referralCode);
+        
+      if (exactMatch && exactMatch.length > 0) {
+        console.log('Found exact UUID match:', exactMatch[0].id);
+        const referrerId = exactMatch[0].id;
+        await createReferralRelationship(referrerId, newUserId, referralCode);
+        return;
+      }
+      
+      // If no exact match, fetch all profiles and filter client-side for partial UUID match
+      console.log('No exact match found, trying client-side filtering...');
+      const { data: allProfiles, error: allError } = await supabase
+        .from('profiles')
+        .select('id, full_name');
+        
+      if (allError) {
+        console.error('Error fetching profiles:', allError);
+        return;
+      }
+      
+      // Filter client-side for UUID starting with referral code
+      const matchingProfile = allProfiles?.find(profile => 
+        profile.id.toLowerCase().startsWith(referralCode.toLowerCase())
+      );
+      
+      if (!matchingProfile) {
+        console.log('No referrer found for code:', referralCode);
+        toast({
+          title: "Invalid Referral Code",
+          description: "The referral code you entered is not valid.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log('Found referrer via client-side filtering:', matchingProfile.id);
+      await createReferralRelationship(matchingProfile.id, newUserId, referralCode);
+
+    } catch (error) {
+      console.error('Error processing referral:', error);
+    }
+  };
+
+  const createReferralRelationship = async (referrerId: string, newUserId: string, referralCode: string) => {
+    // Don't allow self-referrals
+    if (referrerId === newUserId) {
+      console.log('Self-referral attempted, ignoring');
+      return;
+    }
+
+    // Check if referral relationship already exists
+    const { data: existingReferral } = await supabase
+      .from('user_referrals')
+      .select('id')
+      .eq('referred_id', newUserId)
+      .single();
+
+    if (existingReferral) {
+      console.log('Referral relationship already exists');
+      return;
+    }
+
+    // Store the referral relationship
+    const { error: referralError } = await supabase
+      .from('user_referrals')
+      .insert({
+        referrer_id: referrerId,
+        referred_id: newUserId,
+        referral_code: referralCode.toUpperCase(),
+        status: 'pending'
+      });
+
+    if (referralError) {
+      console.error('Error storing referral:', referralError);
+    } else {
+      console.log('Referral relationship stored successfully');
+      toast({
+        title: "Referral Applied",
+        description: "Your referral code has been applied successfully!",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -131,13 +226,6 @@ const AuthPage = () => {
           return;
         }
 
-        // Store signup data temporarily for potential resend
-        localStorage.setItem('pendingSignupData', JSON.stringify({
-          email: formData.email,
-          fullName: formData.fullName,
-          timestamp: Date.now()
-        }));
-
         const { error } = await signUp(formData.email, formData.password, formData.fullName);
         
         if (error) {
@@ -147,6 +235,11 @@ const AuthPage = () => {
             variant: "destructive"
           });
         } else {
+          // Store referral code for processing after email verification
+          if (formData.referralCode.trim()) {
+            localStorage.setItem('pendingReferralCode', formData.referralCode.trim());
+          }
+          
           // Redirect to check email page with the email address
           navigate(`/check-email?email=${encodeURIComponent(formData.email)}`);
         }
@@ -266,21 +359,40 @@ const AuthPage = () => {
                 </div>
 
                 {isSignUp && (
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        id="confirmPassword" 
-                        type="password"
-                        placeholder="Confirm your password" 
-                        className="pl-10"
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        required 
-                      />
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="confirmPassword" 
+                          type="password"
+                          placeholder="Confirm your password" 
+                          className="pl-10"
+                          value={formData.confirmPassword}
+                          onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          required 
+                        />
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="referralCode">Referral Code (Optional)</Label>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="referralCode" 
+                          placeholder="Enter referral code if you have one" 
+                          className="pl-10"
+                          value={formData.referralCode}
+                          onChange={(e) => setFormData(prev => ({ ...prev, referralCode: e.target.value }))}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Have a friend who referred you? Enter their referral code to earn them bonus points!
+                      </p>
+                    </div>
+                  </>
                 )}
                 
                 <Button type="submit" className="w-full btn-primary" disabled={loading}>

@@ -47,6 +47,95 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const processStoredReferralCode = async (userId: string) => {
+    const storedReferralCode = localStorage.getItem('pendingReferralCode');
+    if (!storedReferralCode) return;
+
+    console.log('Processing stored referral code:', storedReferralCode, 'for user:', userId);
+
+    try {
+      // First try exact match (in case someone enters full UUID)
+      const { data: exactMatch, error: exactError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', storedReferralCode);
+        
+      if (exactMatch && exactMatch.length > 0) {
+        console.log('Found exact UUID match:', exactMatch[0].id);
+        const referrerId = exactMatch[0].id;
+        await createReferralRelationship(referrerId, userId, storedReferralCode);
+        localStorage.removeItem('pendingReferralCode');
+        return;
+      }
+      
+      // If no exact match, fetch all profiles and filter client-side for partial UUID match
+      console.log('No exact match found, trying client-side filtering...');
+      const { data: allProfiles, error: allError } = await supabase
+        .from('profiles')
+        .select('id, full_name');
+        
+      if (allError) {
+        console.error('Error fetching profiles:', allError);
+        return;
+      }
+      
+      // Filter client-side for UUID starting with referral code
+      const matchingProfile = allProfiles?.find(profile => 
+        profile.id.toLowerCase().startsWith(storedReferralCode.toLowerCase())
+      );
+      
+      if (!matchingProfile) {
+        console.log('No referrer found for code:', storedReferralCode);
+        localStorage.removeItem('pendingReferralCode');
+        return;
+      }
+      
+      console.log('Found referrer via client-side filtering:', matchingProfile.id);
+      await createReferralRelationship(matchingProfile.id, userId, storedReferralCode);
+      localStorage.removeItem('pendingReferralCode');
+
+    } catch (error) {
+      console.error('Error processing stored referral:', error);
+      localStorage.removeItem('pendingReferralCode');
+    }
+  };
+
+  const createReferralRelationship = async (referrerId: string, newUserId: string, referralCode: string) => {
+    // Don't allow self-referrals
+    if (referrerId === newUserId) {
+      console.log('Self-referral attempted, ignoring');
+      return;
+    }
+
+    // Check if referral relationship already exists
+    const { data: existingReferral } = await supabase
+      .from('user_referrals')
+      .select('id')
+      .eq('referred_id', newUserId)
+      .single();
+
+    if (existingReferral) {
+      console.log('Referral relationship already exists');
+      return;
+    }
+
+    // Store the referral relationship
+    const { error: referralError } = await supabase
+      .from('user_referrals')
+      .insert({
+        referrer_id: referrerId,
+        referred_id: newUserId,
+        referral_code: referralCode.toUpperCase(),
+        status: 'pending'
+      });
+
+    if (referralError) {
+      console.error('Error storing referral:', referralError);
+    } else {
+      console.log('Referral relationship stored successfully');
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -59,6 +148,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Handle different auth events
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('User signed in:', session.user.email, 'Email confirmed:', session.user.email_confirmed_at);
+          
+          // Process any stored referral code after successful sign in
+          if (session.user.email_confirmed_at) {
+            setTimeout(() => {
+              processStoredReferralCode(session.user.id);
+            }, 1000); // Small delay to ensure profile is created
+          }
           
           // If email is confirmed and we're on an auth-related page, redirect to dashboard
           if (session.user.email_confirmed_at) {
@@ -76,6 +172,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Check if email was confirmed during token refresh
           if (session.user.email_confirmed_at) {
             console.log('Email confirmed during token refresh');
+            // Process any stored referral code
+            setTimeout(() => {
+              processStoredReferralCode(session.user.id);
+            }, 1000);
+            
             // Check if we're on a verification page
             if (window.location.pathname.includes('/auth/v1/verify') || 
                 window.location.search.includes('type=signup')) {
@@ -105,6 +206,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         checkAdminStatus(session.user.id);
+        
+        // Process any stored referral code for existing confirmed users
+        if (session.user.email_confirmed_at) {
+          setTimeout(() => {
+            processStoredReferralCode(session.user.id);
+          }, 1000);
+        }
       }
       setLoading(false);
     });
