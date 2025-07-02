@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -10,66 +11,42 @@ export const useReferral = () => {
     try {
       console.log('Processing referral code:', referralCode, 'for user:', newUserId);
       
-      // Find the referrer by matching the referral code (first 8 chars of user_id)
-      // Use RPC function or direct SQL to handle UUID text conversion properly
-      const { data: profiles, error: profileError } = await supabase
+      // First try exact match (in case someone enters full UUID)
+      const { data: exactMatch, error: exactError } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .textSearch('id::text', `${referralCode.toLowerCase()}*`, {
-          type: 'plain',
-          config: 'english'
-        });
-
-      // If textSearch doesn't work, try with rpc or raw query
-      if (profileError || !profiles || profiles.length === 0) {
-        console.log('Trying alternative query method...');
+        .eq('id', referralCode);
         
-        // Alternative: Use eq with exact match first
-        const { data: exactMatch, error: exactError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .eq('id', referralCode); // Try exact UUID match first
-          
-        if (exactMatch && exactMatch.length > 0) {
-          console.log('Found exact UUID match:', exactMatch[0].id);
-          const referrerId = exactMatch[0].id;
-          await createReferralRelationship(referrerId, newUserId, referralCode);
-          return;
-        }
-        
-        // If no exact match, fetch all profiles and filter client-side
-        const { data: allProfiles, error: allError } = await supabase
-          .from('profiles')
-          .select('id, full_name');
-          
-        if (allError) {
-          console.error('Error fetching profiles:', allError);
-          return;
-        }
-        
-        // Filter client-side for UUID starting with referral code
-        const matchingProfile = allProfiles?.find(profile => 
-          profile.id.toLowerCase().startsWith(referralCode.toLowerCase())
-        );
-        
-        if (!matchingProfile) {
-          console.log('No referrer found for code:', referralCode);
-          return;
-        }
-        
-        console.log('Found referrer via client-side filtering:', matchingProfile.id);
-        await createReferralRelationship(matchingProfile.id, newUserId, referralCode);
+      if (exactMatch && exactMatch.length > 0) {
+        console.log('Found exact UUID match:', exactMatch[0].id);
+        const referrerId = exactMatch[0].id;
+        await createReferralRelationship(referrerId, newUserId, referralCode);
         return;
       }
-
-      if (!profiles || profiles.length === 0) {
+      
+      // If no exact match, fetch all profiles and filter client-side for partial UUID match
+      console.log('No exact match found, trying client-side filtering...');
+      const { data: allProfiles, error: allError } = await supabase
+        .from('profiles')
+        .select('id, full_name');
+        
+      if (allError) {
+        console.error('Error fetching profiles:', allError);
+        return;
+      }
+      
+      // Filter client-side for UUID starting with referral code
+      const matchingProfile = allProfiles?.find(profile => 
+        profile.id.toLowerCase().startsWith(referralCode.toLowerCase())
+      );
+      
+      if (!matchingProfile) {
         console.log('No referrer found for code:', referralCode);
         return;
       }
-
-      const referrerId = profiles[0].id;
-      console.log('Found referrer:', referrerId);
-      await createReferralRelationship(referrerId, newUserId, referralCode);
+      
+      console.log('Found referrer via client-side filtering:', matchingProfile.id);
+      await createReferralRelationship(matchingProfile.id, newUserId, referralCode);
 
     } catch (error) {
       console.error('Error processing referral:', error);
