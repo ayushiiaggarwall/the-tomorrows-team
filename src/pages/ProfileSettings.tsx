@@ -12,7 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { X, Upload, Plus, Eye, EyeOff } from 'lucide-react';
+import { X, Upload, Plus, Eye, EyeOff, Copy, Users, Trash2 } from 'lucide-react';
+import { useReferral } from '@/hooks/useReferral';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface PredefinedTag {
   id: string;
@@ -25,10 +27,11 @@ const ProfileSettings = () => {
     document.title = 'Profile Settings - The Tomorrows Team';
   }, []);
 
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { generateReferralCode, getReferralStats } = useReferral();
   
   const [fullName, setFullName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
@@ -41,6 +44,25 @@ const ProfileSettings = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [referralStats, setReferralStats] = useState({
+    totalReferrals: 0,
+    completedReferrals: 0,
+    pendingReferrals: 0
+  });
+
+  // Get referral code and stats
+  const referralCode = generateReferralCode();
+  const referralLink = `${window.location.origin}/?ref=${referralCode}`;
+
+  // Load referral stats
+  useEffect(() => {
+    const loadReferralStats = async () => {
+      const stats = await getReferralStats();
+      setReferralStats(stats);
+    };
+    loadReferralStats();
+  }, [getReferralStats]);
 
   // Fetch user profile
   const { data: userProfile, isLoading: profileLoading } = useQuery({
@@ -135,6 +157,38 @@ const ProfileSettings = () => {
     }
   });
 
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      // First delete the user's profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user?.id);
+
+      if (profileError) throw profileError;
+
+      // Then delete the auth user
+      const { error: authError } = await supabase.auth.admin.deleteUser(user?.id || '');
+      if (authError) throw authError;
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Account deleted successfully",
+        description: "Your account has been permanently deleted.",
+      });
+      await signOut();
+      navigate('/');
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting account",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -220,6 +274,19 @@ const ProfileSettings = () => {
 
   const removeTag = (tagToRemove: string) => {
     setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const copyReferralLink = () => {
+    navigator.clipboard.writeText(referralLink);
+    toast({
+      title: "Copied!",
+      description: "Referral link copied to clipboard.",
+    });
+  };
+
+  const handleDeleteAccount = () => {
+    deleteAccountMutation.mutate();
+    setShowDeleteDialog(false);
   };
 
   if (profileLoading) {
@@ -416,6 +483,74 @@ const ProfileSettings = () => {
               </div>
             </form>
 
+            {/* Referral Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Your Referral Link
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Share your referral link with friends and earn points when they attend their first GD
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Your Referral Code</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      value={referralCode}
+                      readOnly
+                      className="bg-muted font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(referralCode);
+                        toast({ title: "Copied!", description: "Referral code copied to clipboard." });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Your Referral Link</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      value={referralLink}
+                      readOnly
+                      className="bg-muted text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={copyReferralLink}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 pt-4">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{referralStats.totalReferrals}</div>
+                    <div className="text-sm text-muted-foreground">Total Referrals</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{referralStats.completedReferrals}</div>
+                    <div className="text-sm text-muted-foreground">Completed</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-2xl font-bold text-yellow-600">{referralStats.pendingReferrals}</div>
+                    <div className="text-sm text-muted-foreground">Pending</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Password Change Section */}
             <Card>
               <CardHeader>
@@ -478,9 +613,46 @@ const ProfileSettings = () => {
                 </form>
               </CardContent>
             </Card>
+
+            {/* Danger Zone - Delete Account */}
+            <Card className="border-destructive/20">
+              <CardHeader>
+                <CardTitle className="text-destructive flex items-center gap-2">
+                  <Trash2 className="h-5 w-5" />
+                  Danger Zone
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data
+                </p>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={deleteAccountMutation.isPending}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {deleteAccountMutation.isPending ? 'Deleting...' : 'Delete Account'}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
+
+      {/* Delete Account Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteAccount}
+        title="Delete Account"
+        description="Are you sure you want to permanently delete your account? This action cannot be undone and will remove all your data, including your profile, participation history, and reward points."
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        variant="destructive"
+      />
       
       <Footer />
     </div>
