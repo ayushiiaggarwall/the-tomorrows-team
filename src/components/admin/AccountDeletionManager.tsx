@@ -94,7 +94,34 @@ const AccountDeletionManager = () => {
 
           if (updateError) throw updateError;
 
-          // Send confirmation email
+          // Send final confirmation email to user
+          await supabase.functions.invoke('send-contact-email', {
+            body: {
+              name: 'The Tomorrows Team',
+              email: request.user_email,
+              topic: 'Account Deletion Completed',
+              message: `Dear ${request.user_name || 'User'},
+
+Your account deletion request has been processed and your account has been permanently deleted from The Tomorrows Team platform.
+
+All your data including:
+- Profile information
+- Group discussion registrations  
+- Reward points
+- Participation history
+
+Has been permanently removed from our systems and cannot be recovered.
+
+Thank you for being part of The Tomorrows Team community. We're sorry to see you go and hope our paths cross again in the future.
+
+If you have any questions or concerns, please contact us at thetomorrowsteam@gmail.com.
+
+Best regards,
+The Tomorrows Team`
+            }
+          });
+
+          // Send notification to admin team
           await supabase.functions.invoke('send-contact-email', {
             body: {
               name: 'Admin Team',
@@ -129,7 +156,7 @@ This action was completed by an administrator.`
     onSuccess: () => {
       toast({
         title: "Account Deleted Successfully",
-        description: "The user account has been permanently deleted.",
+        description: "The user account has been permanently deleted and confirmation emails have been sent.",
       });
       queryClient.invalidateQueries({ queryKey: ['account-deletion-requests'] });
       setShowDeleteDialog(false);

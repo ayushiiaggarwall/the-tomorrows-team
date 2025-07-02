@@ -152,9 +152,9 @@ const ProfileSettings = () => {
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      // Create deletion request and send email notification
+      // Create deletion request
       const { error: insertError } = await supabase
-        .from('account_deletion_requests' as any)
+        .from('account_deletion_requests')
         .insert({
           user_id: user!.id,
           status: 'pending'
@@ -162,8 +162,8 @@ const ProfileSettings = () => {
 
       if (insertError) throw insertError;
 
-      // Send email notification to admin
-      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
+      // Send notification email to admin
+      const { error: adminEmailError } = await supabase.functions.invoke('send-contact-email', {
         body: {
           name: 'System Notification',
           email: 'thetomorrowsteam@gmail.com',
@@ -180,7 +180,38 @@ The user has been signed out and notified that their account will be deleted wit
         }
       });
 
-      if (emailError) throw emailError;
+      if (adminEmailError) throw adminEmailError;
+
+      // Send confirmation email to user
+      const { error: userEmailError } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          name: 'The Tomorrows Team',
+          email: user!.email!,
+          topic: 'Account Deletion Request Received',
+          message: `Dear ${fullName || 'User'},
+
+We have received your request for account deletion. We're sad to hear you want to say goodbye and hope we'll see you again in the future.
+
+Your account deletion request has been forwarded to our admin team for review and will be processed within 24 hours.
+
+Once your account is deleted, all your data including:
+- Profile information
+- Group discussion registrations
+- Reward points
+- Participation history
+
+Will be permanently removed and cannot be recovered.
+
+If you change your mind or have any questions, please contact us at thetomorrowsteam@gmail.com before your account is processed.
+
+Thank you for being part of The Tomorrows Team community.
+
+Best regards,
+The Tomorrows Team`
+        }
+      });
+
+      if (userEmailError) throw userEmailError;
 
       // Sign out the user
       await signOut();
@@ -188,7 +219,7 @@ The user has been signed out and notified that their account will be deleted wit
     onSuccess: () => {
       toast({
         title: "Account deletion requested",
-        description: "You have been signed out. Your deletion request has been sent to our team for review and will be processed within 24 hours.",
+        description: "You have been signed out. Your deletion request has been sent to our team for review and will be processed within 24 hours. Please check your email for confirmation.",
       });
       navigate('/');
     },
