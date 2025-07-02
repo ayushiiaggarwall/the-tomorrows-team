@@ -84,6 +84,7 @@ const UserProfile = () => {
   // Basic debug - this should always show
   console.log('UserProfile component loaded, userId from URL:', userId);
   console.log('Profile data loaded:', !!profile, profile?.id);
+  console.log('Raw profile object:', profile);
   console.log('Leaderboard data loaded:', !!leaderboardData, leaderboardData?.length);
   
   const userIndex = leaderboardData?.findIndex(performer => 
