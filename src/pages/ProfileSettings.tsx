@@ -51,11 +51,9 @@ const ProfileSettings = () => {
     pendingReferrals: 0
   });
 
-  // Get referral code and stats
   const referralCode = generateReferralCode();
   const referralLink = `${window.location.origin}/?ref=${referralCode}`;
 
-  // Load referral stats
   useEffect(() => {
     const loadReferralStats = async () => {
       const stats = await getReferralStats();
@@ -64,7 +62,6 @@ const ProfileSettings = () => {
     loadReferralStats();
   }, [getReferralStats]);
 
-  // Fetch user profile
   const { data: userProfile, isLoading: profileLoading } = useQuery({
     queryKey: ['user-profile-settings', user?.id],
     queryFn: async () => {
@@ -81,7 +78,6 @@ const ProfileSettings = () => {
     enabled: !!user?.id
   });
 
-  // Fetch predefined tags
   const { data: predefinedTags = [] } = useQuery({
     queryKey: ['predefined-tags'],
     queryFn: async () => {
@@ -94,7 +90,6 @@ const ProfileSettings = () => {
     }
   });
 
-  // Update form when profile data loads
   useEffect(() => {
     if (userProfile) {
       setFullName(userProfile.full_name || '');
@@ -104,7 +99,6 @@ const ProfileSettings = () => {
     }
   }, [userProfile]);
 
-  // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
       const { error } = await supabase
@@ -130,7 +124,6 @@ const ProfileSettings = () => {
     }
   });
 
-  // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: async ({ newPassword }: { newPassword: string }) => {
       const { error } = await supabase.auth.updateUser({
@@ -157,33 +150,21 @@ const ProfileSettings = () => {
     }
   });
 
-  // Delete account mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      // First delete the user's profile data
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user?.id);
-
-      if (profileError) throw profileError;
-
-      // Then delete the auth user
-      const { error: authError } = await supabase.auth.admin.deleteUser(user?.id || '');
-      if (authError) throw authError;
+      await signOut();
     },
     onSuccess: async () => {
       toast({
-        title: "Account deleted successfully",
-        description: "Your account has been permanently deleted.",
+        title: "Account deletion initiated",
+        description: "You have been signed out. Please contact support to complete account deletion.",
       });
-      await signOut();
       navigate('/');
     },
     onError: (error) => {
       toast({
-        title: "Error deleting account",
-        description: error.message,
+        title: "Error processing request",
+        description: "Please contact support for account deletion assistance.",
         variant: "destructive",
       });
     }
@@ -402,7 +383,6 @@ const ProfileSettings = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Selected Tags */}
                   {selectedTags.length > 0 && (
                     <div className="space-y-2">
                       <Label>Selected Tags ({selectedTags.length}/3)</Label>
@@ -423,7 +403,6 @@ const ProfileSettings = () => {
                     </div>
                   )}
 
-                  {/* Add Custom Tag */}
                   <div className="space-y-2">
                     <Label>Add Custom Tag</Label>
                     <div className="flex space-x-2">
@@ -444,7 +423,6 @@ const ProfileSettings = () => {
                     </div>
                   </div>
 
-                  {/* Predefined Tags by Category */}
                   {Object.entries(tagsByCategory).map(([category, tags]) => (
                     <div key={category} className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">{category}</Label>
@@ -483,7 +461,6 @@ const ProfileSettings = () => {
               </div>
             </form>
 
-            {/* Referral Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -551,7 +528,6 @@ const ProfileSettings = () => {
               </CardContent>
             </Card>
 
-            {/* Password Change Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
@@ -614,7 +590,6 @@ const ProfileSettings = () => {
               </CardContent>
             </Card>
 
-            {/* Danger Zone - Delete Account */}
             <Card className="border-destructive/20">
               <CardHeader>
                 <CardTitle className="text-destructive flex items-center gap-2">
@@ -622,7 +597,7 @@ const ProfileSettings = () => {
                   Danger Zone
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data
+                  Request account deletion - you will be signed out and need to contact support to complete the process
                 </p>
               </CardHeader>
               <CardContent>
@@ -634,7 +609,7 @@ const ProfileSettings = () => {
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  {deleteAccountMutation.isPending ? 'Deleting...' : 'Delete Account'}
+                  {deleteAccountMutation.isPending ? 'Processing...' : 'Request Account Deletion'}
                 </Button>
               </CardContent>
             </Card>
@@ -642,14 +617,13 @@ const ProfileSettings = () => {
         </div>
       </main>
 
-      {/* Delete Account Confirmation Dialog */}
       <ConfirmationDialog
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteAccount}
-        title="Delete Account"
-        description="Are you sure you want to permanently delete your account? This action cannot be undone and will remove all your data, including your profile, participation history, and reward points."
-        confirmText="Delete Account"
+        title="Request Account Deletion"
+        description="Are you sure you want to request account deletion? You will be signed out immediately and will need to contact our support team to complete the deletion process. This action will remove all your data, including your profile, participation history, and reward points."
+        confirmText="Request Deletion"
         cancelText="Cancel"
         variant="destructive"
       />
