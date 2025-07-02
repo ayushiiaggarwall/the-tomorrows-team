@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,12 +10,12 @@ import { Calendar, Clock, Users, MapPin, LogIn } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
 import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
 import { ConsentModal } from '@/components/ConsentModal';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const JoinGD = () => {
   useEffect(() => {
@@ -24,7 +23,6 @@ const JoinGD = () => {
   }, []);
 
   const { user } = useAuth();
-  const { toast } = useToast();
   const registerMutation = useAtomicGDRegistration();
   
   const [showConsentModal, setShowConsentModal] = useState(false);
@@ -110,65 +108,51 @@ const JoinGD = () => {
     e.preventDefault();
     
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to register for group discussions.",
-        variant: "destructive"
+      toast.error("Authentication Required", {
+        description: "Please log in to register for group discussions."
       });
       return;
     }
 
     if (!formData.selectedGdId) {
-      toast({
-        title: "No GD Selected",
-        description: "Please select a group discussion to register for.",
-        variant: "destructive"
+      toast.error("No GD Selected", {
+        description: "Please select a group discussion to register for."
       });
       return;
     }
 
     if (!formData.occupation) {
-      toast({
-        title: "Occupation Required",
-        description: "Please select your occupation.",
-        variant: "destructive"
+      toast.error("Occupation Required", {
+        description: "Please select your occupation."
       });
       return;
     }
 
     if (formData.occupation === 'Others' && !formData.occupationOther.trim()) {
-      toast({
-        title: "Please Specify",
-        description: "Please specify your occupation in the text field.",
-        variant: "destructive"
+      toast.error("Please Specify", {
+        description: "Please specify your occupation in the text field."
       });
       return;
     }
 
     // Validation for occupation-specific fields
     if (formData.occupation === 'Student' && (!formData.studentInstitution.trim() || !formData.studentYear.trim())) {
-      toast({
-        title: "Student Details Required",
-        description: "Please provide your institution and year of study.",
-        variant: "destructive"
+      toast.error("Student Details Required", {
+        description: "Please provide your institution and year of study."
       });
       return;
     }
 
     if (formData.occupation === 'Working Professional' && (!formData.professionalCompany.trim() || !formData.professionalRole.trim())) {
-      toast({
-        title: "Professional Details Required",
-        description: "Please provide your company and role.",
-        variant: "destructive"
+      toast.error("Professional Details Required", {
+        description: "Please provide your company and role."
       });
       return;
     }
 
     if (formData.occupation === 'Self Employed' && !formData.selfEmployedProfession.trim()) {
-      toast({
-        title: "Profession Required",
-        description: "Please specify your profession.",
-        variant: "destructive"
+      toast.error("Profession Required", {
+        description: "Please specify your profession."
       });
       return;
     }
@@ -176,10 +160,8 @@ const JoinGD = () => {
     // Check if GD is full before attempting registration
     const selectedGd = upcomingGDs?.find(gd => gd.id === formData.selectedGdId);
     if (selectedGd?.isFull) {
-      toast({
-        title: "Session Full",
-        description: "This group discussion is now full. Please try another session.",
-        variant: "destructive"
+      toast.error("Session Full", {
+        description: "This group discussion is now full. Please try another session."
       });
       return;
     }
