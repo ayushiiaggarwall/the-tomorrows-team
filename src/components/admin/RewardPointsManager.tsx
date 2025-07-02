@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,19 +43,34 @@ const RewardPointsManager = () => {
   const { data: rewardPoints, isLoading, refetch } = useQuery({
     queryKey: ['reward-points'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get reward points
+      const { data: pointsData, error: pointsError } = await supabase
         .from('reward_points')
-        .select(`
-          *,
-          user_profile:profiles!reward_points_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data as RewardPoint[];
+      if (pointsError) throw pointsError;
+
+      // Then get user profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email');
+
+      if (profilesError) throw profilesError;
+
+      // Manually join the data
+      const joinedData = pointsData?.map(point => {
+        const profile = profilesData?.find(p => p.id === point.user_id);
+        return {
+          ...point,
+          user_profile: profile ? {
+            full_name: profile.full_name,
+            email: profile.email
+          } : null
+        };
+      }) || [];
+
+      return joinedData as RewardPoint[];
     }
   });
 

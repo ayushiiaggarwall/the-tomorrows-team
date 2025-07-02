@@ -67,7 +67,17 @@ export const useAtomicGDRegistration = () => {
       }
 
       console.log('Registration successful:', data);
-      return data as RegistrationResponse;
+      
+      // Type guard to ensure data is an object with the expected properties
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        const response = data as Record<string, any>;
+        if ('success' in response && 'spots_left' in response) {
+          return response as RegistrationResponse;
+        }
+      }
+      
+      // Fallback in case the response structure is unexpected
+      throw new Error('Invalid response format from registration');
     },
     onSuccess: (data: RegistrationResponse) => {
       console.log('Registration mutation successful:', data);
