@@ -31,23 +31,11 @@ const AccountDeletionManager = () => {
   const { data: deletionRequests = [], isLoading } = useQuery({
     queryKey: ['account-deletion-requests'],
     queryFn: async () => {
-      // First get the deletion requests
+      // Get the deletion requests directly from the table
       const { data: requests, error: requestsError } = await supabase
-        .rpc('get_account_deletion_requests')
-        .then(() => {
-          // Fallback to direct query since RPC might not exist
-          return supabase
-            .from('account_deletion_requests' as any)
-            .select('*')
-            .order('requested_at', { ascending: false });
-        })
-        .catch(() => {
-          // Direct query as fallback
-          return supabase
-            .from('account_deletion_requests' as any)
-            .select('*')
-            .order('requested_at', { ascending: false });
-        });
+        .from('account_deletion_requests')
+        .select('*')
+        .order('requested_at', { ascending: false });
 
       if (requestsError) throw requestsError;
 
@@ -89,7 +77,7 @@ const AccountDeletionManager = () => {
 
           // Mark deletion request as completed
           const { error: updateError } = await supabase
-            .from('account_deletion_requests' as any)
+            .from('account_deletion_requests')
             .update({ 
               status: 'completed',
               admin_notes: 'Account permanently deleted by admin'
