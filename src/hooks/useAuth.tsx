@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -119,20 +118,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    console.log('Creating referral relationship:', { referrerId, newUserId, referralCode });
+
     // Store the referral relationship - database triggers will handle notifications
-    const { error: referralError } = await supabase
+    const { data, error: referralError } = await supabase
       .from('user_referrals')
       .insert({
         referrer_id: referrerId,
         referred_id: newUserId,
         referral_code: referralCode.toUpperCase(),
         status: 'pending'
-      });
+      })
+      .select();
 
     if (referralError) {
       console.error('Error storing referral:', referralError);
     } else {
-      console.log('Referral relationship stored successfully');
+      console.log('Referral relationship stored successfully:', data);
+      
+      // Manually trigger signup notification since trigger might not fire immediately
+      setTimeout(async () => {
+        try {
+          const { data: referrerProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', referrerId)
+            .single();
+
+          const { data: referredProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', newUserId)
+            .single();
+
+          // Create signup notification manually
+          const { error: notificationError } = await supabase.rpc('create_notification', {
+            p_user_id: referrerId,
+            p_title: '👥 Friend Joined!',
+            p_message: `${referredProfile?.full_name || 'Someone'} just signed up using your referral code! They'll need to attend their first GD for you to earn bonus points.`,
+            p_type: 'info',
+            p_metadata: JSON.stringify({
+              referred_user_id: newUserId,
+              referred_user_name: referredProfile?.full_name,
+              referral_code: referralCode.toUpperCase()
+            })
+          });
+
+          if (notificationError) {
+            console.error('Error creating signup notification:', notificationError);
+          } else {
+            console.log('Signup notification sent successfully');
+          }
+        } catch (error) {
+          console.error('Error sending signup notification:', error);
+        }
+      }, 2000); // Wait 2 seconds for profile to be fully created
     }
   };
 
