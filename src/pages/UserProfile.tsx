@@ -153,7 +153,11 @@ const UserProfile = () => {
               <div className="flex flex-col items-center space-y-4">
                 {/* Profile Picture */}
                 <Avatar className="w-32 h-32">
-                  <AvatarImage src={profile.profile_picture_url || ''} alt={displayName} />
+                  <AvatarImage 
+                    src={profile.profile_picture_url || ''} 
+                    alt={displayName}
+                    className="object-cover"
+                  />
                   <AvatarFallback className="text-2xl font-semibold">
                     {displayName.charAt(0).toUpperCase()}
                   </AvatarFallback>

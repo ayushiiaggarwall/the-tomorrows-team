@@ -46,6 +46,7 @@ const ProfileSettings = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [referralStats, setReferralStats] = useState({
     totalReferrals: 0,
     completedReferrals: 0,
@@ -103,8 +104,22 @@ const ProfileSettings = () => {
       setDateOfBirth(userProfile.date_of_birth || '');
       setProfilePictureUrl(userProfile.profile_picture_url || '');
       setSelectedTags(userProfile.tags || []);
+      setHasUnsavedChanges(false);
     }
   }, [userProfile]);
+
+  // Check for unsaved changes
+  useEffect(() => {
+    if (userProfile) {
+      const hasChanges = 
+        fullName !== (userProfile.full_name || '') ||
+        dateOfBirth !== (userProfile.date_of_birth || '') ||
+        profilePictureUrl !== (userProfile.profile_picture_url || '') ||
+        JSON.stringify(selectedTags) !== JSON.stringify(userProfile.tags || []);
+      
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [fullName, dateOfBirth, profilePictureUrl, selectedTags, userProfile]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
@@ -436,6 +451,17 @@ The Tomorrows Team`
           </div>
 
           <div className="space-y-6">
+            {hasUnsavedChanges && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-yellow-800">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <p className="text-sm font-medium">
+                    You have unsaved changes. Click "Save Profile" to save your changes.
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               <Card>
                 <CardHeader>
@@ -443,10 +469,10 @@ The Tomorrows Team`
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center space-x-6">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={profilePictureUrl} />
-                      <AvatarFallback>{fullName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
-                    </Avatar>
+                   <Avatar className="h-24 w-24">
+                       <AvatarImage src={profilePictureUrl} className="object-cover" />
+                       <AvatarFallback>{fullName?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
+                     </Avatar>
                      <div className="space-y-2">
                        <Label htmlFor="profilePicture">Profile Picture</Label>
                        <div className="flex space-x-2">
