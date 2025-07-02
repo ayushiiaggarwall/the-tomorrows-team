@@ -157,7 +157,7 @@ const AuthPage = () => {
       return;
     }
 
-    // Store the referral relationship
+    // Store the referral relationship - database triggers will handle notifications
     const { error: referralError } = await supabase
       .from('user_referrals')
       .insert({
