@@ -51,17 +51,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email_confirmed_at);
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Handle email confirmation
-        if (event === 'SIGNED_IN' && session?.user && !session.user.email_confirmed_at) {
-          // User just signed in but email not confirmed yet
-        } else if (event === 'SIGNED_IN' && session?.user && session.user.email_confirmed_at) {
-          // Email was just verified, redirect to verification success page
-          if (window.location.pathname.includes('/auth/v1/verify')) {
+        // Handle email confirmation events
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Check if email was just confirmed
+          if (session.user.email_confirmed_at && window.location.pathname.includes('/auth/v1/verify')) {
             window.location.href = '/email-verified';
             return;
+          }
+        }
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          // If user just signed in and email is confirmed, proceed normally
+          if (session.user.email_confirmed_at) {
+            // Check if this is coming from email verification
+            if (window.location.pathname.includes('/auth/v1/verify')) {
+              window.location.href = '/email-verified';
+              return;
+            }
           }
         }
         
@@ -79,6 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email_confirmed_at);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -92,7 +103,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    // Use the current domain for redirect
     const redirectUrl = `${window.location.origin}/email-verified`;
+    
+    console.log('Signing up with redirect URL:', redirectUrl);
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -105,6 +119,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
     
+    if (error) {
+      console.error('Signup error:', error);
+    }
+    
     return { error };
   };
 
@@ -113,6 +131,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email,
       password
     });
+    
+    if (error) {
+      console.error('Sign in error:', error);
+    }
     
     return { error };
   };
