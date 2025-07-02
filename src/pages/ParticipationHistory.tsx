@@ -1,8 +1,9 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +13,8 @@ import { format } from 'date-fns';
 
 const ParticipationHistory = () => {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     document.title = 'Participation History - The Tomorrows Team';
@@ -20,10 +23,10 @@ const ParticipationHistory = () => {
   const { data: participationHistory, isLoading } = useQuery({
     queryKey: ['participation-history', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return { data: [], total: 0 };
 
       // Get user's GD registrations with GD details
-      const { data: registrations, error } = await supabase
+      const { data: registrations, error, count } = await supabase
         .from('gd_registrations')
         .select(`
           id,
@@ -37,13 +40,13 @@ const ParticipationHistory = () => {
             scheduled_date,
             description
           )
-        `)
+        `, { count: 'exact' })
         .eq('user_id', user.id)
         .order('registered_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching participation history:', error);
-        return [];
+        return { data: [], total: 0 };
       }
 
       // Get reward points for each GD
@@ -53,7 +56,7 @@ const ParticipationHistory = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      return registrations?.map(reg => {
+      const processedData = registrations?.map(reg => {
         const gd = reg.group_discussions;
         const gdPoints = rewardPoints?.filter(rp => 
           rp.gd_date && new Date(rp.gd_date).toDateString() === new Date(gd.scheduled_date).toDateString()
@@ -73,9 +76,17 @@ const ParticipationHistory = () => {
           status: reg.cancelled_at ? 'Cancelled' : reg.attended ? 'Attended' : 'Registered'
         };
       }) || [];
+
+      return { data: processedData, total: count || 0 };
     },
     enabled: !!user?.id
   });
+
+  // Calculate pagination
+  const totalItems = participationHistory?.total || 0;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedData = participationHistory?.data?.slice(startIndex, endIndex) || [];
 
   if (isLoading) {
     return (
@@ -117,7 +128,7 @@ const ParticipationHistory = () => {
               </p>
             </CardHeader>
             <CardContent>
-              {!participationHistory?.length ? (
+              {!participationHistory?.data?.length ? (
                 <div className="text-center py-12">
                   <div className="text-4xl mb-4">📅</div>
                   <h3 className="text-lg font-semibold mb-2">No Participation History</h3>
@@ -126,55 +137,68 @@ const ParticipationHistory = () => {
                   </p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Topic</TableHead>
-                      <TableHead>Scheduled Date</TableHead>
-                      <TableHead>Registered On</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Points Earned</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {participationHistory.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell className="font-medium">
-                          {entry.topic}
-                        </TableCell>
-                        <TableCell>
-                          {format(entry.scheduledDate, 'MMM dd, yyyy • h:mm a')}
-                        </TableCell>
-                        <TableCell>
-                          {format(entry.registeredAt, 'MMM dd, yyyy')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              entry.status === 'Attended' ? 'default' :
-                              entry.status === 'Cancelled' ? 'destructive' :
-                              'secondary'
-                            }
-                          >
-                            {entry.status}
-                          </Badge>
-                          {entry.cancellationType === 'dropout' && (
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              Late Dropout
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className={`text-right font-medium ${
-                          entry.pointsEarned > 0 ? 'text-success' : 
-                          entry.pointsEarned < 0 ? 'text-destructive' : 
-                          'text-muted-foreground'
-                        }`}>
-                          {entry.pointsEarned > 0 ? `+${entry.pointsEarned}` : entry.pointsEarned || 0}
-                        </TableCell>
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Topic</TableHead>
+                        <TableHead>Scheduled Date</TableHead>
+                        <TableHead>Registered On</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Points Earned</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedData.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell className="font-medium">
+                            {entry.topic}
+                          </TableCell>
+                          <TableCell>
+                            {format(entry.scheduledDate, 'MMM dd, yyyy • h:mm a')}
+                          </TableCell>
+                          <TableCell>
+                            {format(entry.registeredAt, 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                entry.status === 'Attended' ? 'default' :
+                                entry.status === 'Cancelled' ? 'destructive' :
+                                'secondary'
+                              }
+                            >
+                              {entry.status}
+                            </Badge>
+                            {entry.cancellationType === 'dropout' && (
+                              <Badge variant="outline" className="ml-2 text-xs">
+                                Late Dropout
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className={`text-right font-medium ${
+                            entry.pointsEarned > 0 ? 'text-success' : 
+                            entry.pointsEarned < 0 ? 'text-destructive' : 
+                            'text-muted-foreground'
+                          }`}>
+                            {entry.pointsEarned > 0 ? `+${entry.pointsEarned}` : entry.pointsEarned || 0}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  
+                  <DataTablePagination
+                    totalCount={totalItems}
+                    pageSize={pageSize}
+                    currentPage={currentPage}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={(newPageSize) => {
+                      setPageSize(newPageSize);
+                      setCurrentPage(1);
+                    }}
+                  />
+                </div>
               )}
             </CardContent>
           </Card>

@@ -176,12 +176,11 @@ export const useLeaderboardData = () => {
         });
 
         // Convert to array and sort by points (highest first, including negative points)
-        const topPerformers = Array.from(userPointsMap.values())
-          .sort((a, b) => b.points - a.points)
-          .slice(0, 10); // Show top 10 instead of 5
+        const allPerformers = Array.from(userPointsMap.values())
+          .sort((a, b) => b.points - a.points);
 
-        console.log('Processed top performers from database:', topPerformers);
-        return topPerformers;
+        console.log('Processed all performers from database:', allPerformers);
+        return allPerformers;
       } catch (error) {
         console.error('Failed to fetch leaderboard data:', error);
         return [];

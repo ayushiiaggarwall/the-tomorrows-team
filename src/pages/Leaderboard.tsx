@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Copy, Share, MessageCircle, Mail, Twitter } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
@@ -22,6 +23,8 @@ const Leaderboard = () => {
   const { settings, isLoading: settingsLoading } = useAdminSettings();
   const [referralModalOpen, setReferralModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     document.title = 'Leaderboard - The Tomorrows Team';
@@ -32,7 +35,13 @@ const Leaderboard = () => {
     console.log('Settings updated in Leaderboard:', settings);
   }, [settings]);
 
-  const { data: topPerformers = [], isLoading, error, refetch } = useLeaderboardData();
+  const { data: allPerformers = [], isLoading, error, refetch } = useLeaderboardData();
+
+  // Calculate pagination
+  const totalItems = allPerformers.length;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedPerformers = allPerformers.slice(startIndex, endIndex);
 
   // Calculate days left in current month
   const today = new Date();
@@ -145,7 +154,7 @@ const Leaderboard = () => {
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
-                      🏆 Top Performers – {currentMonth}
+                      🏆 All Performers – {currentMonth}
                     </CardTitle>
                   </div>
                 </CardHeader>
@@ -166,47 +175,63 @@ const Leaderboard = () => {
                         Try Again
                       </Button>
                     </div>
-                  ) : topPerformers.length > 0 ? (
-                    <div className="space-y-3">
-                      {topPerformers.map((performer, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-2xl">{getMedalEmoji(index)}</span>
-                            <div className="flex-1">
-                              <button 
-                                onClick={() => navigate(`/user/${performer.userId}`)}
-                                className="text-left hover:text-blue-600 transition-colors"
-                              >
-                                <div className="font-medium text-gray-900 hover:text-blue-600">{performer.name}</div>
-                              </button>
-                              <div className="text-sm text-gray-500">Rank #{index + 1}</div>
-                              {performer.tags && performer.tags.length > 0 && (
-                                <div className="flex gap-1 mt-2">
-                                  {performer.tags.map((tag, tagIndex) => (
-                                    <Badge 
-                                      key={tagIndex} 
-                                      className={`text-xs ${
-                                        tag === 'Best Speaker' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                                        tag === 'Most Consistent' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                                        tag === 'Top Moderator' ? 'bg-red-100 text-red-800 border-red-200' :
-                                        tag === 'Top Referrer' ? 'bg-green-100 text-green-800 border-green-200' :
-                                        tag === 'Perf Attendance' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-                                        'bg-gray-100 text-gray-800 border-gray-200'
-                                      }`}
-                                    >
-                                      {tag}
-                                    </Badge>
-                                  ))}
+                  ) : allPerformers.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        {paginatedPerformers.map((performer, index) => {
+                          const actualRank = startIndex + index + 1;
+                          return (
+                            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                              <div className="flex items-center space-x-3">
+                                <span className="text-2xl">{getMedalEmoji(startIndex + index)}</span>
+                                <div className="flex-1">
+                                  <button 
+                                    onClick={() => navigate(`/user/${performer.userId}`)}
+                                    className="text-left hover:text-blue-600 transition-colors"
+                                  >
+                                    <div className="font-medium text-gray-900 hover:text-blue-600">{performer.name}</div>
+                                  </button>
+                                  <div className="text-sm text-gray-500">Rank #{actualRank}</div>
+                                  {performer.tags && performer.tags.length > 0 && (
+                                    <div className="flex gap-1 mt-2">
+                                      {performer.tags.map((tag, tagIndex) => (
+                                        <Badge 
+                                          key={tagIndex} 
+                                          className={`text-xs ${
+                                            tag === 'Best Speaker' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                            tag === 'Most Consistent' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                            tag === 'Top Moderator' ? 'bg-red-100 text-red-800 border-red-200' :
+                                            tag === 'Top Referrer' ? 'bg-green-100 text-green-800 border-green-200' :
+                                            tag === 'Perf Attendance' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                                            'bg-gray-100 text-gray-800 border-gray-200'
+                                          }`}
+                                        >
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xl font-bold text-blue-600">{performer.points}</div>
+                                <div className="text-sm text-gray-500">points</div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-blue-600">{performer.points}</div>
-                            <div className="text-sm text-gray-500">points</div>
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </div>
+                      
+                      <DataTablePagination
+                        totalCount={totalItems}
+                        pageSize={pageSize}
+                        currentPage={currentPage}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(newPageSize) => {
+                          setPageSize(newPageSize);
+                          setCurrentPage(1);
+                        }}
+                      />
                     </div>
                   ) : (
                     <div className="text-center py-16">
