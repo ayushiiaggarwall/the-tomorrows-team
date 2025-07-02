@@ -74,16 +74,17 @@ const UserProfile = () => {
   // Get leaderboard data to find rank
   const { data: leaderboardData } = useLeaderboardData();
   
-  // Debug logging to understand the data
-  console.log('Profile ID:', profile?.id);
-  console.log('Leaderboard data:', leaderboardData?.map(p => ({ userId: p.userId, name: p.name })));
-  
   const userIndex = leaderboardData?.findIndex(performer => 
     performer.userId === profile?.id
   ) ?? -1;
   const userRank = userIndex >= 0 ? userIndex + 1 : 0;
   
-  console.log('User index found:', userIndex, 'Calculated rank:', userRank);
+  // Debug for specific case
+  if (profile?.id === 'eea43784-7727-4a97-993d-279c152c4787') {
+    console.log('UMANSH DEBUG - Profile ID:', profile?.id);
+    console.log('UMANSH DEBUG - Leaderboard has data:', !!leaderboardData);
+    console.log('UMANSH DEBUG - Found index:', userIndex, 'Rank:', userRank);
+  }
 
   if (profileLoading || statsLoading) {
     return (
