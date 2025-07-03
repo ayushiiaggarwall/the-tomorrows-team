@@ -33,6 +33,7 @@ const Achievements = lazy(() => import("./pages/Achievements"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const AlreadyRegistered = lazy(() => import("./pages/AlreadyRegistered"));
+const Sitemap = lazy(() => import("./components/Sitemap"));
 
 // Loading component for suspense fallback
 const PageLoader = () => (
@@ -160,6 +161,7 @@ const App = () => {
                   } 
                 />
                 <Route path="/already-registered" element={<AlreadyRegistered />} />
+                <Route path="/sitemap.xml" element={<Sitemap />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
