@@ -54,6 +54,11 @@ const Index = () => {
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
   const [showAuthWarning, setShowAuthWarning] = useState(false);
 
+  // Debug effect to track showAuthWarning state changes
+  useEffect(() => {
+    console.log('showAuthWarning state changed to:', showAuthWarning);
+  }, [showAuthWarning]);
+
   const features = [{
     icon: <Users className="w-6 h-6" />,
     title: "Group Discussions",
@@ -261,11 +266,13 @@ const Index = () => {
 
   const handleTestimonialClick = () => {
     console.log('Testimonial button clicked, user:', user);
+    console.log('Current showAuthWarning state:', showAuthWarning);
     if (user) {
       setShowTestimonialForm(true);
     } else {
       console.log('Setting showAuthWarning to true');
       setShowAuthWarning(true);
+      console.log('showAuthWarning state should be true now');
     }
   };
 
