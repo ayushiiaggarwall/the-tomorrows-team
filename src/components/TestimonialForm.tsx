@@ -11,7 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Star } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
+import { Star, LogIn } from 'lucide-react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -211,6 +213,27 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
             }
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Authentication Warning */}
+        {!user && (
+          <Alert className="bg-yellow-50 border-yellow-200 text-yellow-800">
+            <LogIn className="h-4 w-4" />
+            <AlertDescription>
+              Please sign in to share your review.
+              <div className="mt-2">
+                <Link to="/login">
+                  <Button 
+                    size="sm" 
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

@@ -52,12 +52,6 @@ const Index = () => {
   }, []);
 
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
-  const [showAuthWarning, setShowAuthWarning] = useState(false);
-
-  // Debug effect to track showAuthWarning state changes
-  useEffect(() => {
-    console.log('showAuthWarning state changed to:', showAuthWarning);
-  }, [showAuthWarning]);
 
   const features = [{
     icon: <Users className="w-6 h-6" />,
@@ -266,14 +260,7 @@ const Index = () => {
 
   const handleTestimonialClick = () => {
     console.log('Testimonial button clicked, user:', user);
-    console.log('Current showAuthWarning state:', showAuthWarning);
-    if (user) {
-      setShowTestimonialForm(true);
-    } else {
-      console.log('Setting showAuthWarning to true');
-      setShowAuthWarning(true);
-      console.log('showAuthWarning state should be true now');
-    }
+    setShowTestimonialForm(true);
   };
 
   return (
@@ -286,44 +273,6 @@ const Index = () => {
         type="website"
       />
       <Navigation />
-      
-      {/* Authentication Warning */}
-      {showAuthWarning && (
-        <div className="container mx-auto px-4 py-4">
-          <Alert className="max-w-md mx-auto bg-yellow-50 border-yellow-200 text-yellow-800 relative">
-            <LogIn className="h-4 w-4" />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-yellow-100"
-              onClick={() => setShowAuthWarning(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <AlertDescription>
-              Please sign in to share your review.
-              <div className="mt-2 flex gap-2">
-                <Link to="/login">
-                  <Button 
-                    size="sm" 
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
-                  onClick={() => setShowAuthWarning(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
