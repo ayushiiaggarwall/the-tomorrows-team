@@ -57,15 +57,7 @@ const Achievements = () => {
         });
       }
 
-      // Referral achievements (case-insensitive) - Show as Community Builder milestone
-      const referrals = rewardPoints.filter(rp => rp.type.toLowerCase() === 'referral');
-      if (referrals.length > 0) {
-        achievementsList.push({
-          icon: '👥',
-          title: 'Community Builder',
-          description: `Referred ${referrals.length} friend${referrals.length > 1 ? 's' : ''} to the community`
-        });
-      }
+      // Referral achievements are now handled as milestone awards, not performance recognition
 
       // Critical Thinker achievements (case-insensitive)
       const criticalThinkerAwards = rewardPoints.filter(rp => rp.type.toLowerCase() === 'critical thinker');

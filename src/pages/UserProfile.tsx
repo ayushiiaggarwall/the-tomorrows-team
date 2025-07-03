@@ -64,10 +64,10 @@ const UserProfile = () => {
 
       const totalPoints = pointsData?.reduce((sum, point) => sum + point.points, 0) || 0;
       const attendanceCount = pointsData?.filter(p => p.type.toLowerCase() === 'attendance').length || 0;
-      const bestSpeakerCount = pointsData?.filter(p => p.type === 'Best Speaker').length || 0;
-      const moderatorCount = pointsData?.filter(p => p.type === 'Moderator').length || 0;
-      const perfectAttendanceCount = pointsData?.filter(p => p.type === 'Perfect Attendance').length || 0;
-      const referralCount = pointsData?.filter(p => p.type === 'referral').length || 0;
+      const bestSpeakerCount = pointsData?.filter(p => p.type.toLowerCase() === 'best speaker').length || 0;
+      const moderatorCount = pointsData?.filter(p => p.type.toLowerCase() === 'moderator').length || 0;
+      const perfectAttendanceCount = pointsData?.filter(p => p.type.toLowerCase() === 'perfect attendance' || p.type.toLowerCase() === 'perf attendance').length || 0;
+      const referralCount = pointsData?.filter(p => p.type.toLowerCase() === 'referral').length || 0;
       const totalGDs = gdsData?.length || 0;
 
       // Calculate milestone achievements
@@ -218,11 +218,11 @@ const UserProfile = () => {
   }
 
   const displayName = profile.full_name || profile.email?.split('@')[0] || `User ${profile.id?.slice(0, 8)}`;
-  const hasLeaderboardAchievements = userStats?.achievements && (
+  const hasLeaderboardAchievements = userLeaderboardTags.length > 0 || (userStats?.achievements && (
     userStats.achievements.bestSpeaker > 0 || 
     userStats.achievements.moderator > 0 || 
     userStats.achievements.perfectAttendance > 0
-  );
+  ));
   const hasMilestoneAchievements = userStats?.milestoneAchievements && userStats.milestoneAchievements.length > 0;
 
   return (
@@ -355,6 +355,51 @@ const UserProfile = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Show leaderboard performance tags */}
+                  {userLeaderboardTags.map((tag, index) => (
+                    <div key={index} className={`p-4 rounded-lg border ${
+                      tag === 'Star Speaker' ? 'bg-yellow-50 border-yellow-200' :
+                      tag === 'Quality Content' ? 'bg-indigo-50 border-indigo-200' :
+                      tag === 'Most Consistent' ? 'bg-blue-50 border-blue-200' :
+                      tag === 'Top Moderator' ? 'bg-red-50 border-red-200' :
+                      tag === 'Top Referrer' ? 'bg-green-50 border-green-200' :
+                      tag === 'Perf Attendance' ? 'bg-purple-50 border-purple-200' :
+                      'bg-gray-50 border-gray-200'
+                    }`}>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-xl">
+                          {tag === 'Star Speaker' ? '⭐' :
+                           tag === 'Quality Content' ? '🧠' :
+                           tag === 'Most Consistent' ? '🎯' :
+                           tag === 'Top Moderator' ? '👨‍💼' :
+                           tag === 'Top Referrer' ? '👥' :
+                           tag === 'Perf Attendance' ? '💯' : '🏆'}
+                        </div>
+                        <div>
+                          <div className={`font-semibold ${
+                            tag === 'Star Speaker' ? 'text-yellow-800' :
+                            tag === 'Quality Content' ? 'text-indigo-800' :
+                            tag === 'Most Consistent' ? 'text-blue-800' :
+                            tag === 'Top Moderator' ? 'text-red-800' :
+                            tag === 'Top Referrer' ? 'text-green-800' :
+                            tag === 'Perf Attendance' ? 'text-purple-800' :
+                            'text-gray-800'
+                          }`}>{tag}</div>
+                          <div className={`text-sm ${
+                            tag === 'Star Speaker' ? 'text-yellow-700' :
+                            tag === 'Quality Content' ? 'text-indigo-700' :
+                            tag === 'Most Consistent' ? 'text-blue-700' :
+                            tag === 'Top Moderator' ? 'text-red-700' :
+                            tag === 'Top Referrer' ? 'text-green-700' :
+                            tag === 'Perf Attendance' ? 'text-purple-700' :
+                            'text-gray-700'
+                          }`}>Current month recognition</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Show historical performance achievements */}
                   {userStats?.achievements.bestSpeaker > 0 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <div className="flex items-center space-x-3">
@@ -362,7 +407,7 @@ const UserProfile = () => {
                         <div>
                           <div className="font-semibold text-yellow-800">Best Speaker</div>
                           <div className="text-sm text-yellow-700">
-                            {userStats.achievements.bestSpeaker} time{userStats.achievements.bestSpeaker > 1 ? 's' : ''}
+                            {userStats.achievements.bestSpeaker} time{userStats.achievements.bestSpeaker > 1 ? 's' : ''} historically
                           </div>
                         </div>
                       </div>
@@ -376,7 +421,7 @@ const UserProfile = () => {
                         <div>
                           <div className="font-semibold text-blue-800">Session Moderator</div>
                           <div className="text-sm text-blue-700">
-                            {userStats.achievements.moderator} time{userStats.achievements.moderator > 1 ? 's' : ''}
+                            {userStats.achievements.moderator} time{userStats.achievements.moderator > 1 ? 's' : ''} historically
                           </div>
                         </div>
                       </div>
@@ -390,7 +435,7 @@ const UserProfile = () => {
                         <div>
                           <div className="font-semibold text-green-800">Perfect Attendance</div>
                           <div className="text-sm text-green-700">
-                            {userStats.achievements.perfectAttendance} time{userStats.achievements.perfectAttendance > 1 ? 's' : ''}
+                            {userStats.achievements.perfectAttendance} time{userStats.achievements.perfectAttendance > 1 ? 's' : ''} historically
                           </div>
                         </div>
                       </div>

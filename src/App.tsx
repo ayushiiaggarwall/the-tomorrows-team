@@ -144,7 +144,7 @@ const App = () => {
                   } 
                 />
                 <Route 
-                  path="/achievements" 
+                  path="/milestones" 
                   element={
                     <ProtectedRoute>
                       <Achievements />

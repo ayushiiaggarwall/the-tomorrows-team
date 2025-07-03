@@ -272,7 +272,7 @@ const RewardPoints = () => {
               <Button variant="outline" disabled className="w-full">
                 📤 Redeem Rewards (Coming Soon)
               </Button>
-              <Link to="/achievements">
+              <Link to="/milestones">
                 <Button variant="outline" className="w-full">
                   🏆 View Milestone Awards
                 </Button>

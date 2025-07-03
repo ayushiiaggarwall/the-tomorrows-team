@@ -56,7 +56,7 @@ const Sitemap = () => {
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://thetomorrowsteam.com/achievements</loc>
+    <loc>https://thetomorrowsteam.com/milestones</loc>
     <lastmod>2025-07-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

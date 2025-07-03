@@ -37,8 +37,8 @@ const Achievements = () => {
       if (!rewardPoints) return { unlocked: [], locked: [], stats: { totalPoints: 0, bestSpeakerAwards: 0, referrals: 0, totalGDs: 0 } };
 
       const totalPoints = rewardPoints.reduce((sum, rp) => sum + rp.points, 0);
-      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type === 'best_speaker').length;
-      const referrals = rewardPoints.filter(rp => rp.type === 'referral').length;
+      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type.toLowerCase().includes('best speaker')).length;
+      const referrals = rewardPoints.filter(rp => rp.type.toLowerCase() === 'referral').length;
       const totalGDs = gdsAttended?.length || 0;
 
       const stats = {
@@ -168,39 +168,11 @@ const Achievements = () => {
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">
-              🏆 Your Achievements
+              🎯 Your Milestones
             </h1>
             <p className="text-lg text-muted-foreground">
               Celebrate your milestones and progress
             </p>
-          </div>
-
-          {/* Stats Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-primary">{stats.totalGDs}</div>
-                <div className="text-sm text-muted-foreground">GDs Attended</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-accent">{stats.bestSpeakerAwards}</div>
-                <div className="text-sm text-muted-foreground">Best Speaker Awards</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-success">{stats.totalPoints}</div>
-                <div className="text-sm text-muted-foreground">Total Points</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-primary">{stats.referrals}</div>
-                <div className="text-sm text-muted-foreground">Referrals Made</div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Unlocked Achievements */}
