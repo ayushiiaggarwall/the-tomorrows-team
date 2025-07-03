@@ -9,4 +9,4 @@ Disallow: /reset-password
 Disallow: /check-email
 
 # Sitemap location
-Sitemap: https://www.thetomorrowsteam.com/sitemap.xml
+Sitemap: https://thetomorrowsteam.com/sitemap.xml
