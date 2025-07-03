@@ -30,13 +30,13 @@ export const useAutoRefresh = ({
     const intervalId = setInterval(() => {
       console.log('Auto-refreshing queries:', queryKeys);
       
-      // Invalidate and refetch specified queries
+      // Force refetch instead of just invalidating
       queryKeys.forEach(queryKey => {
-        queryClient.invalidateQueries({ queryKey });
+        queryClient.refetchQueries({ queryKey });
       });
       
       // Also refresh any registration-related queries
-      queryClient.invalidateQueries({ queryKey: ['gd-registration-count'] });
+      queryClient.refetchQueries({ queryKey: ['gd-registration-count'] });
     }, interval);
 
     return () => {
@@ -48,8 +48,9 @@ export const useAutoRefresh = ({
   return {
     refreshNow: () => {
       queryKeys.forEach(queryKey => {
-        queryClient.invalidateQueries({ queryKey });
+        queryClient.refetchQueries({ queryKey });
       });
+      queryClient.refetchQueries({ queryKey: ['gd-registration-count'] });
     }
   };
 };
