@@ -334,18 +334,26 @@ const UserProfile = () => {
           </div>
 
           {/* Performance Recognition Section */}
-          {hasLeaderboardAchievements && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-600" />
-                  Performance Recognition
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Achievement history based on participation
-                </p>
-              </CardHeader>
-              <CardContent>
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-600" />
+                Performance Recognition
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Achievement history based on participation
+              </p>
+            </CardHeader>
+            <CardContent>
+              {!hasLeaderboardAchievements ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">🏆</div>
+                  <h3 className="text-lg font-semibold mb-2">No Performance Awards Yet</h3>
+                  <p className="text-muted-foreground">
+                    Participate in group discussions to earn performance recognition!
+                  </p>
+                </div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {userStats?.achievements.bestSpeaker > 0 && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -389,23 +397,31 @@ const UserProfile = () => {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Milestone Achievements Section */}
-          {hasMilestoneAchievements && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-purple-600" />
-                  Unlocked Achievements
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Milestone achievements earned through participation
-                </p>
-              </CardHeader>
-              <CardContent>
+          {/* Unlocked Milestone Awards Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-purple-600" />
+                Unlocked Milestone Awards
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Milestone achievements earned through participation
+              </p>
+            </CardHeader>
+            <CardContent>
+              {!hasMilestoneAchievements ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">🎯</div>
+                  <h3 className="text-lg font-semibold mb-2">No Milestone Awards Yet</h3>
+                  <p className="text-muted-foreground">
+                    Start participating to unlock your first milestone achievement!
+                  </p>
+                </div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {userStats?.milestoneAchievements.map((achievement) => (
                     <div key={achievement.id} className="bg-purple-50 border border-purple-200 rounded-lg p-4">
@@ -419,9 +435,9 @@ const UserProfile = () => {
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
