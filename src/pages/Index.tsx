@@ -48,9 +48,9 @@ const Index = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Auto-refresh every minute for live updates
+  // Auto-refresh every 30 seconds for live updates
   useAutoRefresh({
-    interval: 60000, // 1 minute
+    interval: 30000, // 30 seconds for more responsive updates
     enabled: true
   });
 

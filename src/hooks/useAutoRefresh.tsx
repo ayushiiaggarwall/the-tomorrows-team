@@ -8,14 +8,15 @@ interface UseAutoRefreshOptions {
 }
 
 export const useAutoRefresh = ({
-  interval = 60000, // 1 minute default
+  interval = 30000, // 30 seconds default for more responsive updates
   queryKeys = [
     ['home-upcoming-gds'],
     ['upcoming-gds'],
     ['upcoming-gds-for-registration'],
     ['community-announcements'],
     ['home-testimonials'],
-    ['leaderboard-data']
+    ['leaderboard-data'],
+    ['gd-registration-count']
   ],
   enabled = true
 }: UseAutoRefreshOptions = {}) => {

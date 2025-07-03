@@ -46,6 +46,7 @@ export const useGDRegistrationCount = (gdId?: string) => {
     enabled: !!gdId,
     staleTime: 0,
     gcTime: 0,
+    refetchInterval: 30000, // Refetch every 30 seconds as fallback
   });
 
   // Set up real-time listener for registration changes
