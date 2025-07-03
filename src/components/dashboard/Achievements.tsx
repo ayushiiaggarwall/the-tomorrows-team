@@ -39,28 +39,6 @@ const Achievements = () => {
         });
       }
 
-      // Points milestone achievements
-      const totalPoints = rewardPoints.reduce((sum, rp) => sum + rp.points, 0);
-      if (totalPoints >= 100) {
-        achievementsList.push({
-          icon: '🧠',
-          title: `Top Thinker – ${totalPoints} Points Earned`,
-          description: 'Reached significant participation milestones'
-        });
-      }
-
-      // Participation streak achievements (case-insensitive)
-      const gdsAttended = rewardPoints.filter(rp => rp.type.toLowerCase() === 'attendance').length;
-      if (gdsAttended >= 3) {
-        achievementsList.push({
-          icon: '🎯',
-          title: `${gdsAttended} GDs Attended`,
-          description: 'Consistent participation in group discussions'
-        });
-      }
-
-      // Referral achievements are now handled as milestone awards, not performance recognition
-
       // Critical Thinker achievements (case-insensitive)
       const criticalThinkerAwards = rewardPoints.filter(rp => rp.type.toLowerCase() === 'critical thinker');
       if (criticalThinkerAwards.length > 0) {
@@ -70,6 +48,8 @@ const Achievements = () => {
           description: 'Exceptional analytical thinking and insights'
         });
       }
+
+      // Points, GD attendance, and referral achievements are milestone awards, not performance recognition
 
       // Add leaderboard tags as achievements
       const userLeaderboardData = leaderboardData?.find(userData => userData.userId === user.id);

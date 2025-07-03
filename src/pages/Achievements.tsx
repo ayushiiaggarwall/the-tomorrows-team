@@ -48,8 +48,9 @@ const Achievements = () => {
         totalGDs
       };
 
-      // Define all possible achievements
+       // Define all possible milestone achievements
       const allAchievements = [
+        // GD Attendance Milestones
         {
           id: 'first_gd',
           title: 'First Steps',
@@ -77,6 +78,7 @@ const Achievements = () => {
           progress: totalGDs,
           target: 10
         },
+        // Star Speaker Milestones
         {
           id: 'first_best_speaker',
           title: 'Rising Star',
@@ -95,11 +97,12 @@ const Achievements = () => {
           progress: bestSpeakerAwards,
           target: 3
         },
+        // Points Milestones
         {
           id: 'points_100',
-          title: 'Century Club',
+          title: 'Top Thinker',
           description: 'Earned 100 total points',
-          icon: '💯',
+          icon: '🧠',
           unlocked: totalPoints >= 100,
           progress: totalPoints,
           target: 100
@@ -113,6 +116,7 @@ const Achievements = () => {
           progress: totalPoints,
           target: 250
         },
+        // Referral Milestones
         {
           id: 'first_referral',
           title: 'Community Builder',
