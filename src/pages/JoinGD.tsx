@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, Clock, Users, MapPin, LogIn } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
@@ -24,6 +24,7 @@ const JoinGD = () => {
 
   const { user } = useAuth();
   const registerMutation = useAtomicGDRegistration();
+  const queryClient = useQueryClient();
   
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [selectedGdForConsent, setSelectedGdForConsent] = useState<any>(null);
@@ -103,6 +104,48 @@ const JoinGD = () => {
     staleTime: 0,
     gcTime: 0,
   });
+
+  // Set up real-time subscription for registration changes on join GD page
+  useEffect(() => {
+    console.log('Setting up real-time subscription for join GD page');
+    
+    const channel = supabase
+      .channel('join-gd-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_registrations'
+        },
+        (payload) => {
+          console.log('GD registration change detected in join page:', payload);
+          // Force immediate refetch with fresh data
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_discussions'
+        },
+        (payload) => {
+          console.log('GD change detected in join page:', payload);
+          // Force immediate refetch with fresh data
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up join GD page real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
