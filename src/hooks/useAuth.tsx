@@ -37,7 +37,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', userId)
         .single();
       
-      if (!error && data) {
+      if (error) {
+        // If profile doesn't exist (user was deleted), sign them out
+        if (error.code === 'PGRST116') {
+          console.log('User profile not found, signing out...');
+          await supabase.auth.signOut();
+          return;
+        }
+        throw error;
+      }
+      
+      if (data) {
         setIsAdmin(data.is_admin);
       }
     } catch (error) {
