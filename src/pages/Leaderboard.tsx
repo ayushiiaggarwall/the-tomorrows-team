@@ -264,36 +264,36 @@ const Leaderboard = () => {
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Award Explanations</DialogTitle>
+                          <DialogTitle>🏅 Award Explanations</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4 text-sm">
+                        <div className="space-y-4 text-sm max-h-96 overflow-y-auto">
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Attend GD</h4>
-                            <p className="text-gray-600">Points awarded for participating in any group discussion session.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">🎤 Attend a Group Discussion</h4>
+                            <p className="text-gray-600">Earn points simply by showing up and participating in any GD session. Your presence matters - every contribution helps build a better conversation.</p>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Star Speaker</h4>
-                            <p className="text-gray-600">Awarded to the most outstanding speaker in a GD session, based on peer voting and moderator assessment.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">🌟 Star Speaker</h4>
+                            <p className="text-gray-600">Awarded to the most impactful and articulate speaker in a session. Selected based on the moderator's and admin's assessment of clarity, confidence, and influence.</p>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Quality Content</h4>
-                            <p className="text-gray-600">Recognized for providing insightful, well-researched, and valuable contributions to discussions.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">✨ Quality Content</h4>
+                            <p className="text-gray-600">Recognizes participants who bring insightful, well-researched, and fact-backed perspectives to the discussion. Whether it's a powerful stat or a deep analogy - it stands out.</p>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Team Builder</h4>
-                            <p className="text-gray-600">Awarded for facilitating collaboration, encouraging participation, and creating an inclusive environment.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">🌱 Team Builder</h4>
+                            <p className="text-gray-600">Given to those who uplift the group - by encouraging quieter voices, acknowledging others' points, and fostering an inclusive, respectful discussion space.</p>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Session Moderator</h4>
-                            <p className="text-gray-600">Points for volunteering to moderate and guide group discussion sessions.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">🛡️ Session Moderator</h4>
+                            <p className="text-gray-600">Points are awarded to volunteers who take on the role of guiding the conversation, managing time, and keeping the discussion on track.</p>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Refer a Friend</h4>
-                            <p className="text-gray-600">Earn points when someone you refer joins and attends their first GD session.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">🤝 Refer a Friend</h4>
+                            <p className="text-gray-600">Earn bonus points every time someone you refer registers and attends their first GD session. Help grow the community, one conversation at a time.</p>
                           </div>
                           <div>
-                            <h4 className="font-semibold text-gray-900 mb-1">Perfect Attendance</h4>
-                            <p className="text-gray-600">Bonus points for attending all scheduled GD sessions in a month without any absences.</p>
+                            <h4 className="font-semibold text-gray-900 mb-1">📆 Perfect Attendance</h4>
+                            <p className="text-gray-600">Awarded to participants who show exceptional commitment by attending all scheduled GDs in a given month — no absences, no excuses.</p>
                           </div>
                         </div>
                       </DialogContent>
