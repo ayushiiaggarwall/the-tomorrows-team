@@ -6,7 +6,7 @@ import TestimonialForm from '@/components/TestimonialForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, Mic, Trophy, Calendar, Play, Star, LogIn } from 'lucide-react';
+import { Users, Mic, Trophy, Calendar, Play, Star, LogIn, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -260,9 +260,11 @@ const Index = () => {
   };
 
   const handleTestimonialClick = () => {
+    console.log('Testimonial button clicked, user:', user);
     if (user) {
       setShowTestimonialForm(true);
     } else {
+      console.log('Setting showAuthWarning to true');
       setShowAuthWarning(true);
     }
   };
@@ -281,20 +283,35 @@ const Index = () => {
       {/* Authentication Warning */}
       {showAuthWarning && (
         <div className="container mx-auto px-4 py-4">
-          <Alert className="max-w-md mx-auto bg-yellow-50 border-yellow-200 text-yellow-800">
+          <Alert className="max-w-md mx-auto bg-yellow-50 border-yellow-200 text-yellow-800 relative">
             <LogIn className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-yellow-100"
+              onClick={() => setShowAuthWarning(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
             <AlertDescription>
               Please sign in to share your review.
-              <div className="mt-2">
+              <div className="mt-2 flex gap-2">
                 <Link to="/login">
                   <Button 
                     size="sm" 
                     className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                    onClick={() => setShowAuthWarning(false)}
                   >
                     Sign In
                   </Button>
                 </Link>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                  onClick={() => setShowAuthWarning(false)}
+                >
+                  Cancel
+                </Button>
               </div>
             </AlertDescription>
           </Alert>
