@@ -35,10 +35,10 @@ const ParticipantOverview = () => {
       const end = start + itemsPerPage - 1;
 
       // Get total count of verified users only
-      const { count } = await supabase
+      const { data: countData } = await supabase
         .rpc('get_verified_users_count');
 
-      setTotalParticipants(count || 0);
+      setTotalParticipants(countData || 0);
 
       // Get paginated data for verified users only
       const { data: profilesData, error } = await supabase

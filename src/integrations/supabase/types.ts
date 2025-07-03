@@ -672,6 +672,24 @@ export type Database = {
         Args: { _user_id: string }
         Returns: number
       }
+      get_verified_users_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      get_verified_users_paginated: {
+        Args: { start_index: number; end_index: number }
+        Returns: {
+          id: string
+          email: string
+          full_name: string
+          is_admin: boolean
+          created_at: string
+          profile_picture_url: string
+          date_of_birth: string
+          tags: string[]
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
