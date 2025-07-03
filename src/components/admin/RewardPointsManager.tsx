@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useReferral } from '@/hooks/useReferral';
+import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { Trash2, Plus } from 'lucide-react';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 
@@ -33,6 +34,7 @@ const RewardPointsManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { completeReferralOnAttendance } = useReferral();
+  const { settings } = useAdminSettings();
   
   const [formData, setFormData] = useState({
     userId: '',
@@ -266,7 +268,36 @@ const RewardPointsManager = () => {
                 <Label htmlFor="type">Type</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                  onValueChange={(value) => {
+                    // Auto-populate points based on type
+                    let autoPoints = '';
+                    switch(value) {
+                      case 'Attendance':
+                        autoPoints = settings?.points_per_attendance.toString() || '10';
+                        break;
+                      case 'Best Speaker':
+                        autoPoints = settings?.points_per_best_speaker.toString() || '20';
+                        break;
+                      case 'Moderator':
+                        autoPoints = settings?.points_per_moderation.toString() || '15';
+                        break;
+                      case 'Perf Attendance':
+                        autoPoints = settings?.points_per_perfect_attendance.toString() || '50';
+                        break;
+                      case 'Referral':
+                        autoPoints = settings?.points_per_referral.toString() || '10';
+                        break;
+                      case 'Critical Thinker':
+                        autoPoints = '25'; // Default for Critical Thinker
+                        break;
+                      case 'Penalty':
+                        autoPoints = '-10'; // Default penalty
+                        break;
+                      default:
+                        autoPoints = '';
+                    }
+                    setFormData({ ...formData, type: value, points: autoPoints });
+                  }}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a type" />
@@ -277,6 +308,7 @@ const RewardPointsManager = () => {
                     <SelectItem value="Moderator">Session Moderator</SelectItem>
                     <SelectItem value="Perf Attendance">Perfect Attendance</SelectItem>
                     <SelectItem value="Referral">Referral</SelectItem>
+                    <SelectItem value="Critical Thinker">Critical Thinker</SelectItem>
                     <SelectItem value="Penalty">Penalty</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>

@@ -34,12 +34,12 @@ const ParticipationSummary = () => {
 
       const totalPoints = pointsData?.reduce((sum, entry) => sum + entry.points, 0) || 0;
 
-      // Get best speaker awards (assuming these are specific reward types)
+      // Get best speaker awards (case-insensitive matching)
       const { data: bestSpeakerAwards } = await supabase
         .from('reward_points')
         .select('id')
         .eq('user_id', user.id)
-        .eq('type', 'best_speaker');
+        .ilike('type', 'best speaker');
 
       // Get referrals count from user_referrals table
       const { data: referrals } = await supabase

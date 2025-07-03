@@ -68,6 +68,7 @@ export const useLeaderboardData = () => {
           moderatorCount: number;
           referralCount: number;
           perfectAttendanceCount: number;
+          criticalThinkerCount: number;
         }>();
 
         // Initialize stats
@@ -78,7 +79,8 @@ export const useLeaderboardData = () => {
             attendanceCount: 0,
             moderatorCount: 0,
             referralCount: 0,
-            perfectAttendanceCount: 0
+            perfectAttendanceCount: 0,
+            criticalThinkerCount: 0
           });
         });
 
@@ -103,21 +105,27 @@ export const useLeaderboardData = () => {
               const stats = userStats.get(userId)!;
               stats.totalPoints += points;
 
-              switch (type) {
-                case 'Best Speaker':
+              // Case-insensitive type matching for consistent behavior
+              const typeNormalized = type.toLowerCase();
+              switch (typeNormalized) {
+                case 'best speaker':
                   stats.bestSpeakerCount++;
                   break;
-                case 'Attendance':
+                case 'attendance':
                   stats.attendanceCount++;
                   break;
-                case 'Moderator':
+                case 'moderator':
                   stats.moderatorCount++;
                   break;
-                case 'Referral':
+                case 'referral':
                   stats.referralCount++;
                   break;
-                case 'Perfect Attendance':
+                case 'perfect attendance':
+                case 'perf attendance':
                   stats.perfectAttendanceCount++;
+                  break;
+                case 'critical thinker':
+                  stats.criticalThinkerCount++;
                   break;
               }
             }
@@ -151,6 +159,12 @@ export const useLeaderboardData = () => {
           { userId: '', count: 0 }
         );
 
+        // Find top critical thinker
+        const topCriticalThinker = allStats.reduce((max, [userId, stats]) => 
+          stats.criticalThinkerCount > max.count ? { userId, count: stats.criticalThinkerCount } : max, 
+          { userId: '', count: 0 }
+        );
+
         // Assign tags based on performance
         if (topBestSpeaker.count > 0 && userPointsMap.has(topBestSpeaker.userId)) {
           userPointsMap.get(topBestSpeaker.userId)!.tags.push('Best Speaker');
@@ -166,6 +180,10 @@ export const useLeaderboardData = () => {
         
         if (topReferrer.count > 0 && userPointsMap.has(topReferrer.userId)) {
           userPointsMap.get(topReferrer.userId)!.tags.push('Top Referrer');
+        }
+        
+        if (topCriticalThinker.count > 0 && userPointsMap.has(topCriticalThinker.userId)) {
+          userPointsMap.get(topCriticalThinker.userId)!.tags.push('Critical Thinker');
         }
 
         // Find users with perfect attendance (if they have perfect attendance points)

@@ -25,8 +25,8 @@ const Achievements = () => {
 
       const achievementsList = [];
 
-      // Best Speaker achievements
-      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type === 'best_speaker');
+      // Best Speaker achievements (case-insensitive)
+      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type.toLowerCase() === 'best speaker');
       if (bestSpeakerAwards.length > 0) {
         achievementsList.push({
           icon: '🥇',
@@ -45,8 +45,8 @@ const Achievements = () => {
         });
       }
 
-      // Participation streak achievements
-      const gdsAttended = rewardPoints.filter(rp => rp.type === 'attendance').length;
+      // Participation streak achievements (case-insensitive)
+      const gdsAttended = rewardPoints.filter(rp => rp.type.toLowerCase() === 'attendance').length;
       if (gdsAttended >= 3) {
         achievementsList.push({
           icon: '🎯',
@@ -55,13 +55,23 @@ const Achievements = () => {
         });
       }
 
-      // Referral achievements
-      const referrals = rewardPoints.filter(rp => rp.type === 'referral');
+      // Referral achievements (case-insensitive)
+      const referrals = rewardPoints.filter(rp => rp.type.toLowerCase() === 'referral');
       if (referrals.length > 0) {
         achievementsList.push({
           icon: '👥',
           title: `Referred ${referrals.length} New Participant${referrals.length > 1 ? 's' : ''}`,
           description: 'Growing the community through referrals'
+        });
+      }
+
+      // Critical Thinker achievements (case-insensitive)
+      const criticalThinkerAwards = rewardPoints.filter(rp => rp.type.toLowerCase() === 'critical thinker');
+      if (criticalThinkerAwards.length > 0) {
+        achievementsList.push({
+          icon: '🧠',
+          title: `Critical Thinker – ${criticalThinkerAwards.length} Award${criticalThinkerAwards.length > 1 ? 's' : ''}`,
+          description: 'Exceptional analytical thinking and insights'
         });
       }
 
