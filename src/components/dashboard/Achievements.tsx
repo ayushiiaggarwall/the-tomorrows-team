@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useEffect } from 'react';
 
 const Achievements = () => {
   const { user } = useAuth();
+  const { data: leaderboardData } = useLeaderboardData();
 
   const { data: achievements, isLoading, refetch } = useQuery({
     queryKey: ['user-achievements', user?.id],
@@ -75,9 +77,30 @@ const Achievements = () => {
         });
       }
 
+      // Add leaderboard tags as achievements
+      const userLeaderboardData = leaderboardData?.find(userData => userData.userId === user.id);
+      if (userLeaderboardData?.tags && userLeaderboardData.tags.length > 0) {
+        userLeaderboardData.tags.forEach(tag => {
+          const tagIcons: { [key: string]: string } = {
+            'Star Speaker': '⭐',
+            'Most Consistent': '🎯',
+            'Top Moderator': '👨‍💼',
+            'Top Referrer': '👥',
+            'Quality Content': '🧠',
+            'Perf Attendance': '💯'
+          };
+          
+          achievementsList.push({
+            icon: tagIcons[tag] || '🏆',
+            title: tag,
+            description: 'Recognized for outstanding performance in the community'
+          });
+        });
+      }
+
       return achievementsList;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && !!leaderboardData
   });
 
   // Set up real-time subscription for achievements (based on reward points changes)
