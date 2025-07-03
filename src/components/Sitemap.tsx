@@ -101,9 +101,9 @@ const Sitemap = () => {
 </urlset>`;
 
     // Replace the entire body content with the XML
-    document.body.innerHTML = `<pre style="font-family: monospace; white-space: pre-wrap; word-wrap: break-word;">${sitemapXML}</pre>`;
+    document.body.innerHTML = sitemapXML;
     
-    // Set content type header (this might not work in client-side but worth trying)
+    // Set content type header for XML
     document.head.innerHTML = '<meta http-equiv="Content-Type" content="application/xml; charset=utf-8">';
   }, []);
 
