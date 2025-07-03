@@ -5,13 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { Link } from 'react-router-dom';
 
 const ParticipationSummary = () => {
   const { user } = useAuth();
+  const { data: leaderboardData } = useLeaderboardData();
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['user-participation-stats', user?.id],
+    queryKey: ['user-participation-stats', user?.id, leaderboardData?.length],
     queryFn: async () => {
       if (!user?.id) return null;
 
@@ -44,23 +46,11 @@ const ParticipationSummary = () => {
         .eq('user_id', user.id)
         .eq('type', 'referral');
 
-      // Get user rank by comparing total points
-      const { data: allUserPoints } = await supabase
-        .from('reward_points')
-        .select('user_id, points');
-
-      let userRank = 1;
-      if (allUserPoints) {
-        const userTotals = allUserPoints.reduce((acc, entry) => {
-          acc[entry.user_id] = (acc[entry.user_id] || 0) + entry.points;
-          return acc;
-        }, {} as Record<string, number>);
-
-        const sortedUsers = Object.entries(userTotals)
-          .sort(([,a], [,b]) => b - a);
-        
-        userRank = sortedUsers.findIndex(([userId]) => userId === user.id) + 1;
-      }
+      // Get user rank from leaderboard data (consistent with other components)
+      const userIndex = leaderboardData?.findIndex(performer => 
+        performer.userId === user.id
+      ) ?? -1;
+      const userRank = userIndex >= 0 ? userIndex + 1 : 0;
 
       return {
         totalGDs: gdsAttended?.length || 0,
