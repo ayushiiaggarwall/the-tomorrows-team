@@ -285,6 +285,34 @@ const UserProfile = () => {
             </CardContent>
           </Card>
 
+          {/* Personal Tags Section */}
+          {profile?.tags && profile.tags.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge className="w-5 h-5" />
+                  About Me
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Personal interests and skills shared by this user
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {profile.tags.map((tag, index) => (
+                    <Badge 
+                      key={index}
+                      variant="outline"
+                      className="text-sm bg-gray-50 text-gray-700 border-gray-200"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Stats Boxes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             {/* GDs Attended */}
