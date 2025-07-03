@@ -223,8 +223,10 @@ export const useLeaderboardData = () => {
   useEffect(() => {
     console.log('Setting up real-time subscription for leaderboard');
 
+    // Create unique channel name to avoid conflicts when multiple components use this hook
+    const channelName = `leaderboard-realtime-${Math.random().toString(36).substr(2, 9)}`;
     const channel = supabase
-      .channel('leaderboard-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -259,7 +261,7 @@ export const useLeaderboardData = () => {
       console.log('Cleaning up leaderboard real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [query.refetch]); // Add refetch to dependencies
+  }, []); // Remove query.refetch from dependencies to prevent recreation
 
   return query;
 };
