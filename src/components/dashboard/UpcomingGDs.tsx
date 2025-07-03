@@ -192,42 +192,50 @@ const GDCard = ({ gd }: { gd: any }) => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Badge 
-            variant={gd.isRegistered ? 'default' : 'secondary'}
-          >
-            {gd.isRegistered ? 'Registered ✅' : 'Available'}
-          </Badge>
           {gd.isRegistered ? (
-            <div className="flex gap-2">
-              {gd.meetLink ? (
-                <Button size="sm" className="btn-primary" asChild>
-                  <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
-                    📩 Join Meeting
-                  </a>
+            <>
+              <Badge variant="default">
+                Registered ✅
+              </Badge>
+              <div className="flex gap-2">
+                {gd.meetLink ? (
+                  <Button size="sm" className="btn-primary" asChild>
+                    <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
+                      📩 Join Meeting
+                    </a>
+                  </Button>
+                ) : (
+                  <Button size="sm" disabled>
+                    Link Coming Soon
+                  </Button>
+                )}
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setShowCancellationDialog(true)}
+                  disabled={cancelMutation.isPending}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  {hoursUntilGD < 24 ? 'Drop Out' : 'De-Register'}
                 </Button>
-              ) : (
-                <Button size="sm" disabled>
-                  Link Coming Soon
-                </Button>
-              )}
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => setShowCancellationDialog(true)}
-                disabled={cancelMutation.isPending}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                {hoursUntilGD < 24 ? 'Drop Out' : 'De-Register'}
-              </Button>
-            </div>
+              </div>
+            </>
           ) : registrationData?.isFull ? (
-            <Badge variant="destructive">Full</Badge>
-          ) : (
-            <Link to={user ? "/join-gd" : "/login"}>
-              <Button size="sm" variant="outline">
+            <>
+              <Badge variant="destructive">Full</Badge>
+              <Button size="sm" variant="outline" disabled>
                 Register
               </Button>
-            </Link>
+            </>
+          ) : (
+            <>
+              <Badge variant="secondary">Available</Badge>
+              <Link to={user ? "/join-gd" : "/login"}>
+                <Button size="sm" variant="outline">
+                  Register
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
