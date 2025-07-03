@@ -211,7 +211,7 @@ async function handleAttendance(supabase: any, user: any, gdId: string, attendan
           points: pointsPerAttendance,
           type: 'Attendance',
           reason: 'GD Attendance',
-          awarded_by: user.id,
+          awarded_by: null, // System-generated, not manually awarded
           gd_date: new Date().toISOString().split('T')[0]
         });
 
