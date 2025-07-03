@@ -2,21 +2,46 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const RewardPoints = () => {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Query for total points and count
+  const { data: totalData } = useQuery({
+    queryKey: ['user-total-points', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { totalPoints: 0, totalCount: 0 };
+
+      const { data: allPoints } = await supabase
+        .from('reward_points')
+        .select('points')
+        .eq('user_id', user.id);
+
+      const totalPoints = allPoints?.reduce((sum, entry) => sum + entry.points, 0) || 0;
+      const totalCount = allPoints?.length || 0;
+
+      return { totalPoints, totalCount };
+    },
+    enabled: !!user?.id,
+  });
 
   const { data: pointsData, isLoading, refetch } = useQuery({
-    queryKey: ['user-reward-points', user?.id],
+    queryKey: ['user-reward-points', user?.id, currentPage, pageSize],
     queryFn: async () => {
-      if (!user?.id) return { totalPoints: 0, history: [] };
+      if (!user?.id) return { history: [] };
 
-      console.log('Fetching reward points for user:', user.id);
+      console.log('Fetching reward points for user:', user.id, 'page:', currentPage);
+
+      const offset = (currentPage - 1) * pageSize;
 
       // Get reward points with awarded_by user information
       const { data: rewardPoints, error: rewardError } = await supabase
@@ -32,21 +57,19 @@ const RewardPoints = () => {
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .range(offset, offset + pageSize - 1);
 
       if (rewardError) {
         console.error('Error fetching reward points:', rewardError);
-        return { totalPoints: 0, history: [] };
+        return { history: [] };
       }
 
       if (!rewardPoints || rewardPoints.length === 0) {
         console.log('No reward points found for user');
-        return { totalPoints: 0, history: [] };
+        return { history: [] };
       }
 
       console.log('Reward points fetched:', rewardPoints);
-
-      const totalPoints = rewardPoints.reduce((sum, entry) => sum + entry.points, 0);
       
       // Get unique awarded_by user IDs to fetch their profiles
       const awardedByIds = [...new Set(rewardPoints.map(entry => entry.awarded_by).filter(Boolean))];
@@ -88,7 +111,7 @@ const RewardPoints = () => {
       });
 
       console.log('Final history data:', history);
-      return { totalPoints, history };
+      return { history };
     },
     enabled: !!user?.id,
     refetchInterval: 2000, // Refetch every 2 seconds for real-time updates
@@ -149,7 +172,12 @@ const RewardPoints = () => {
     );
   }
 
-  const { totalPoints, history } = pointsData || { totalPoints: 0, history: [] };
+  const { totalPoints = 0, totalCount = 0 } = totalData || {};
+  const { history = [] } = pointsData || {};
+
+  const truncateText = (text: string, maxLength: number = 30) => {
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
 
   return (
     <Card>
@@ -177,32 +205,68 @@ const RewardPoints = () => {
           </div>
         ) : (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Awarded By</TableHead>
-                  <TableHead className="text-right">Points</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.map((entry, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{entry.date}</TableCell>
-                    <TableCell>{entry.activity}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{entry.awardedBy}</TableCell>
-                    <TableCell className={`text-right font-medium ${
-                      entry.points.toString().startsWith('+') ? 'text-success' : 
-                      entry.points.toString().startsWith('-') ? 'text-destructive' : 
-                      'text-muted-foreground'
-                    }`}>
-                      {entry.points}
-                    </TableCell>
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Awarded By</TableHead>
+                    <TableHead className="text-right">Points</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {history.map((entry, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{entry.date}</TableCell>
+                      <TableCell>
+                        {entry.activity.length > 30 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">{truncateText(entry.activity)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">{entry.activity}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          entry.activity
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs px-2 py-1 bg-muted rounded-full capitalize">
+                          {entry.type}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{entry.awardedBy}</TableCell>
+                      <TableCell className={`text-right font-medium ${
+                        entry.points.toString().startsWith('+') ? 'text-success' : 
+                        entry.points.toString().startsWith('-') ? 'text-destructive' : 
+                        'text-muted-foreground'
+                      }`}>
+                        {entry.points}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
+
+            {totalCount > pageSize && (
+              <div className="mt-4">
+                <DataTablePagination
+                  totalCount={totalCount}
+                  pageSize={pageSize}
+                  currentPage={currentPage}
+                  onPageChange={setCurrentPage}
+                  onPageSizeChange={(newPageSize) => {
+                    setPageSize(newPageSize);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+            )}
             
             <div className="mt-6 flex flex-col gap-3">
               <Button variant="outline" disabled className="w-full">
