@@ -27,15 +27,8 @@ const Achievements = () => {
 
       const achievementsList = [];
 
-      // Star Speaker achievements (including both Best Speaker and Star Speaker for backward compatibility)
-      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type.toLowerCase() === 'best speaker' || rp.type.toLowerCase() === 'star speaker');
-      if (bestSpeakerAwards.length > 0) {
-        achievementsList.push({
-          icon: '🥇',
-          title: `Star Speaker – ${bestSpeakerAwards.length} Award${bestSpeakerAwards.length > 1 ? 's' : ''}`,
-          description: 'Outstanding performance in group discussions'
-        });
-      }
+      // Historical Star Speaker achievements are not shown in Performance Recognition
+      // Only current leaderboard tags are shown as Performance Recognition
 
       // Points milestone achievements
       const totalPoints = rewardPoints.reduce((sum, rp) => sum + rp.points, 0);
