@@ -174,6 +174,8 @@ const ProfileSettings = () => {
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
+      console.log('Starting account deletion request process...');
+      
       // Create deletion request
       const { error: insertError } = await supabase
         .from('account_deletion_requests')
@@ -182,7 +184,12 @@ const ProfileSettings = () => {
           status: 'pending'
         });
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error creating deletion request:', insertError);
+        throw insertError;
+      }
+
+      console.log('Deletion request created successfully, sending admin email...');
 
       // Send notification email to admin
       const { error: adminEmailError } = await supabase.functions.invoke('send-contact-email', {
@@ -202,7 +209,12 @@ The user has been signed out and notified that their account will be deleted wit
         }
       });
 
-      if (adminEmailError) throw adminEmailError;
+      if (adminEmailError) {
+        console.error('Error sending admin email:', adminEmailError);
+        throw new Error(`Failed to send admin notification: ${adminEmailError.message}`);
+      }
+
+      console.log('Admin email sent successfully, sending user confirmation email...');
 
       // Send confirmation email to user
       const { error: userEmailError } = await supabase.functions.invoke('send-contact-email', {
@@ -233,7 +245,12 @@ The Tomorrows Team`
         }
       });
 
-      if (userEmailError) throw userEmailError;
+      if (userEmailError) {
+        console.error('Error sending user email:', userEmailError);
+        throw new Error(`Failed to send confirmation email: ${userEmailError.message}`);
+      }
+
+      console.log('User confirmation email sent successfully, signing out user...');
 
       // Sign out the user
       await signOut();
