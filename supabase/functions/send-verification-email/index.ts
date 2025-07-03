@@ -79,22 +79,22 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Start email sending process asynchronously to avoid timeout
-    const sendEmailAsync = async () => {
+    // Extract first name from full name or use email
+    const fullName = user.user_metadata?.full_name || user.email
+    const firstName = fullName.split(' ')[0] || 'there'
+
+    // Build verification/reset URL
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    if (!supabaseUrl) {
+      throw new Error('SUPABASE_URL not configured')
+    }
+    
+    const actionUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
+    console.log('Action URL built:', actionUrl)
+
+    // Use background task to send email without blocking response
+    const sendEmailTask = async () => {
       try {
-        // Extract first name from full name or use email
-        const fullName = user.user_metadata?.full_name || user.email
-        const firstName = fullName.split(' ')[0] || 'there'
-
-        // Build verification/reset URL
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')
-        if (!supabaseUrl) {
-          throw new Error('SUPABASE_URL not configured')
-        }
-        
-        const actionUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
-        console.log('Action URL built:', actionUrl)
-
         console.log('Rendering email template...')
 
         let html: string
@@ -136,12 +136,17 @@ Deno.serve(async (req) => {
           console.log(`${email_action_type} email sent successfully to:`, user.email)
         }
       } catch (error) {
-        console.error('Error in async email sending:', error)
+        console.error('Error in background email sending:', error)
       }
     }
 
-    // Start the email sending process but don't wait for it
-    sendEmailAsync()
+    // Use EdgeRuntime.waitUntil for proper background task handling
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(sendEmailTask())
+    } else {
+      // Fallback for older runtime
+      sendEmailTask()
+    }
 
     // Return success immediately to prevent timeout
     console.log('Returning success response to prevent timeout')
