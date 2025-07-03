@@ -220,10 +220,12 @@ const GDCard = ({ gd }: { gd: any }) => {
                 {hoursUntilGD < 24 ? 'Drop Out' : 'De-Register'}
               </Button>
             </div>
+          ) : registrationData?.isFull ? (
+            <Badge variant="destructive">Full</Badge>
           ) : (
             <Link to={user ? "/join-gd" : "/login"}>
               <Button size="sm" variant="outline">
-                {registrationData?.isFull ? 'Full' : 'Register'}
+                Register
               </Button>
             </Link>
           )}
