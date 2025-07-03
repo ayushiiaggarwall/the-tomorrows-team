@@ -218,6 +218,9 @@ async function handleAttendance(supabase: any, user: any, gdId: string, attendan
       if (pointsError) throw pointsError;
       pointsAwarded.push({ type: 'Attendance', points: pointsPerAttendance });
 
+      // Check for perfect attendance bonus (4+ sessions per month)
+      await checkAndAwardPerfectAttendance(supabase, attendanceData.user_id, user.id);
+
       // Award best speaker points if applicable
       if (attendanceData.best_speaker) {
         const { error: speakerError } = await supabase
@@ -335,6 +338,85 @@ async function handlePointsAwarding(supabase: any, user: any, pointsData: any): 
   } catch (error: any) {
     console.error('Points awarding error:', error);
     throw error;
+  }
+}
+
+async function checkAndAwardPerfectAttendance(supabase: any, userId: string, awardedBy: string): Promise<void> {
+  try {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    // Get the start and end of current month
+    const startOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0];
+    const endOfMonth = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0];
+    
+    // Count attendance sessions this month
+    const { data: attendanceCount, error: countError } = await supabase
+      .from('reward_points')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('type', 'Attendance')
+      .gte('gd_date', startOfMonth)
+      .lte('gd_date', endOfMonth);
+    
+    if (countError) {
+      console.error('Error counting attendance:', countError);
+      return;
+    }
+    
+    const attendanceThisMonth = attendanceCount?.length || 0;
+    
+    // Check if user already received perfect attendance bonus this month
+    const { data: existingBonus, error: bonusError } = await supabase
+      .from('reward_points')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('type', 'Perfect Attendance')
+      .gte('created_at', startOfMonth + 'T00:00:00Z')
+      .lte('created_at', endOfMonth + 'T23:59:59Z');
+    
+    if (bonusError) {
+      console.error('Error checking existing bonus:', bonusError);
+      return;
+    }
+    
+    // If user has 4+ sessions this month and hasn't received bonus yet
+    if (attendanceThisMonth >= 4 && (!existingBonus || existingBonus.length === 0)) {
+      // Award perfect attendance bonus
+      const { error: bonusInsertError } = await supabase
+        .from('reward_points')
+        .insert({
+          user_id: userId,
+          points: 50,
+          type: 'Perfect Attendance',
+          reason: `Perfect Attendance Bonus - ${attendanceThisMonth} sessions in ${currentMonth}/${currentYear}`,
+          awarded_by: awardedBy,
+          gd_date: now.toISOString().split('T')[0]
+        });
+      
+      if (bonusInsertError) {
+        console.error('Error awarding perfect attendance bonus:', bonusInsertError);
+        return;
+      }
+      
+      // Create notification
+      await supabase.rpc('create_notification', {
+        p_user_id: userId,
+        p_title: '🏆 Perfect Attendance Bonus!',
+        p_message: `Congratulations! You've earned +50 points for attending ${attendanceThisMonth} sessions this month!`,
+        p_type: 'reward',
+        p_metadata: JSON.stringify({ 
+          sessions_count: attendanceThisMonth,
+          month: `${currentMonth}/${currentYear}`,
+          bonus_points: 50
+        })
+      });
+      
+      console.log(`Perfect attendance bonus awarded to user ${userId} for ${attendanceThisMonth} sessions`);
+    }
+  } catch (error) {
+    console.error('Error in perfect attendance check:', error);
   }
 }
 

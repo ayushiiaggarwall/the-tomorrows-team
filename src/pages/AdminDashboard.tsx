@@ -16,6 +16,7 @@ import AnnouncementManager from '@/components/admin/AnnouncementManager';
 import SecurityMonitor from '@/components/admin/SecurityMonitor';
 import ReferralTestingPanel from '@/components/admin/ReferralTestingPanel';
 import AccountDeletionManager from '@/components/admin/AccountDeletionManager';
+import AttendanceManager from '@/components/admin/AttendanceManager';
 
 const AdminDashboard = () => {
   const { user, isAdmin, loading } = useAuth();
@@ -43,9 +44,10 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-11 mb-8">
+          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 mb-8">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="gds">GDs</TabsTrigger>
+            <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="points">Points</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="media">Media</TabsTrigger>
@@ -64,6 +66,10 @@ const AdminDashboard = () => {
 
           <TabsContent value="gds">
             <GroupDiscussionManager />
+          </TabsContent>
+
+          <TabsContent value="attendance">
+            <AttendanceManager />
           </TabsContent>
 
           <TabsContent value="points">
