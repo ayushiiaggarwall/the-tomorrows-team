@@ -161,7 +161,7 @@ const App = () => {
                   } 
                 />
                 <Route path="/already-registered" element={<AlreadyRegistered />} />
-                <Route path="/sitemap.xml" element={<Sitemap />} />
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
