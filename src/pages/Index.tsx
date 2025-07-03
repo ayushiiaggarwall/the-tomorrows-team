@@ -162,7 +162,10 @@ const Index = () => {
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          // Force refetch with the current user ID
           queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
+          // Also refetch all GD registration counts
+          queryClient.refetchQueries({ queryKey: ['gd-registration-count'] });
         }
       )
       .on(
