@@ -49,21 +49,93 @@ const UserProfile = () => {
     queryFn: async () => {
       if (!userId) return null;
 
-      // Get total points
+      // Get reward points
       const { data: pointsData } = await supabase
         .from('reward_points')
         .select('points, type, created_at')
         .eq('user_id', userId);
 
+      // Get GD registrations  
+      const { data: gdsData } = await supabase
+        .from('gd_registrations')
+        .select('id, attended')
+        .eq('user_id', userId)
+        .eq('attended', true);
+
       const totalPoints = pointsData?.reduce((sum, point) => sum + point.points, 0) || 0;
-
-      // Get GD attendance count
       const attendanceCount = pointsData?.filter(p => p.type.toLowerCase() === 'attendance').length || 0;
-
-      // Get achievements
       const bestSpeakerCount = pointsData?.filter(p => p.type === 'Best Speaker').length || 0;
       const moderatorCount = pointsData?.filter(p => p.type === 'Moderator').length || 0;
       const perfectAttendanceCount = pointsData?.filter(p => p.type === 'Perfect Attendance').length || 0;
+      const referralCount = pointsData?.filter(p => p.type === 'referral').length || 0;
+      const totalGDs = gdsData?.length || 0;
+
+      // Calculate milestone achievements
+      const milestoneAchievements = [
+        {
+          id: 'first_gd',
+          title: 'First Steps',
+          description: 'Attended your first group discussion',
+          icon: '👶',
+          unlocked: totalGDs >= 1
+        },
+        {
+          id: 'gd_veteran',
+          title: 'Discussion Veteran',
+          description: 'Attended 5 group discussions',
+          icon: '🎓',
+          unlocked: totalGDs >= 5
+        },
+        {
+          id: 'gd_expert',
+          title: 'Discussion Expert',
+          description: 'Attended 10 group discussions',
+          icon: '🏆',
+          unlocked: totalGDs >= 10
+        },
+        {
+          id: 'first_best_speaker',
+          title: 'Rising Star',
+          description: 'Awarded Best Speaker for the first time',
+          icon: '⭐',
+          unlocked: bestSpeakerCount >= 1
+        },
+        {
+          id: 'multiple_best_speaker',
+          title: 'Eloquent Speaker',
+          description: 'Awarded Best Speaker 3 times',
+          icon: '🎤',
+          unlocked: bestSpeakerCount >= 3
+        },
+        {
+          id: 'points_100',
+          title: 'Century Club',
+          description: 'Earned 100 total points',
+          icon: '💯',
+          unlocked: totalPoints >= 100
+        },
+        {
+          id: 'points_250',
+          title: 'High Achiever',
+          description: 'Earned 250 total points',
+          icon: '🚀',
+          unlocked: totalPoints >= 250
+        },
+        {
+          id: 'first_referral',
+          title: 'Community Builder',
+          description: 'Referred your first friend',
+          icon: '👥',
+          unlocked: referralCount >= 1
+        },
+        {
+          id: 'multiple_referrals',
+          title: 'Ambassador',
+          description: 'Referred 5 friends',
+          icon: '🌟',
+          unlocked: referralCount >= 5
+        }
+      ].filter(achievement => achievement.unlocked);
 
       return {
         totalPoints,
@@ -72,7 +144,8 @@ const UserProfile = () => {
           bestSpeaker: bestSpeakerCount,
           moderator: moderatorCount,
           perfectAttendance: perfectAttendanceCount
-        }
+        },
+        milestoneAchievements
       };
     },
     enabled: !!userId
@@ -140,11 +213,12 @@ const UserProfile = () => {
   }
 
   const displayName = profile.full_name || profile.email?.split('@')[0] || `User ${profile.id?.slice(0, 8)}`;
-  const hasAchievements = userStats?.achievements && (
+  const hasLeaderboardAchievements = userStats?.achievements && (
     userStats.achievements.bestSpeaker > 0 || 
     userStats.achievements.moderator > 0 || 
     userStats.achievements.perfectAttendance > 0
   );
+  const hasMilestoneAchievements = userStats?.milestoneAchievements && userStats.milestoneAchievements.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -243,14 +317,17 @@ const UserProfile = () => {
             </Card>
           </div>
 
-          {/* Achievements Section */}
-          {hasAchievements && (
-            <Card>
+          {/* Leaderboard Achievements Section */}
+          {hasLeaderboardAchievements && (
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-yellow-600" />
-                  Achievements
+                  Performance Recognition
                 </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Special recognition based on leaderboard performance
+                </p>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -295,6 +372,36 @@ const UserProfile = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Milestone Achievements Section */}
+          {hasMilestoneAchievements && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-purple-600" />
+                  Unlocked Achievements
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Milestone achievements earned through participation
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {userStats?.milestoneAchievements.map((achievement) => (
+                    <div key={achievement.id} className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="text-2xl">{achievement.icon}</div>
+                        <div>
+                          <div className="font-semibold text-purple-800">{achievement.title}</div>
+                          <div className="text-sm text-purple-700">{achievement.description}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
