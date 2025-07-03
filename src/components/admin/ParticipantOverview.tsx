@@ -34,19 +34,18 @@ const ParticipantOverview = () => {
       const start = (page - 1) * itemsPerPage;
       const end = start + itemsPerPage - 1;
 
-      // Get total count first
+      // Get total count of verified users only
       const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+        .rpc('get_verified_users_count');
 
       setTotalParticipants(count || 0);
 
-      // Get paginated data
+      // Get paginated data for verified users only
       const { data: profilesData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(start, end);
+        .rpc('get_verified_users_paginated', {
+          start_index: start,
+          end_index: end
+        });
 
       if (error) throw error;
 
