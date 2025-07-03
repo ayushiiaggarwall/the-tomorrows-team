@@ -64,7 +64,7 @@ const UserProfile = () => {
 
       const totalPoints = pointsData?.reduce((sum, point) => sum + point.points, 0) || 0;
       const attendanceCount = pointsData?.filter(p => p.type.toLowerCase() === 'attendance').length || 0;
-      const bestSpeakerCount = pointsData?.filter(p => p.type.toLowerCase() === 'best speaker').length || 0;
+      const bestSpeakerCount = pointsData?.filter(p => p.type.toLowerCase() === 'best speaker' || p.type.toLowerCase() === 'star speaker').length || 0;
       const moderatorCount = pointsData?.filter(p => p.type.toLowerCase() === 'moderator').length || 0;
       const perfectAttendanceCount = pointsData?.filter(p => p.type.toLowerCase() === 'perfect attendance' || p.type.toLowerCase() === 'perf attendance').length || 0;
       const referralCount = pointsData?.filter(p => p.type.toLowerCase() === 'referral').length || 0;
@@ -96,14 +96,14 @@ const UserProfile = () => {
         {
           id: 'first_best_speaker',
           title: 'Rising Star',
-          description: 'Awarded Best Speaker for the first time',
+          description: 'Awarded Star Speaker for the first time',
           icon: '⭐',
           unlocked: bestSpeakerCount >= 1
         },
         {
           id: 'multiple_best_speaker',
           title: 'Eloquent Speaker',
-          description: 'Awarded Best Speaker 3 times',
+          description: 'Awarded Star Speaker 3 times',
           icon: '🎤',
           unlocked: bestSpeakerCount >= 3
         },
@@ -405,7 +405,7 @@ const UserProfile = () => {
                       <div className="flex items-center space-x-3">
                         <Trophy className="w-6 h-6 text-yellow-600" />
                         <div>
-                          <div className="font-semibold text-yellow-800">Best Speaker</div>
+                          <div className="font-semibold text-yellow-800">Star Speaker</div>
                           <div className="text-sm text-yellow-700">
                             {userStats.achievements.bestSpeaker} time{userStats.achievements.bestSpeaker > 1 ? 's' : ''} historically
                           </div>

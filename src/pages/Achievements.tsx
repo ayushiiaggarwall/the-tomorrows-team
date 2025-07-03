@@ -37,7 +37,7 @@ const Achievements = () => {
       if (!rewardPoints) return { unlocked: [], locked: [], stats: { totalPoints: 0, bestSpeakerAwards: 0, referrals: 0, totalGDs: 0 } };
 
       const totalPoints = rewardPoints.reduce((sum, rp) => sum + rp.points, 0);
-      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type.toLowerCase().includes('best speaker')).length;
+      const bestSpeakerAwards = rewardPoints.filter(rp => rp.type.toLowerCase().includes('best speaker') || rp.type.toLowerCase().includes('star speaker')).length;
       const referrals = rewardPoints.filter(rp => rp.type.toLowerCase() === 'referral').length;
       const totalGDs = gdsAttended?.length || 0;
 
@@ -80,7 +80,7 @@ const Achievements = () => {
         {
           id: 'first_best_speaker',
           title: 'Rising Star',
-          description: 'Awarded Best Speaker for the first time',
+          description: 'Awarded Star Speaker for the first time',
           icon: '⭐',
           unlocked: bestSpeakerAwards >= 1,
           progress: Math.min(bestSpeakerAwards, 1),
@@ -89,7 +89,7 @@ const Achievements = () => {
         {
           id: 'multiple_best_speaker',
           title: 'Eloquent Speaker',
-          description: 'Awarded Best Speaker 3 times',
+          description: 'Awarded Star Speaker 3 times',
           icon: '🎤',
           unlocked: bestSpeakerAwards >= 3,
           progress: bestSpeakerAwards,

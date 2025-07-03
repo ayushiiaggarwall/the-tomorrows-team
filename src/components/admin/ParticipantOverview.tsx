@@ -68,12 +68,12 @@ const ParticipantOverview = () => {
             .eq('user_id', participant.id)
             .eq('attended', true);
 
-          // Get best speaker count
+          // Get star speaker count (including both Best Speaker and Star Speaker)
           const { count: bestSpeakerCount } = await supabase
             .from('reward_points')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', participant.id)
-            .eq('type', 'Best Speaker');
+            .or('type.ilike.best speaker,type.ilike.star speaker');
 
           return {
             ...participant,
@@ -163,7 +163,7 @@ const ParticipantOverview = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Points</TableHead>
                 <TableHead>GDs Attended</TableHead>
-                <TableHead>Best Speaker</TableHead>
+                <TableHead>Star Speaker</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Actions</TableHead>
