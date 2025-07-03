@@ -8,65 +8,66 @@ const Sitemap = () => {
     // Replace the entire page content with the sitemap XML
     const sitemapXML = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Core Pages -->
-  <url>
-    <loc>https://thetomorrowsteam.com/</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://thetomorrowsteam.com/join-gd</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://thetomorrowsteam.com/watch-learn</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://thetomorrowsteam.com/leaderboard</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://thetomorrowsteam.com/resources</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <!-- Content Pages -->
-  <url>
-    <loc>https://thetomorrowsteam.com/blog</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://thetomorrowsteam.com/achievements</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <!-- Information Pages -->
-  <url>
-    <loc>https://thetomorrowsteam.com/about</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://thetomorrowsteam.com/contact</loc>
-    <lastmod>2025-01-03</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
-  </url>
+<url>
+<loc>https://thetomorrowsteam.com/</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/about</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/join-gd</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/leaderboard</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/watch-learn</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/resources</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/blog</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/achievements</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/contact</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/login</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/reset-password</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/dashboard</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/dashboard/profile</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/notifications</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/participation-history</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/admin</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/check-email</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/email-verified</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/reset-email-sent</loc>
+</url>
+<url>
+<loc>https://thetomorrowsteam.com/already-registered</loc>
+</url>
 </urlset>`;
 
     // Replace the entire body content with the XML
