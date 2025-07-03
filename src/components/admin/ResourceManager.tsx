@@ -1,7 +1,9 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { FileText, Download, Trash2 } from 'lucide-react';
 import { useDownloadableResources } from '@/hooks/useDownloadableResources';
 import ResourceUpload from './ResourceUpload';
@@ -10,6 +12,8 @@ import { toast } from 'sonner';
 
 const ResourceManager = () => {
   const { resources, isLoading } = useDownloadableResources();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const handleDelete = async (resourceId: string, filePath: string) => {
     try {
@@ -43,6 +47,10 @@ const ResourceManager = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const totalPages = Math.ceil((resources?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedResources = resources?.slice(startIndex, startIndex + itemsPerPage) || [];
+
   return (
     <div className="space-y-6">
       <ResourceUpload />
@@ -54,9 +62,10 @@ const ResourceManager = () => {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">Loading resources...</div>
-          ) : resources && resources.length > 0 ? (
-            <div className="space-y-4">
-              {resources.map((resource) => (
+          ) : paginatedResources && paginatedResources.length > 0 ? (
+            <>
+              <div className="space-y-4">
+                {paginatedResources.map((resource) => (
                 <div key={resource.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <FileText className="w-5 h-5 text-primary" />
@@ -89,8 +98,39 @@ const ResourceManager = () => {
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+                  ))}
+              </div>
+              
+              {totalPages > 1 && (
+                <Pagination className="mt-4">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No resources uploaded yet

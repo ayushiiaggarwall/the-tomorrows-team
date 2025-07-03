@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +19,8 @@ const AnnouncementManager = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const { data: announcements, isLoading } = useQuery({
     queryKey: ['admin-announcements'],
@@ -31,6 +34,10 @@ const AnnouncementManager = () => {
       return data;
     }
   });
+
+  const totalPages = Math.ceil((announcements?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedAnnouncements = announcements?.slice(startIndex, startIndex + itemsPerPage) || [];
 
   const createMutation = useMutation({
     mutationFn: async (announcementData: { title: string; content?: string }) => {
@@ -200,8 +207,8 @@ const AnnouncementManager = () => {
         {/* Announcements List */}
         <div className="space-y-4">
           <h3 className="font-medium">Existing Announcements</h3>
-          {announcements && announcements.length > 0 ? (
-            announcements.map((announcement) => (
+          {paginatedAnnouncements && paginatedAnnouncements.length > 0 ? (
+            paginatedAnnouncements.map((announcement) => (
               <div key={announcement.id} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -249,6 +256,36 @@ const AnnouncementManager = () => {
             ))
           ) : (
             <p className="text-muted-foreground">No announcements yet.</p>
+          )}
+          
+          {totalPages > 1 && (
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           )}
         </div>
       </CardContent>

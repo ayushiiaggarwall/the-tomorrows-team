@@ -44,20 +44,22 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="gds">GDs</TabsTrigger>
-            <TabsTrigger value="attendance">Attendance</TabsTrigger>
-            <TabsTrigger value="points">Points</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="media">Media</TabsTrigger>
-            <TabsTrigger value="blog">Blog</TabsTrigger>
-            <TabsTrigger value="resources">Resources</TabsTrigger>
-            <TabsTrigger value="announcements">Announcements</TabsTrigger>
-            <TabsTrigger value="deletions">Account Deletions</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto mb-8">
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground min-w-max">
+              <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
+              <TabsTrigger value="gds" className="whitespace-nowrap">GDs</TabsTrigger>
+              <TabsTrigger value="attendance" className="whitespace-nowrap">Attendance</TabsTrigger>
+              <TabsTrigger value="points" className="whitespace-nowrap">Points</TabsTrigger>
+              <TabsTrigger value="notifications" className="whitespace-nowrap">Notifications</TabsTrigger>
+              <TabsTrigger value="media" className="whitespace-nowrap">Media</TabsTrigger>
+              <TabsTrigger value="blog" className="whitespace-nowrap">Blog</TabsTrigger>
+              <TabsTrigger value="resources" className="whitespace-nowrap">Resources</TabsTrigger>
+              <TabsTrigger value="announcements" className="whitespace-nowrap">Announcements</TabsTrigger>
+              <TabsTrigger value="deletions" className="whitespace-nowrap">Account Deletions</TabsTrigger>
+              <TabsTrigger value="security" className="whitespace-nowrap">Security</TabsTrigger>
+              <TabsTrigger value="settings" className="whitespace-nowrap">Settings</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview" className="space-y-6">
             <ParticipantOverview />

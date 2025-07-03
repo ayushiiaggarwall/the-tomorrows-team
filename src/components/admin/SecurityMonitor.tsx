@@ -1,6 +1,8 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Shield, AlertTriangle, Eye, Lock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 
 const SecurityMonitor = () => {
   const { user, isAdmin } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const { data: adminLogs = [], isLoading } = useQuery({
     queryKey: ['admin-logs'],
@@ -17,8 +21,7 @@ const SecurityMonitor = () => {
       const { data, error } = await supabase
         .from('admin_logs')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
@@ -26,6 +29,10 @@ const SecurityMonitor = () => {
     enabled: isAdmin && !!user,
     refetchInterval: 30000,
   });
+
+  const totalPages = Math.ceil(adminLogs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedLogs = adminLogs.slice(startIndex, startIndex + itemsPerPage);
 
   if (!isAdmin) {
     return (
@@ -97,20 +104,52 @@ const SecurityMonitor = () => {
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             </div>
-          ) : adminLogs.length > 0 ? (
-            <div className="space-y-3">
-              {adminLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{log.action}</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(log.created_at || '').toLocaleString()}
-                    </p>
+          ) : paginatedLogs.length > 0 ? (
+            <>
+              <div className="space-y-3">
+                {paginatedLogs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium">{log.action}</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(log.created_at || '').toLocaleString()}
+                      </p>
+                    </div>
+                    <Badge variant="outline">Admin</Badge>
                   </div>
-                  <Badge variant="outline">Admin</Badge>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              
+              {totalPages > 1 && (
+                <Pagination className="mt-4">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </>
           ) : (
             <p className="text-gray-600 text-center py-4">No recent admin actions</p>
           )}
