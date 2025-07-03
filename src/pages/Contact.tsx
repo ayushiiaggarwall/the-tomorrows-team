@@ -10,9 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Youtube, Instagram, Linkedin, Mail, MessageCircle, MapPin } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 
 const Contact = () => {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -37,14 +38,22 @@ const Contact = () => {
     
     // Validation
     if (!formData.fullName.trim() || !formData.email.trim() || !formData.message.trim()) {
-      toast.error('Please fill in all required fields');
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error('Please enter a valid email address');
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -71,7 +80,10 @@ const Contact = () => {
         throw new Error(errorData.error || 'Failed to send email');
       }
 
-      toast.success('Thanks! We\'ll get back to you within 24 hours.');
+      toast({
+        title: "Message Sent!",
+        description: "Thanks! We'll get back to you within 24 hours.",
+      });
       
       // Reset form
       setFormData({
@@ -82,7 +94,11 @@ const Contact = () => {
       });
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error('Something went wrong. Please try again.');
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
