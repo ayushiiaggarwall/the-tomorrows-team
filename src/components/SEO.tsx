@@ -17,7 +17,7 @@ interface SEOProps {
 const SEO = ({
   title = "The Tomorrows Team – Real Group Discussions for Future Thinkers",
   description = "Join a growing community of bold thinkers sharpening their communication skills through live group discussions, podcasts, and meaningful resources. Speak your mind and grow with The Tomorrows Team.",
-  keywords = "group discussions, leadership development, communication skills, debate, reward points, team building, professional development",
+  keywords = "group discussions platform, online group discussion for students, public speaking group discussions, live discussion community, communication skills, debate, podcasts and resources for communication skills, critical thinking community activities, AI debate group for young professionals, book group discussion sessions online, leadership development, team building, professional development",
   image = "/og-image.jpg",
   url = "https://www.thetomorrowsteam.com",
   type = "website",

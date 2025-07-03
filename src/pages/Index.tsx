@@ -62,16 +62,16 @@ const Index = () => {
 
   const features = [{
     icon: <Users className="w-6 h-6" />,
-    title: "Group Discussions",
-    description: "Join weekly online GDs with like-minded peers and practice your communication skills."
+    title: "Online Group Discussions",
+    description: "Join weekly public speaking group discussions with like-minded peers and improve communication skills with live discussions."
   }, {
     icon: <Mic className="w-6 h-6" />,
-    title: "Podcasts & Videos",
-    description: "Learn from recorded sessions and expert insights to improve your speaking style."
+    title: "Communication Podcasts & Resources",
+    description: "Access podcasts and resources for communication skills - learn from recorded sessions and expert insights."
   }, {
     icon: <Trophy className="w-6 h-6" />,
     title: "Rewards & Recognition",
-    description: "Earn points, climb the leaderboard, and get recognized for your participation."
+    description: "Earn points through critical thinking community activities, climb the leaderboard, and get recognized for your participation."
   }];
 
   // Fetch real upcoming GDs from database
@@ -338,10 +338,10 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Upcoming Group Discussions
+              Book Group Discussion Sessions Online
             </h2>
             <p className="text-xl text-muted-foreground">
-              Reserve your spot in our upcoming sessions
+              Join our live discussion community - reserve your spot in upcoming sessions
             </p>
           </div>
           
