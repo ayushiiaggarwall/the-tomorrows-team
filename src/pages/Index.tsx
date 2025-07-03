@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import HomeGDCard from '@/components/HomeGDCard';
 
 // Helper function to convert video URLs to embeddable format
@@ -46,6 +47,12 @@ const Index = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Auto-refresh every minute for live updates
+  useAutoRefresh({
+    interval: 60000, // 1 minute
+    enabled: true
+  });
 
   useEffect(() => {
     document.title = 'Home - The Tomorrows Team';

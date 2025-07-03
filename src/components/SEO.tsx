@@ -15,8 +15,8 @@ interface SEOProps {
 }
 
 const SEO = ({
-  title = "The Tomorrows Team - Group Discussions & Leadership Development",
-  description = "Join engaging group discussions, earn reward points, and develop leadership skills with The Tomorrows Team. Participate in structured debates and build your communication expertise.",
+  title = "The Tomorrows Team – Real Group Discussions for Future Thinkers",
+  description = "Join meaningful group discussions on careers, education, AI & more. Speak your mind, sharpen your skills, and be part of tomorrow's leaders.",
   keywords = "group discussions, leadership development, communication skills, debate, reward points, team building, professional development",
   image = "/og-image.jpg",
   url = "https://www.thetomorrowsteam.com",
