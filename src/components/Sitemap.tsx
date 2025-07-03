@@ -100,8 +100,8 @@ const Sitemap = () => {
 </url>
 </urlset>`;
 
-    // Replace the entire body content with the XML
-    document.body.innerHTML = sitemapXML;
+    // Replace the entire body content with the XML with proper styling
+    document.body.innerHTML = `<pre style="font-family: monospace; white-space: pre; line-height: 1.4; margin: 0; padding: 0; background: white; color: black;">${sitemapXML}</pre>`;
     
     // Set content type header for XML
     document.head.innerHTML = '<meta http-equiv="Content-Type" content="application/xml; charset=utf-8">';
