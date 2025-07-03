@@ -333,49 +333,6 @@ const UserProfile = () => {
             </Card>
           </div>
 
-          {/* Leaderboard Tags Section */}
-          {userLeaderboardTags && userLeaderboardTags.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-600" />
-                  Leaderboard Recognition
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Current month's leaderboard achievements
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {userLeaderboardTags.map((tag, index) => {
-                    const tagConfig = {
-                      'Star Speaker': { icon: '⭐', color: 'yellow', description: 'Top performer in speaking' },
-                      'Quality Content': { icon: '🧠', color: 'indigo', description: 'Excellent content contribution' },
-                      'Most Consistent': { icon: '🎯', color: 'blue', description: 'Highest attendance record' },
-                      'Top Moderator': { icon: '👨‍💼', color: 'red', description: 'Leading session facilitation' },
-                      'Top Referrer': { icon: '👥', color: 'green', description: 'Most successful referrals' },
-                      'Perf Attendance': { icon: '💯', color: 'purple', description: 'Perfect attendance record' }
-                    };
-                    
-                    const config = tagConfig[tag as keyof typeof tagConfig] || { icon: '🏆', color: 'gray', description: 'Recognition earned' };
-                    
-                    return (
-                      <div key={index} className={`bg-${config.color}-50 border border-${config.color}-200 rounded-lg p-4`}>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-2xl">{config.icon}</div>
-                          <div>
-                            <div className={`font-semibold text-${config.color}-800`}>{tag}</div>
-                            <div className={`text-sm text-${config.color}-700`}>{config.description}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Performance Recognition Section */}
           {hasLeaderboardAchievements && (
             <Card className="mb-6">
