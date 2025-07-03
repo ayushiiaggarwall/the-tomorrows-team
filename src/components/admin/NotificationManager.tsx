@@ -40,9 +40,7 @@ const NotificationManager = () => {
       setLoadingUsers(true);
       try {
         const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .order('full_name');
+          .rpc('get_verified_users_paginated', { start_index: 0, end_index: 10000 });
 
         if (error) throw error;
         setUsers(data || []);

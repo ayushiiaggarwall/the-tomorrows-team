@@ -65,10 +65,9 @@ const RewardPointsManager = () => {
 
       if (pointsError) throw pointsError;
 
-      // Get user profiles
+      // Get verified user profiles only
       const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email');
+        .rpc('get_verified_users_paginated', { start_index: 0, end_index: 10000 });
 
       if (profilesError) throw profilesError;
 
@@ -98,9 +97,7 @@ const RewardPointsManager = () => {
     queryKey: ['users'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .order('full_name', { ascending: true });
+        .rpc('get_verified_users_paginated', { start_index: 0, end_index: 10000 });
 
       if (error) throw error;
       return data;
@@ -275,8 +272,8 @@ const RewardPointsManager = () => {
                       case 'Attendance':
                         autoPoints = settings?.points_per_attendance.toString() || '10';
                         break;
-                      case 'Star Speaker':
-                        autoPoints = '30';
+                      case 'Best Speaker':
+                        autoPoints = settings?.points_per_best_speaker.toString() || '20';
                         break;
                       case 'Moderator':
                         autoPoints = settings?.points_per_moderation.toString() || '15';
@@ -307,7 +304,7 @@ const RewardPointsManager = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Attendance">Attendance</SelectItem>
-                    <SelectItem value="Star Speaker">Star Speaker</SelectItem>
+                    <SelectItem value="Best Speaker">Best Speaker</SelectItem>
                     <SelectItem value="Moderator">Session Moderator</SelectItem>
                     <SelectItem value="Perf Attendance">Perfect Attendance</SelectItem>
                     <SelectItem value="Referral">Referral</SelectItem>
