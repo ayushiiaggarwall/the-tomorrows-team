@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useReferral } from '@/hooks/useReferral';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { Trash2, Plus } from 'lucide-react';
@@ -35,6 +36,7 @@ const RewardPointsManager = () => {
   const queryClient = useQueryClient();
   const { completeReferralOnAttendance } = useReferral();
   const { settings } = useAdminSettings();
+  const { createNotification } = useNotifications();
   
   const [formData, setFormData] = useState({
     userId: '',
@@ -123,6 +125,37 @@ const RewardPointsManager = () => {
         });
 
       if (error) throw error;
+
+      // Get user name for notification
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data.userId)
+        .single();
+
+      const userName = userData?.full_name || 'User';
+      const pointsText = data.points > 0 ? `+${data.points}` : `${data.points}`;
+      
+      // Create notification for the user
+      try {
+        await supabase.rpc('create_notification', {
+          p_user_id: data.userId,
+          p_title: `🎉 Points ${data.points > 0 ? 'Awarded' : 'Deducted'}!`,
+          p_message: `You've received ${pointsText} points for ${data.reason}${data.type !== 'Other' ? ` (${data.type})` : ''}.`,
+          p_type: 'reward',
+          p_is_global: false,
+          p_expires_at: null,
+          p_metadata: JSON.stringify({
+            points: data.points,
+            reason: data.reason,
+            type: data.type,
+            awarded_by: 'admin'
+          })
+        });
+      } catch (notificationError) {
+        console.error('Error creating notification:', notificationError);
+        // Don't throw here, as the points were successfully added
+      }
 
       // If this is attendance points, check for referral completion
       if (data.type === 'attendance') {
