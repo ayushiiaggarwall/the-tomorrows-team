@@ -105,12 +105,13 @@ export const useLeaderboardData = () => {
               const stats = userStats.get(userId)!;
               stats.totalPoints += points;
 
-              // Case-insensitive type matching for consistent behavior
-              const typeNormalized = type.toLowerCase();
-              switch (typeNormalized) {
-                case 'best speaker':
-                  stats.bestSpeakerCount++;
-                  break;
+               // Case-insensitive type matching for consistent behavior
+               const typeNormalized = type.toLowerCase();
+               switch (typeNormalized) {
+                 case 'best speaker':
+                 case 'star speaker':
+                   stats.bestSpeakerCount++;
+                   break;
                 case 'attendance':
                   stats.attendanceCount++;
                   break;
@@ -124,9 +125,13 @@ export const useLeaderboardData = () => {
                 case 'perf attendance':
                   stats.perfectAttendanceCount++;
                   break;
-                case 'critical thinker':
-                  stats.criticalThinkerCount++;
-                  break;
+                 case 'critical thinker':
+                 case 'quality content':
+                   stats.criticalThinkerCount++;
+                   break;
+                 case 'team builder':
+                   stats.referralCount++; // Use referralCount for team builder to reuse existing logic
+                   break;
               }
             }
           });
@@ -165,10 +170,10 @@ export const useLeaderboardData = () => {
           { userId: '', count: 0 }
         );
 
-        // Assign tags based on performance
-        if (topBestSpeaker.count > 0 && userPointsMap.has(topBestSpeaker.userId)) {
-          userPointsMap.get(topBestSpeaker.userId)!.tags.push('Best Speaker');
-        }
+         // Assign tags based on performance
+         if (topBestSpeaker.count > 0 && userPointsMap.has(topBestSpeaker.userId)) {
+           userPointsMap.get(topBestSpeaker.userId)!.tags.push('Star Speaker');
+         }
         
         if (mostConsistent.count > 0 && userPointsMap.has(mostConsistent.userId)) {
           userPointsMap.get(mostConsistent.userId)!.tags.push('Most Consistent');
@@ -182,9 +187,9 @@ export const useLeaderboardData = () => {
           userPointsMap.get(topReferrer.userId)!.tags.push('Top Referrer');
         }
         
-        if (topCriticalThinker.count > 0 && userPointsMap.has(topCriticalThinker.userId)) {
-          userPointsMap.get(topCriticalThinker.userId)!.tags.push('Critical Thinker');
-        }
+         if (topCriticalThinker.count > 0 && userPointsMap.has(topCriticalThinker.userId)) {
+           userPointsMap.get(topCriticalThinker.userId)!.tags.push('Quality Content');
+         }
 
         // Find users with perfect attendance (if they have perfect attendance points)
         allStats.forEach(([userId, stats]) => {

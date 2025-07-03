@@ -198,7 +198,9 @@ const Leaderboard = () => {
                                         <Badge 
                                           key={tagIndex} 
                                           className={`text-xs ${
-                                            tag === 'Best Speaker' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                           tag === 'Star Speaker' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                             tag === 'Quality Content' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
+                                             tag === 'Team Builder' ? 'bg-orange-100 text-orange-800 border-orange-200' :
                                             tag === 'Most Consistent' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                                             tag === 'Top Moderator' ? 'bg-red-100 text-red-800 border-red-200' :
                                             tag === 'Top Referrer' ? 'bg-green-100 text-green-800 border-green-200' :
@@ -276,9 +278,23 @@ const Leaderboard = () => {
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <Trophy className="w-4 h-4 mr-3 text-gray-500" />
-                          Best Speaker Award
+                          Star Speaker Award
                         </span>
-                        <span className="text-green-600 font-semibold">+{settings.points_per_best_speaker}</span>
+                        <span className="text-green-600 font-semibold">+30</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <Star className="w-4 h-4 mr-3 text-gray-500" />
+                          Quality Content
+                        </span>
+                        <span className="text-green-600 font-semibold">+20</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="flex items-center text-gray-700">
+                          <Users className="w-4 h-4 mr-3 text-gray-500" />
+                          Team Builder
+                        </span>
+                        <span className="text-green-600 font-semibold">+15</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
@@ -314,7 +330,7 @@ const Leaderboard = () => {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-3">
                     <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100 justify-center py-2">
-                      Best Speaker
+                      Star Speaker
                     </Badge>
                     <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 justify-center py-2">
                       Most Consistent
@@ -329,7 +345,10 @@ const Leaderboard = () => {
                       Perf Attendance
                     </Badge>
                     <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-100 justify-center py-2">
-                      Critical Thinker
+                      Quality Content
+                    </Badge>
+                    <Badge className="bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-100 justify-center py-2">
+                      Team Builder
                     </Badge>
                   </div>
                 </CardContent>

@@ -275,8 +275,8 @@ const RewardPointsManager = () => {
                       case 'Attendance':
                         autoPoints = settings?.points_per_attendance.toString() || '10';
                         break;
-                      case 'Best Speaker':
-                        autoPoints = settings?.points_per_best_speaker.toString() || '20';
+                      case 'Star Speaker':
+                        autoPoints = '30';
                         break;
                       case 'Moderator':
                         autoPoints = settings?.points_per_moderation.toString() || '15';
@@ -287,8 +287,11 @@ const RewardPointsManager = () => {
                       case 'Referral':
                         autoPoints = settings?.points_per_referral.toString() || '10';
                         break;
-                      case 'Critical Thinker':
-                        autoPoints = '25'; // Default for Critical Thinker
+                      case 'Quality Content':
+                        autoPoints = '20';
+                        break;
+                      case 'Team Builder':
+                        autoPoints = '15';
                         break;
                       case 'Penalty':
                         autoPoints = '-10'; // Default penalty
@@ -304,11 +307,12 @@ const RewardPointsManager = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Attendance">Attendance</SelectItem>
-                    <SelectItem value="Best Speaker">Best Speaker</SelectItem>
+                    <SelectItem value="Star Speaker">Star Speaker</SelectItem>
                     <SelectItem value="Moderator">Session Moderator</SelectItem>
                     <SelectItem value="Perf Attendance">Perfect Attendance</SelectItem>
                     <SelectItem value="Referral">Referral</SelectItem>
-                    <SelectItem value="Critical Thinker">Critical Thinker</SelectItem>
+                    <SelectItem value="Quality Content">Quality Content</SelectItem>
+                    <SelectItem value="Team Builder">Team Builder</SelectItem>
                     <SelectItem value="Penalty">Penalty</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
