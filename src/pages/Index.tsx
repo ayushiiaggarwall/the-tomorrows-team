@@ -6,7 +6,8 @@ import TestimonialForm from '@/components/TestimonialForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, Mic, Trophy, Calendar, Play, Star } from 'lucide-react';
+import { Users, Mic, Trophy, Calendar, Play, Star, LogIn } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +52,7 @@ const Index = () => {
   }, []);
 
   const [showTestimonialForm, setShowTestimonialForm] = useState(false);
+  const [showAuthWarning, setShowAuthWarning] = useState(false);
 
   const features = [{
     icon: <Users className="w-6 h-6" />,
@@ -257,6 +259,14 @@ const Index = () => {
     }
   };
 
+  const handleTestimonialClick = () => {
+    if (user) {
+      setShowTestimonialForm(true);
+    } else {
+      setShowAuthWarning(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SEO
@@ -267,6 +277,29 @@ const Index = () => {
         type="website"
       />
       <Navigation />
+      
+      {/* Authentication Warning */}
+      {showAuthWarning && (
+        <div className="container mx-auto px-4 py-4">
+          <Alert className="max-w-md mx-auto bg-yellow-50 border-yellow-200 text-yellow-800">
+            <LogIn className="h-4 w-4" />
+            <AlertDescription>
+              Please sign in to share your review.
+              <div className="mt-2">
+                <Link to="/login">
+                  <Button 
+                    size="sm" 
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    onClick={() => setShowAuthWarning(false)}
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -433,7 +466,7 @@ const Index = () => {
                 </p>
                 <Button 
                   className="btn-primary"
-                  onClick={() => setShowTestimonialForm(true)}
+                  onClick={handleTestimonialClick}
                 >
                   Share Your Review
                 </Button>
@@ -462,7 +495,7 @@ const Index = () => {
             <div className="text-center mt-8">
               <Button 
                 className="btn-secondary"
-                onClick={() => setShowTestimonialForm(true)}
+                onClick={handleTestimonialClick}
               >
                 {userTestimonial ? 'Edit Your Review' : 'Share Your Review'}
               </Button>
