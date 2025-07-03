@@ -16,7 +16,7 @@ interface SEOProps {
 
 const SEO = ({
   title = "The Tomorrows Team – Real Group Discussions for Future Thinkers",
-  description = "Join meaningful group discussions on careers, education, AI & more. Speak your mind, sharpen your skills, and be part of tomorrow's leaders.",
+  description = "Join a growing community of bold thinkers sharpening their communication skills through live group discussions, podcasts, and meaningful resources. Speak your mind and grow with The Tomorrows Team.",
   keywords = "group discussions, leadership development, communication skills, debate, reward points, team building, professional development",
   image = "/og-image.jpg",
   url = "https://www.thetomorrowsteam.com",
