@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
@@ -59,34 +60,40 @@ const HomeGDCard = memo(({ gd }: HomeGDCardProps) => {
           <span className="text-sm font-medium text-primary">{gd.date} • {gd.time}</span>
         </div>
         <h3 className="text-lg font-semibold mb-3">{gd.topic}</h3>
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
-            {registrationData 
-              ? `${registrationData.spotsLeft} spots left`
-              : 'Loading spots...'
-            }
-          </span>
-          {buttonConfig.href ? (
-            <Link to={buttonConfig.href}>
-              <Button 
-                size="sm" 
-                className="btn-primary"
-                variant={buttonConfig.variant}
-                disabled={buttonConfig.disabled}
-              >
-                {buttonConfig.text}
-              </Button>
-            </Link>
-          ) : (
-            <Button 
-              size="sm" 
-              variant={buttonConfig.variant}
-              disabled={buttonConfig.disabled}
-            >
-              {buttonConfig.text}
-            </Button>
-          )}
-        </div>
+         <div className="flex justify-between items-center">
+           <span className="text-sm text-muted-foreground">
+             {registrationData 
+               ? `${registrationData.spotsLeft} spots left`
+               : 'Loading spots...'
+             }
+           </span>
+           {registrationData?.isFull ? (
+             <Badge variant="destructive">Full</Badge>
+           ) : gd.isRegistered ? (
+             <Badge variant="outline" className="text-green-600 border-green-600">
+               ✅ Registered
+             </Badge>
+           ) : buttonConfig.href ? (
+             <Link to={buttonConfig.href}>
+               <Button 
+                 size="sm" 
+                 className="btn-primary"
+                 variant={buttonConfig.variant}
+                 disabled={buttonConfig.disabled}
+               >
+                 {buttonConfig.text}
+               </Button>
+             </Link>
+           ) : (
+             <Button 
+               size="sm" 
+               variant={buttonConfig.variant}
+               disabled={buttonConfig.disabled}
+             >
+               {buttonConfig.text}
+             </Button>
+           )}
+         </div>
       </CardContent>
     </Card>
   );
