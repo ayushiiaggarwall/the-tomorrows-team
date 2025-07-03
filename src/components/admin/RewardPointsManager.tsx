@@ -153,7 +153,7 @@ const RewardPointsManager = () => {
           })
         });
       } catch (notificationError) {
-        console.error('Error creating notification:', notificationError);
+        console.error('Error creating notification for user:', data.userId, notificationError);
         // Don't throw here, as the points were successfully added
       }
 
