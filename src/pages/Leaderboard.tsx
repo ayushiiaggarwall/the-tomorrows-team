@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
-import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Copy, Share, MessageCircle, Mail, Twitter } from 'lucide-react';
+import { Trophy, Medal, Award, Star, Users, Calendar, UserPlus, Target, Copy, Share, MessageCircle, Mail, Twitter, Info } from 'lucide-react';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useAdminSettings } from '@/hooks/useAdminSettings';
 import { useAuth } from '@/hooks/useAuth';
@@ -254,7 +254,51 @@ const Leaderboard = () => {
               {/* How to Earn Points */}
               <Card className="bg-white border border-gray-200 rounded-lg shadow-sm">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-semibold text-gray-900">How to Earn Points</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-semibold text-gray-900">How to Earn Points</CardTitle>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <Info className="h-4 w-4 text-gray-500" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Award Explanations</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 text-sm">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Attend GD</h4>
+                            <p className="text-gray-600">Points awarded for participating in any group discussion session.</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Star Speaker</h4>
+                            <p className="text-gray-600">Awarded to the most outstanding speaker in a GD session, based on peer voting and moderator assessment.</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Quality Content</h4>
+                            <p className="text-gray-600">Recognized for providing insightful, well-researched, and valuable contributions to discussions.</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Team Builder</h4>
+                            <p className="text-gray-600">Awarded for facilitating collaboration, encouraging participation, and creating an inclusive environment.</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Session Moderator</h4>
+                            <p className="text-gray-600">Points for volunteering to moderate and guide group discussion sessions.</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Refer a Friend</h4>
+                            <p className="text-gray-600">Earn points when someone you refer joins and attends their first GD session.</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 mb-1">Perfect Attendance</h4>
+                            <p className="text-gray-600">Bonus points for attending all scheduled GD sessions in a month without any absences.</p>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {settingsLoading ? (
@@ -278,7 +322,7 @@ const Leaderboard = () => {
                       <div className="flex justify-between items-center py-2">
                         <span className="flex items-center text-gray-700">
                           <Trophy className="w-4 h-4 mr-3 text-gray-500" />
-                          Star Speaker Award
+                          Star Speaker
                         </span>
                         <span className="text-green-600 font-semibold">+30</span>
                       </div>
