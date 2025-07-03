@@ -210,7 +210,7 @@ const RewardPoints = () => {
               </Button>
               <Link to="/achievements">
                 <Button variant="outline" className="w-full">
-                  🏆 View All Achievements
+                  🏆 View Milestone Awards
                 </Button>
               </Link>
               <Button variant="outline" disabled className="w-full">

@@ -117,13 +117,13 @@ const Achievements = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          🏅 Your Achievements
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {achievements?.length ? "You're doing great. Let's celebrate it!" : "Start participating to unlock achievements!"}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            🏅 Performance Recognition
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {achievements?.length ? "Special recognition based on your leaderboard performance!" : "Start participating to earn performance recognition!"}
         </p>
       </CardHeader>
       <CardContent>
