@@ -35,8 +35,11 @@ export const useAutoRefresh = ({
         queryClient.refetchQueries({ queryKey });
       });
       
-      // Also refresh any registration-related queries
-      queryClient.refetchQueries({ queryKey: ['gd-registration-count'] });
+      // Refresh all registration count queries (partial match)
+      queryClient.refetchQueries({ 
+        queryKey: ['gd-registration-count'],
+        type: 'active'
+      });
     }, interval);
 
     return () => {
