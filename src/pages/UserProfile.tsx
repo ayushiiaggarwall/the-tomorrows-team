@@ -151,7 +151,7 @@ const UserProfile = () => {
     enabled: !!userId
   });
 
-  // Get leaderboard data to find rank
+  // Get leaderboard data to find rank and tags
   const { data: leaderboardData } = useLeaderboardData();
   
   // Basic debug - this should always show
@@ -160,12 +160,17 @@ const UserProfile = () => {
   console.log('Raw profile object:', profile);
   console.log('Leaderboard data loaded:', !!leaderboardData, leaderboardData?.length);
   
+  const userLeaderboardEntry = leaderboardData?.find(performer => 
+    performer.userId === profile?.id
+  );
   const userIndex = leaderboardData?.findIndex(performer => 
     performer.userId === profile?.id
   ) ?? -1;
   const userRank = userIndex >= 0 ? userIndex + 1 : 0;
+  const userLeaderboardTags = userLeaderboardEntry?.tags || [];
   
   console.log('Final rank calculation - Index:', userIndex, 'Rank:', userRank);
+  console.log('Leaderboard tags for user:', userLeaderboardTags);
 
   if (profileLoading || statsLoading) {
     return (
@@ -255,11 +260,22 @@ const UserProfile = () => {
                 {/* Name */}
                 <h1 className="text-3xl font-bold text-gray-900">{displayName}</h1>
 
-                {/* Tags */}
-                {profile.tags && profile.tags.length > 0 && (
+                {/* Leaderboard Tags */}
+                {userLeaderboardTags && userLeaderboardTags.length > 0 && (
                   <div className="flex flex-wrap gap-2 justify-center">
-                    {profile.tags.slice(0, 3).map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-sm">
+                    {userLeaderboardTags.map((tag, index) => (
+                      <Badge 
+                        key={index} 
+                        className={`text-sm ${
+                          tag === 'Star Speaker' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          tag === 'Quality Content' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
+                          tag === 'Most Consistent' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                          tag === 'Top Moderator' ? 'bg-red-100 text-red-800 border-red-200' :
+                          tag === 'Top Referrer' ? 'bg-green-100 text-green-800 border-green-200' :
+                          tag === 'Perf Attendance' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                          'bg-gray-100 text-gray-800 border-gray-200'
+                        }`}
+                      >
                         {tag}
                       </Badge>
                     ))}
@@ -317,7 +333,50 @@ const UserProfile = () => {
             </Card>
           </div>
 
-          {/* Leaderboard Achievements Section */}
+          {/* Leaderboard Tags Section */}
+          {userLeaderboardTags && userLeaderboardTags.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-600" />
+                  Leaderboard Recognition
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Current month's leaderboard achievements
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {userLeaderboardTags.map((tag, index) => {
+                    const tagConfig = {
+                      'Star Speaker': { icon: '⭐', color: 'yellow', description: 'Top performer in speaking' },
+                      'Quality Content': { icon: '🧠', color: 'indigo', description: 'Excellent content contribution' },
+                      'Most Consistent': { icon: '🎯', color: 'blue', description: 'Highest attendance record' },
+                      'Top Moderator': { icon: '👨‍💼', color: 'red', description: 'Leading session facilitation' },
+                      'Top Referrer': { icon: '👥', color: 'green', description: 'Most successful referrals' },
+                      'Perf Attendance': { icon: '💯', color: 'purple', description: 'Perfect attendance record' }
+                    };
+                    
+                    const config = tagConfig[tag as keyof typeof tagConfig] || { icon: '🏆', color: 'gray', description: 'Recognition earned' };
+                    
+                    return (
+                      <div key={index} className={`bg-${config.color}-50 border border-${config.color}-200 rounded-lg p-4`}>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl">{config.icon}</div>
+                          <div>
+                            <div className={`font-semibold text-${config.color}-800`}>{tag}</div>
+                            <div className={`text-sm text-${config.color}-700`}>{config.description}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Performance Recognition Section */}
           {hasLeaderboardAchievements && (
             <Card className="mb-6">
               <CardHeader>
@@ -326,7 +385,7 @@ const UserProfile = () => {
                   Performance Recognition
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Special recognition based on leaderboard performance
+                  Achievement history based on participation
                 </p>
               </CardHeader>
               <CardContent>

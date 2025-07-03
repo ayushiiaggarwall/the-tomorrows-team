@@ -57,13 +57,13 @@ const Achievements = () => {
         });
       }
 
-      // Referral achievements (case-insensitive)
+      // Referral achievements (case-insensitive) - Show as Community Builder milestone
       const referrals = rewardPoints.filter(rp => rp.type.toLowerCase() === 'referral');
       if (referrals.length > 0) {
         achievementsList.push({
           icon: '👥',
-          title: `Referred ${referrals.length} New Participant${referrals.length > 1 ? 's' : ''}`,
-          description: 'Growing the community through referrals'
+          title: 'Community Builder',
+          description: `Referred ${referrals.length} friend${referrals.length > 1 ? 's' : ''} to the community`
         });
       }
 

@@ -18,13 +18,12 @@ export const useLeaderboardData = () => {
       console.log('Fetching leaderboard data from database...');
       
       try {
-        // Get all users first
+        // Get only verified users by joining with auth.users table
         const { data: allUsers, error: usersError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email');
+          .rpc('get_verified_users_paginated', { start_index: 0, end_index: 10000 });
 
         if (usersError) {
-          console.error('Error fetching users:', usersError);
+          console.error('Error fetching verified users:', usersError);
           return [];
         }
 
