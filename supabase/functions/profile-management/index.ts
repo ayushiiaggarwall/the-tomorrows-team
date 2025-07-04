@@ -199,6 +199,44 @@ async function handleAccountDeletion(supabase: any, userId: string): Promise<Res
 
     if (error) throw error;
 
+    // Get user profile for email
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', userId)
+      .single();
+
+    // Send account deletion request email to user
+    if (userProfile) {
+      await supabase.functions.invoke('send-contact-email', {
+        body: {
+          name: 'The Tomorrows Team',
+          email: userProfile.email,
+          topic: 'Request for Account Deletion Received',
+          message: `Dear ${userProfile.full_name || 'User'},
+
+We have received your request for account deletion. We're sad to hear you want to say goodbye and hope we'll see you again in the future.
+
+Your account deletion request has been forwarded to our admin team for review and will be processed within 24-48 hours.
+
+Once your account is deleted, all your data including:
+• Profile information
+• Group discussion registrations  
+• Reward points
+• Participation history
+
+Will be permanently removed from our systems and cannot be recovered.
+
+If you change your mind or have any questions, please contact us at thetomorrowsteam@gmail.com before your account is processed.
+
+Thank you for being part of The Tomorrows Team community.
+
+Best regards,
+The Tomorrows Team`
+        }
+      });
+    }
+
     // Create notification for user
     await supabase.rpc('create_notification', {
       p_user_id: userId,
