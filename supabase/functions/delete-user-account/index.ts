@@ -1,6 +1,9 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,6 +87,57 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`Starting deletion process for user ${userId} (${userEmail})`);
+
+    // Send deletion confirmation email to user before deleting
+    if (userEmail && userName) {
+      console.log('Sending account deletion confirmation email to user:', userEmail);
+      try {
+        const userEmailResult = await resend.emails.send({
+          from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
+          to: [userEmail],
+          subject: "Your Account Has Been Deleted – The Tomorrows Team",
+          html: `Hi ${userName || 'there'},<br><br>
+
+We're writing to confirm that your account with The Tomorrows Team has been successfully deleted, as per your request.<br><br>
+
+🔒 <strong>All your personal data, including:</strong><br><br>
+
+• Profile information<br>
+• Group discussion history<br>
+• Reward points<br>
+• Participation records<br><br>
+
+has been permanently removed from our system and cannot be recovered.<br><br>
+
+We're truly grateful for your time and participation in our community. If you ever wish to return, we'd be thrilled to welcome you back — anytime.<br><br>
+
+If you have any questions or feedback, feel free to reach us at thetomorrowsteam@gmail.com.<br><br>
+
+Wishing you all the best on your journey ahead.<br><br>
+
+Warm regards,<br>
+The Tomorrows Team`,
+        });
+        console.log('User deletion email sent successfully:', userEmailResult);
+      } catch (emailError) {
+        console.error('Failed to send user deletion email:', emailError);
+      }
+
+      // Send simple admin notification email
+      console.log('Sending admin notification email');
+      try {
+        const adminEmailResult = await resend.emails.send({
+          from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
+          to: ["thetomorrowsteam@gmail.com"],
+          subject: "User Account Deleted",
+          html: `User: ${userName || 'Unknown'} (${userEmail})<br>
+Account has been permanently deleted.`,
+        });
+        console.log('Admin deletion email sent successfully:', adminEmailResult);
+      } catch (adminEmailError) {
+        console.error('Failed to send admin deletion email:', adminEmailError);
+      }
+    }
 
     // Delete all related data first (using admin client to bypass RLS)
     const deleteOperations = [

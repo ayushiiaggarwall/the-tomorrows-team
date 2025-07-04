@@ -191,12 +191,15 @@ const ProfileSettings = () => {
       console.log('Account deletion request submitted successfully');
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Account Deletion Requested",
         description: "Your account deletion request has been submitted. You'll receive an email confirmation shortly.",
         variant: "default",
       });
+      
+      // Sign out the user automatically
+      await signOut();
       navigate('/');
     },
     onError: (error: any) => {
