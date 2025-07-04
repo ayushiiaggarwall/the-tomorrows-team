@@ -93,7 +93,7 @@ const Navigation = () => {
           <div className="flex items-center">
             <Link to={user ? "/dashboard" : "/"} className="flex-shrink-0 flex items-center">
               <img 
-                src="/lovable-uploads/42d05df8-abbe-449d-89f5-9549f7993132.png" 
+                src="/thetomorrowsteam-uploads/42d05df8-abbe-449d-89f5-9549f7993132.png" 
                 alt="The Tomorrows Team" 
                 className="h-10 w-auto"
               />
