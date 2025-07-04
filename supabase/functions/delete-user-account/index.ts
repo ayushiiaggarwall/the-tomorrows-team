@@ -144,6 +144,15 @@ Account has been permanently deleted.`,
       // Delete blogs first (foreign key constraint)
       supabaseAdmin.from('blogs').delete().eq('author_id', userId),
       
+      // Delete media content (foreign key constraint)
+      supabaseAdmin.from('media_content').delete().eq('created_by', userId),
+      
+      // Delete featured videos (foreign key constraint)
+      supabaseAdmin.from('featured_videos').delete().eq('created_by', userId),
+      
+      // Delete community announcements (foreign key constraint)
+      supabaseAdmin.from('community_announcements').delete().eq('created_by', userId),
+      
       // Delete user referrals (both as referrer and referred)
       supabaseAdmin.from('user_referrals').delete().eq('referrer_id', userId),
       supabaseAdmin.from('user_referrals').delete().eq('referred_id', userId),
