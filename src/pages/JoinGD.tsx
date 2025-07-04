@@ -1,27 +1,48 @@
-
-import { useEffect, useState, useMemo } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { CalendarDays, Clock, Users, Search, Zap, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Calendar, Clock, Users, MapPin, LogIn } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
-import { format } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+import { useAtomicGDRegistration } from '@/hooks/useAtomicGDRegistration';
+import { ConsentModal } from '@/components/ConsentModal';
+import Navigation from '@/components/Navigation';
+import Footer from '@/components/Footer';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const JoinGD = () => {
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-
   useEffect(() => {
     document.title = 'Join Group Discussion - The Tomorrows Team';
   }, []);
 
+  const { user } = useAuth();
+  const registerMutation = useAtomicGDRegistration();
+  const queryClient = useQueryClient();
+  
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [selectedGdForConsent, setSelectedGdForConsent] = useState<any>(null);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    occupation: '',
+    occupationOther: '',
+    studentInstitution: '',
+    studentYear: '',
+    professionalCompany: '',
+    professionalRole: '',
+    selfEmployedProfession: '',
+    selectedGdId: null as string | null
+  });
+
+  // Fetch upcoming GDs with registration counts
   const { data: upcomingGDs, isLoading } = useQuery({
     queryKey: ['upcoming-gds-for-registration'],
     queryFn: async () => {
@@ -32,48 +53,64 @@ const JoinGD = () => {
         .gte('scheduled_date', new Date().toISOString())
         .order('scheduled_date', { ascending: true });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      if (!gds) return [];
+      // Get registration counts for all GDs (excluding cancelled registrations)
+      const gdsWithCounts = await Promise.all(
+        (gds || []).map(async (gd) => {
+          const { count, error: countError } = await supabase
+            .from('gd_registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('gd_id', gd.id)
+            .is('cancelled_at', null);
 
-      // Get user's registrations if logged in
-      let userRegistrations: string[] = [];
+          if (countError) {
+            console.error('Error counting registrations for GD:', gd.id, countError);
+            return { ...gd, spotsLeft: gd.slot_capacity, isFull: false };
+          }
+
+          const registrationCount = count || 0;
+          const spotsLeft = Math.max(0, gd.slot_capacity - registrationCount);
+          
+          return {
+            ...gd,
+            spotsLeft,
+            isFull: spotsLeft === 0
+          };
+        })
+      );
+
+      // Check if current user is registered for any GDs (only active registrations)
       if (user?.id) {
-        const { data: registrations } = await supabase
+        const { data: userRegistrations, error: regError } = await supabase
           .from('gd_registrations')
-          .select('gd_id')
-          .eq('user_id', user.id)
-          .is('cancelled_at', null);
+          .select('gd_id, cancelled_at')
+          .eq('user_id', user.id);
 
-        userRegistrations = registrations?.map(reg => reg.gd_id) || [];
+        if (!regError && userRegistrations) {
+          // Only consider registrations that are NOT cancelled
+          const activeRegistrations = userRegistrations.filter(reg => !reg.cancelled_at);
+          const userRegisteredGdIds = new Set(activeRegistrations.map(reg => reg.gd_id));
+          
+          return gdsWithCounts.map(gd => ({
+            ...gd,
+            isUserRegistered: userRegisteredGdIds.has(gd.id)
+          }));
+        }
       }
 
-      return gds.map((gd) => ({
-        ...gd,
-        isUserRegistered: userRegistrations.includes(gd.id)
-      }));
+      return gdsWithCounts.map(gd => ({ ...gd, isUserRegistered: false }));
     },
     staleTime: 0,
     gcTime: 0,
   });
 
-  // Set up real-time subscription for join GD page
+  // Set up real-time subscription for registration changes on join GD page
   useEffect(() => {
+    console.log('Setting up real-time subscription for join GD page');
+    
     const channel = supabase
-      .channel('join-gd-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'group_discussions'
-        },
-        () => {
-          // Refetch data when GDs change
-        }
-      )
+      .channel('join-gd-updates')
       .on(
         'postgres_changes',
         {
@@ -81,233 +118,499 @@ const JoinGD = () => {
           schema: 'public',
           table: 'gd_registrations'
         },
-        () => {
-          // Refetch data when registrations change
+        (payload) => {
+          console.log('GD registration change detected in join page:', payload);
+          // Force immediate refetch with fresh data
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_discussions'
+        },
+        (payload) => {
+          console.log('GD change detected in join page:', payload);
+          // Force immediate refetch with fresh data
+          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
+          queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Cleaning up join GD page real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
-  // Filter GDs based on search term
-  const filteredGDs = useMemo(() => {
-    if (!upcomingGDs) return [];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!searchTerm.trim()) return upcomingGDs;
+    if (!user) {
+      toast.error("Authentication Required", {
+        description: "Please log in to register for group discussions.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    if (!formData.selectedGdId) {
+      toast.error("No GD Selected", {
+        description: "Please select a group discussion to register for.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    if (!formData.occupation) {
+      toast.error("Occupation Required", {
+        description: "Please select your occupation.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    if (formData.occupation === 'Others' && !formData.occupationOther.trim()) {
+      toast.error("Please Specify", {
+        description: "Please specify your occupation in the text field.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    // Validation for occupation-specific fields
+    if (formData.occupation === 'Student' && (!formData.studentInstitution.trim() || !formData.studentYear.trim())) {
+      toast.error("Student Details Required", {
+        description: "Please provide your institution and year of study.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    if (formData.occupation === 'Working Professional' && (!formData.professionalCompany.trim() || !formData.professionalRole.trim())) {
+      toast.error("Professional Details Required", {
+        description: "Please provide your company and role.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    if (formData.occupation === 'Self Employed' && !formData.selfEmployedProfession.trim()) {
+      toast.error("Profession Required", {
+        description: "Please specify your profession.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    // Check if GD is full before attempting registration
+    const selectedGd = upcomingGDs?.find(gd => gd.id === formData.selectedGdId);
+    if (selectedGd?.isFull) {
+      toast.error("Session Full", {
+        description: "This group discussion is now full. Please try another session.",
+        position: 'top-right',
+        dismissible: true,
+        closeButton: true,
+      });
+      return;
+    }
+
+    // Show consent modal instead of directly registering
+    setSelectedGdForConsent(selectedGd);
+    setShowConsentModal(true);
+  };
+
+  const handleConsentAgree = async () => {
+    setShowConsentModal(false);
     
-    return upcomingGDs.filter(gd => 
-      gd.topic_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (gd.description && gd.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [upcomingGDs, searchTerm]);
+    await registerMutation.mutateAsync({
+      gdId: formData.selectedGdId!,
+      userId: user!.id,
+      registrationData: {
+        participantName: formData.name,
+        participantEmail: user!.email || '',
+        participantPhone: formData.phone,
+        participantOccupation: formData.occupation,
+        participantOccupationOther: formData.occupation === 'Others' ? formData.occupationOther : undefined,
+        studentInstitution: formData.occupation === 'Student' ? formData.studentInstitution : undefined,
+        studentYear: formData.occupation === 'Student' ? formData.studentYear : undefined,
+        professionalCompany: formData.occupation === 'Working Professional' ? formData.professionalCompany : undefined,
+        professionalRole: formData.occupation === 'Working Professional' ? formData.professionalRole : undefined,
+        selfEmployedProfession: formData.occupation === 'Self Employed' ? formData.selfEmployedProfession : undefined,
+      }
+    });
+
+    // Reset form on success
+    setFormData({
+      name: '',
+      phone: '',
+      occupation: '',
+      occupationOther: '',
+      studentInstitution: '',
+      studentYear: '',
+      professionalCompany: '',
+      professionalRole: '',
+      selfEmployedProfession: '',
+      selectedGdId: null
+    });
+  };
+
+  const handleConsentCancel = () => {
+    setShowConsentModal(false);
+    setSelectedGdForConsent(null);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const renderOccupationSpecificFields = () => {
+    switch (formData.occupation) {
+      case 'Student':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="studentInstitution">College/School *</Label>
+              <Input
+                id="studentInstitution"
+                value={formData.studentInstitution}
+                onChange={(e) => setFormData(prev => ({ ...prev, studentInstitution: e.target.value }))}
+                required
+                placeholder="Enter your institution name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="studentYear">Year of Study *</Label>
+              <Input
+                id="studentYear"
+                value={formData.studentYear}
+                onChange={(e) => setFormData(prev => ({ ...prev, studentYear: e.target.value }))}
+                required
+                placeholder="e.g., 1st Year, 2nd Year, Final Year"
+              />
+            </div>
+          </>
+        );
+      case 'Working Professional':
+        return (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="professionalCompany">Company *</Label>
+              <Input
+                id="professionalCompany"
+                value={formData.professionalCompany}
+                onChange={(e) => setFormData(prev => ({ ...prev, professionalCompany: e.target.value }))}
+                required
+                placeholder="Enter your company name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="professionalRole">Role *</Label>
+              <Input
+                id="professionalRole"
+                value={formData.professionalRole}
+                onChange={(e) => setFormData(prev => ({ ...prev, professionalRole: e.target.value }))}
+                required
+                placeholder="Enter your job role"
+              />
+            </div>
+          </>
+        );
+      case 'Self Employed':
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="selfEmployedProfession">What do you do? *</Label>
+            <Input
+              id="selfEmployedProfession"
+              value={formData.selfEmployedProfession}
+              onChange={(e) => setFormData(prev => ({ ...prev, selfEmployedProfession: e.target.value }))}
+              required
+              placeholder="Describe your profession"
+            />
+          </div>
+        );
+      case 'Others':
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="occupationOther">Please specify *</Label>
+            <Input
+              id="occupationOther"
+              value={formData.occupationOther}
+              onChange={(e) => setFormData(prev => ({ ...prev, occupationOther: e.target.value }))}
+              required
+              placeholder="Please specify your occupation"
+            />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const selectedGd = upcomingGDs?.find(gd => gd.id === formData.selectedGdId);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
-      <div className="py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              🗓️ Join Group Discussions
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Join a Group Discussion
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Participate in engaging discussions and improve your communication skills
+            <p className="text-xl text-muted-foreground">
+              Select a session below and register to participate
             </p>
           </div>
 
-          {/* Search */}
-          <div className="mb-8">
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input 
-                placeholder="Search discussions by topic..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {[...Array(4)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="h-4 bg-gray-200 rounded"></div>
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-10 bg-gray-200 rounded"></div>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+                      <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+                      <div className="h-8 bg-muted/50 rounded w-full"></div>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          )}
-
-          {/* No GDs Available */}
-          {!isLoading && (!filteredGDs || filteredGDs.length === 0) && !searchTerm && (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">📅</div>
-              <h3 className="text-2xl font-semibold mb-4">No Upcoming Group Discussions</h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                We're planning new sessions. Check back soon or explore our past sessions!
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Link to="/watch-learn">
-                  <Button className="btn-primary">
-                    📺 Watch Past Sessions
-                  </Button>
-                </Link>
-                <Link to="/resources">
-                  <Button variant="outline">
-                    📚 Browse Resources
-                  </Button>
-                </Link>
+          ) : !upcomingGDs?.length ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <div className="text-4xl mb-4">📅</div>
+                <h3 className="text-lg font-semibold mb-2">No Upcoming Sessions</h3>
+                <p className="text-muted-foreground">
+                  New group discussions will be scheduled soon. Check back later!
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Available GDs */}
+              <div className="space-y-6">
+                <h2 className="text-2xl font-semibold">Available Sessions</h2>
+                {upcomingGDs.map((gd) => (
+                  <Card 
+                    key={gd.id} 
+                    className={`cursor-pointer transition-all ${
+                      formData.selectedGdId === gd.id 
+                        ? 'ring-2 ring-primary bg-primary/5' 
+                        : 'hover:shadow-md'
+                    } ${gd.isFull ? 'opacity-60' : ''}`}
+                    onClick={() => !gd.isFull && setFormData(prev => ({ ...prev, selectedGdId: gd.id }))}
+                  >
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">{gd.topic_name}</CardTitle>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={gd.isFull ? "destructive" : "secondary"}>
+                            {gd.isFull ? 'Full' : `${gd.spotsLeft} spots left`}
+                          </Badge>
+                          {gd.isUserRegistered && (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              ✅ Registered
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatDate(gd.scheduled_date)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatTime(gd.scheduled_date)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          <span>{gd.slot_capacity} total slots</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4" />
+                          <span>{gd.meet_link ? 'Online' : 'Location TBD'}</span>
+                        </div>
+                      </div>
+                      {gd.description && (
+                        <p className="mt-3 text-sm">{gd.description}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            </div>
-          )}
 
-          {/* No Search Results */}
-          {!isLoading && searchTerm && filteredGDs.length === 0 && upcomingGDs && upcomingGDs.length > 0 && (
-            <div className="text-center py-16">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-semibold mb-4">No Results Found</h3>
-              <p className="text-gray-600 mb-6">
-                No discussions match your search. Try different keywords or browse all available sessions.
-              </p>
-              <Button onClick={() => setSearchTerm('')} variant="outline">
-                Clear Search
-              </Button>
-            </div>
-          )}
+              {/* Registration Form */}
+              <div className="lg:sticky lg:top-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Registration Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {!formData.selectedGdId ? (
+                      <p className="text-muted-foreground text-center py-8">
+                        Select a group discussion to register
+                      </p>
+                    ) : selectedGd?.isFull ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">😞</div>
+                        <h3 className="text-lg font-semibold mb-2">Session Full</h3>
+                        <p className="text-muted-foreground">
+                          This session is now full. Please select another session.
+                        </p>
+                      </div>
+                    ) : selectedGd?.isUserRegistered ? (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-4">✅</div>
+                        <h3 className="text-lg font-semibold mb-2">Already Registered</h3>
+                        <p className="text-muted-foreground">
+                          You are already registered for this session. Check your dashboard for details.
+                        </p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Show yellow message if user is not signed in */}
+                        {!user && (
+                          <Alert className="border-yellow-400 bg-yellow-50 text-yellow-800">
+                            <LogIn className="h-4 w-4" />
+                            <AlertDescription className="flex items-center justify-between">
+                              <span>Please sign in to register for this session.</span>
+                              <Link to="/login">
+                                <Button size="sm" variant="outline" className="ml-2">
+                                  Sign In
+                                </Button>
+                              </Link>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        {selectedGd && (
+                          <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                            <p className="text-sm text-muted-foreground">
+                              <strong>{selectedGd.spotsLeft}</strong> out of {selectedGd.slot_capacity} spots remaining
+                            </p>
+                          </div>
+                        )}
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Full Name *</Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                            required
+                            placeholder="Enter your full name"
+                            disabled={!user}
+                          />
+                        </div>
 
-          {/* GD Cards */}
-          {!isLoading && filteredGDs && filteredGDs.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGDs.map((gd) => (
-                <GDCard key={gd.id} gd={gd} user={user} />
-              ))}
+                        <div className="space-y-2">
+                          <Label htmlFor="phone">Phone Number *</Label>
+                          <Input
+                            id="phone"
+                            value={formData.phone}
+                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            required
+                            placeholder="Enter your phone number"
+                            disabled={!user}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="occupation">What do you do? *</Label>
+                          <Select
+                            value={formData.occupation}
+                            onValueChange={(value) => setFormData(prev => ({ 
+                              ...prev, 
+                              occupation: value,
+                              occupationOther: '',
+                              studentInstitution: '',
+                              studentYear: '',
+                              professionalCompany: '',
+                              professionalRole: '',
+                              selfEmployedProfession: ''
+                            }))}
+                            disabled={!user}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your occupation" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Student">Student</SelectItem>
+                              <SelectItem value="Working Professional">Working Professional</SelectItem>
+                              <SelectItem value="Self Employed">Self Employed</SelectItem>
+                              <SelectItem value="Others">Others</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {renderOccupationSpecificFields()}
+
+                        <Button 
+                          type="submit" 
+                          className="w-full"
+                          disabled={registerMutation.isPending || selectedGd?.isFull || !user}
+                        >
+                          {!user ? 'Please Sign In First' : registerMutation.isPending ? 'Registering...' : 'Register for GD'}
+                        </Button>
+                      </form>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </div>
       </div>
 
+      {/* Consent Modal */}
+      <ConsentModal
+        isOpen={showConsentModal}
+        onClose={handleConsentCancel}
+        onAgree={handleConsentAgree}
+        gdTitle={selectedGdForConsent?.topic_name || ''}
+      />
+
       <Footer />
     </div>
-  );
-};
-
-// Individual GD Card Component
-const GDCard = ({ gd, user }: { gd: any; user: any }) => {
-  const { registrationData } = useGDRegistrationCount(gd.id);
-  
-  const scheduledDate = new Date(gd.scheduled_date);
-  const formattedDate = format(scheduledDate, 'EEEE, MMMM do');
-  const formattedTime = format(scheduledDate, 'h:mm a');
-
-  const isUpcoming = scheduledDate > new Date();
-  const isFull = registrationData?.isFull || false;
-
-  return (
-    <Card className="hover:shadow-lg transition-all duration-200 border-2 hover:border-purple-200">
-      <CardHeader>
-        <div className="flex justify-between items-start mb-2">
-          <CardTitle className="text-lg font-bold text-gray-900 line-clamp-2">
-            {gd.topic_name}
-          </CardTitle>
-          {gd.isUserRegistered && (
-            <Badge className="bg-green-100 text-green-800 border-green-200">
-              ✅ Registered
-            </Badge>
-          )}
-        </div>
-        
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-4 h-4" />
-            <span>{formattedDate}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>{formattedTime}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            <span>
-              {registrationData 
-                ? `${registrationData.spotsLeft} spots left out of ${registrationData.totalCapacity}`
-                : `Loading capacity...`
-              }
-            </span>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent>
-        {gd.description && (
-          <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-            {gd.description}
-          </p>
-        )}
-        
-        <div className="flex gap-2">
-          {!user ? (
-            <Link to="/login" className="flex-1">
-              <Button className="w-full btn-primary">
-                <Zap className="w-4 h-4 mr-2" />
-                Login to Register
-              </Button>
-            </Link>
-          ) : gd.isUserRegistered ? (
-            <>
-              {gd.meet_link ? (
-                <Button asChild className="flex-1 btn-primary">
-                  <a href={gd.meet_link} target="_blank" rel="noopener noreferrer">
-                    <Star className="w-4 h-4 mr-2" />
-                    Join Meeting
-                  </a>
-                </Button>
-              ) : (
-                <Button disabled className="flex-1">
-                  Link Coming Soon
-                </Button>
-              )}
-              <Link to="/dashboard">
-                <Button variant="outline" size="sm">
-                  Manage
-                </Button>
-              </Link>
-            </>
-          ) : isFull ? (
-            <Button disabled className="w-full">
-              <Users className="w-4 h-4 mr-2" />
-              Session Full
-            </Button>
-          ) : !isUpcoming ? (
-            <Button disabled className="w-full">
-              Session Ended
-            </Button>
-          ) : (
-            <Link to={`/register-gd/${gd.id}`} className="flex-1">
-              <Button className="w-full btn-primary">
-                <Zap className="w-4 h-4 mr-2" />
-                Register Now
-              </Button>
-            </Link>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 
