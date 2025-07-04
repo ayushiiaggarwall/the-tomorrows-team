@@ -235,7 +235,7 @@ Your request has been forwarded to our admin team and will be processed within 2
 
 This action is irreversible.<br><br>
 
-If you have any questions or decide to cancel your request, please contact us at thetomorrowsteam@gmail.com before the deletion is finalized.<br><br>
+If you have any questions or decide to cancel your request, please contact us at hello@thetomorrowsteam.com before the deletion is finalized.<br><br>
 
 Thank you once again for being part of our community.<br>
 We hope our paths cross again in the future.<br><br>
