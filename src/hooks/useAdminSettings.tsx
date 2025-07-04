@@ -37,27 +37,29 @@ export const useAdminSettings = () => {
       const { data, error } = await supabase
         .from('admin_settings')
         .select('*')
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching admin settings:', error);
         throw error;
       }
 
-      if (!data) {
+      if (!data || data.length === 0) {
         console.log('No admin settings found, using defaults');
         return defaultSettings;
       }
 
-      console.log('Admin settings fetched:', data);
+      const settings = data[0];
+
+      console.log('Admin settings fetched:', settings);
       return {
-        id: data.id,
-        points_per_attendance: data.points_per_attendance,
-        points_per_best_speaker: data.points_per_best_speaker,
-        points_per_referral: data.points_per_referral,
-        points_per_moderation: data.points_per_moderation,
-        points_per_perfect_attendance: data.points_per_perfect_attendance,
-        site_announcement: data.site_announcement || ''
+        id: settings.id,
+        points_per_attendance: settings.points_per_attendance,
+        points_per_best_speaker: settings.points_per_best_speaker,
+        points_per_referral: settings.points_per_referral,
+        points_per_moderation: settings.points_per_moderation,
+        points_per_perfect_attendance: settings.points_per_perfect_attendance,
+        site_announcement: settings.site_announcement || ''
       };
     },
     staleTime: 1 * 60 * 1000, // Reduced to 1 minute for faster updates
