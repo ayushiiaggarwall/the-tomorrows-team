@@ -212,26 +212,31 @@ async function handleAccountDeletion(supabase: any, userId: string): Promise<Res
         body: {
           name: 'The Tomorrows Team',
           email: userProfile.email,
-          topic: 'Request for Account Deletion Received',
-          message: `Dear ${userProfile.full_name || 'User'},
+          topic: 'Your Account Deletion Request – The Tomorrows Team',
+          message: `Hi ${userProfile.full_name || 'User'},
 
-We have received your request for account deletion. We're sad to hear you want to say goodbye and hope we'll see you again in the future.
+Thank you for reaching out to The Tomorrows Team.
 
-Your account deletion request has been forwarded to our admin team for review and will be processed within 24-48 hours.
+We've received your request to permanently delete your account. While we're sad to see you go, we respect your decision and appreciate the time you've spent with us.
 
-Once your account is deleted, all your data including:
-• Profile information
-• Group discussion registrations  
+🕒 What happens next:
+Your request has been forwarded to our admin team and will be processed within 24 hours.
+
+📌 Once deleted, all associated data will be permanently removed, including:
+
+• Your profile details
+• Group discussion bookings
 • Reward points
 • Participation history
 
-Will be permanently removed from our systems and cannot be recovered.
+This action is irreversible.
 
-If you change your mind or have any questions, please contact us at thetomorrowsteam@gmail.com before your account is processed.
+If you have any questions or decide to cancel your request, please contact us at thetomorrowsteam@gmail.com before the deletion is finalized.
 
-Thank you for being part of The Tomorrows Team community.
+Thank you once again for being part of our community.
+We hope our paths cross again in the future.
 
-Best regards,
+Warm regards,
 The Tomorrows Team`
         }
       });
