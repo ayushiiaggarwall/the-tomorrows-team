@@ -32,26 +32,21 @@ export const useAdminSettings = () => {
   const { data: settings, isLoading, refetch } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: async () => {
-      // Fetching admin settings...
-      
       const { data, error } = await supabase
         .from('admin_settings')
         .select('*')
         .limit(1);
 
       if (error) {
-        // Error fetching admin settings
         throw error;
       }
 
       if (!data || data.length === 0) {
-        // No admin settings found, using defaults
         return defaultSettings;
       }
 
       const settings = data[0];
 
-      // Admin settings fetched
       return {
         id: settings.id,
         points_per_attendance: settings.points_per_attendance,
@@ -69,8 +64,6 @@ export const useAdminSettings = () => {
 
   // Set up real-time subscription for admin settings (for all authenticated users)
   useEffect(() => {
-    // Setting up real-time subscription for admin settings
-
     const channel = supabase
       .channel('admin-settings-changes')
       .on(
@@ -81,27 +74,21 @@ export const useAdminSettings = () => {
           table: 'admin_settings'
         },
         (payload) => {
-          // Real-time admin settings change detected
           // Force immediate refetch for all users
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
           }, 100);
         }
       )
-      .subscribe((status) => {
-        // Admin settings subscription status
-      });
+      .subscribe();
 
     return () => {
-      // Cleaning up admin settings real-time subscription
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<AdminSettings>) => {
-      // Saving admin settings
-
       // Only allow admins to save settings
       if (!isAdmin) {
         throw new Error('Only administrators can modify settings');
@@ -145,16 +132,12 @@ export const useAdminSettings = () => {
       }
 
       if (result.error) {
-        // Error saving admin settings
         throw result.error;
       }
 
-      // Admin settings saved successfully
       return result.data;
     },
     onSuccess: (data) => {
-      // Settings saved successfully, updating cache
-      
       // Update the cache immediately with the new data
       const updatedSettings = {
         id: data.id,
@@ -175,7 +158,6 @@ export const useAdminSettings = () => {
       });
     },
     onError: (error) => {
-      // Failed to save admin settings
       toast({
         title: "Error",
         description: "Failed to save settings",

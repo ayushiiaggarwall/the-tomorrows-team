@@ -65,7 +65,6 @@ const JoinGD = () => {
             .is('cancelled_at', null);
 
           if (countError) {
-            console.error('Error counting registrations for GD:', gd.id, countError);
             return { ...gd, spotsLeft: gd.slot_capacity, isFull: false };
           }
 
@@ -107,8 +106,6 @@ const JoinGD = () => {
 
   // Set up real-time subscription for registration changes on join GD page
   useEffect(() => {
-    console.log('Setting up real-time subscription for join GD page');
-    
     const channel = supabase
       .channel('join-gd-updates')
       .on(
@@ -119,7 +116,6 @@ const JoinGD = () => {
           table: 'gd_registrations'
         },
         (payload) => {
-          console.log('GD registration change detected in join page:', payload);
           // Force immediate refetch with fresh data
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
@@ -133,7 +129,6 @@ const JoinGD = () => {
           table: 'group_discussions'
         },
         (payload) => {
-          console.log('GD change detected in join page:', payload);
           // Force immediate refetch with fresh data
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
           queryClient.refetchQueries({ queryKey: ['upcoming-gds-for-registration'] });
@@ -142,7 +137,6 @@ const JoinGD = () => {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up join GD page real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

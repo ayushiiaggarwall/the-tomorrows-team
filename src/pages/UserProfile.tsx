@@ -14,9 +14,6 @@ import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 const UserProfile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  
-  // Very first log to see if component loads at all
-  console.log('UserProfile component mounted with userId:', userId);
 
   useEffect(() => {
     document.title = 'User Profile - The Tomorrows Team';
@@ -28,15 +25,12 @@ const UserProfile = () => {
     queryFn: async () => {
       if (!userId) return null;
       
-      console.log('Fetching profile for userId:', userId);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
       
-      console.log('Profile query result:', { profile, error });
-      console.log('Profile object details:', profile);
       return profile;
     },
     enabled: !!userId,
@@ -154,12 +148,6 @@ const UserProfile = () => {
   // Get leaderboard data to find rank and tags
   const { data: leaderboardData } = useLeaderboardData();
   
-  // Basic debug - this should always show
-  console.log('UserProfile component loaded, userId from URL:', userId);
-  console.log('Profile data loaded:', !!profile, profile?.id);
-  console.log('Raw profile object:', profile);
-  console.log('Leaderboard data loaded:', !!leaderboardData, leaderboardData?.length);
-  
   const userLeaderboardEntry = leaderboardData?.find(performer => 
     performer.userId === profile?.id
   );
@@ -168,9 +156,6 @@ const UserProfile = () => {
   ) ?? -1;
   const userRank = userIndex >= 0 ? userIndex + 1 : 0;
   const userLeaderboardTags = userLeaderboardEntry?.tags || [];
-  
-  console.log('Final rank calculation - Index:', userIndex, 'Rank:', userRank);
-  console.log('Leaderboard tags for user:', userLeaderboardTags);
 
   if (profileLoading || statsLoading) {
     return (

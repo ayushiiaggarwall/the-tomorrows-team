@@ -30,10 +30,6 @@ const Leaderboard = () => {
     document.title = 'Leaderboard - The Tomorrows Team';
   }, []);
 
-  // Debug log to see when settings change
-  useEffect(() => {
-    console.log('Settings updated in Leaderboard:', settings);
-  }, [settings]);
 
   const { data: allPerformers = [], isLoading, error, refetch } = useLeaderboardData();
 

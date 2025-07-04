@@ -92,7 +92,6 @@ const Index = () => {
         .limit(3);
 
       if (error) {
-        console.error('Error fetching GDs:', error);
         return [];
       }
 
@@ -145,8 +144,6 @@ const Index = () => {
 
   // Set up real-time subscription for registration changes on home page
   useEffect(() => {
-    console.log('Setting up real-time subscription for home page GD registrations');
-    
     const channel = supabase
       .channel(`home-gd-updates`)
       .on(
@@ -157,7 +154,6 @@ const Index = () => {
           table: 'gd_registrations'
         },
         (payload) => {
-          console.log('Home page GD registration change detected, refetching counts:', payload);
           // Force immediate refetch with fresh data
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
@@ -176,7 +172,6 @@ const Index = () => {
           table: 'group_discussions'
         },
         (payload) => {
-          console.log('Home page GD change detected, refetching counts:', payload);
           // Force immediate refetch with fresh data
           queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
           queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
@@ -187,7 +182,6 @@ const Index = () => {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up home page real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [queryClient, user?.id]);
@@ -206,7 +200,6 @@ const Index = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching featured video:', error);
         return null;
       }
 
@@ -228,7 +221,6 @@ const Index = () => {
         .limit(3);
 
       if (error) {
-        console.error('Error fetching testimonials:', error);
         return [];
       }
 
@@ -251,7 +243,6 @@ const Index = () => {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user testimonial:', error);
         return null;
       }
 
@@ -269,7 +260,6 @@ const Index = () => {
   };
 
   const handleTestimonialClick = () => {
-    console.log('Testimonial button clicked, user:', user);
     setShowTestimonialForm(true);
   };
 
