@@ -12,12 +12,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { format } from 'date-fns';
 
 const Index = () => {
   const { user } = useAuth();
   
   // Set up auto-refresh for the home page
-  useAutoRefresh('home-page');
+  useAutoRefresh();
 
   useEffect(() => {
     document.title = 'The Tomorrows Team - Skill Building Through Group Discussions';
@@ -39,7 +40,32 @@ const Index = () => {
         throw error;
       }
 
-      return gds || [];
+      if (!gds) return [];
+
+      // Get user's registrations if logged in
+      let userRegistrations: string[] = [];
+      if (user?.id) {
+        const { data: registrations } = await supabase
+          .from('gd_registrations')
+          .select('gd_id')
+          .eq('user_id', user.id)
+          .is('cancelled_at', null);
+
+        userRegistrations = registrations?.map(reg => reg.gd_id) || [];
+      }
+
+      // Transform the data to match HomeGDCard interface
+      return gds.map((gd) => {
+        const scheduledDate = new Date(gd.scheduled_date);
+        return {
+          id: gd.id,
+          date: format(scheduledDate, 'MMM d, yyyy'),
+          time: format(scheduledDate, 'h:mm a'),
+          topic: gd.topic_name,
+          totalCapacity: gd.slot_capacity || 20,
+          isRegistered: userRegistrations.includes(gd.id)
+        };
+      });
     },
     staleTime: 0,
     gcTime: 0,
