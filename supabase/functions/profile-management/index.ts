@@ -251,6 +251,17 @@ The Tomorrows Team`
       p_metadata: JSON.stringify({ deletion_request_id: data.id })
     });
 
+    // Send simple admin notification email
+    await supabase.functions.invoke('send-contact-email', {
+      body: {
+        name: 'Admin Team',
+        email: 'thetomorrowsteam@gmail.com',
+        topic: 'Account Deletion Request',
+        message: `User: ${userProfile?.full_name || 'Unknown'} (${userProfile?.email || 'Unknown'})
+Account deletion request submitted.`
+      }
+    });
+
     // Create notification for admins
     const { data: admins } = await supabase
       .from('profiles')

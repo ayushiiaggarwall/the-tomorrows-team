@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminSecurity } from '@/hooks/useAdminSecurity';
-import { Trash2, Clock, CheckCircle } from 'lucide-react';
+import { Trash2, Clock, CheckCircle, X } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface DeletionRequest {
@@ -27,6 +27,7 @@ const AccountDeletionManager = () => {
   const { executeAdminAction } = useAdminSecurity();
   const [selectedRequest, setSelectedRequest] = useState<DeletionRequest | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDismissDialog, setShowDismissDialog] = useState(false);
 
   const { data: deletionRequests = [], isLoading } = useQuery({
     queryKey: ['account-deletion-requests'],
@@ -63,6 +64,34 @@ const AccountDeletionManager = () => {
           admin_notes: request.admin_notes
         };
       }) as DeletionRequest[];
+    }
+  });
+
+  const dismissRequestMutation = useMutation({
+    mutationFn: async (request: DeletionRequest) => {
+      const { error } = await supabase
+        .from('account_deletion_requests')
+        .delete()
+        .eq('id', request.id);
+
+      if (error) throw error;
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast({
+        title: "Request Dismissed",
+        description: "The account deletion request has been dismissed.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['account-deletion-requests'] });
+      setShowDismissDialog(false);
+      setSelectedRequest(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error Dismissing Request",
+        description: error.message || "Failed to dismiss request. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
@@ -176,9 +205,20 @@ This action was completed by an administrator.`
     setShowDeleteDialog(true);
   };
 
+  const handleDismissRequest = (request: DeletionRequest) => {
+    setSelectedRequest(request);
+    setShowDismissDialog(true);
+  };
+
   const confirmDelete = () => {
     if (selectedRequest) {
       deleteAccountMutation.mutate(selectedRequest);
+    }
+  };
+
+  const confirmDismiss = () => {
+    if (selectedRequest) {
+      dismissRequestMutation.mutate(selectedRequest);
     }
   };
 
@@ -242,16 +282,27 @@ This action was completed by an administrator.`
                     </TableCell>
                     <TableCell>
                       {request.status === 'pending' && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteRequest(request)}
-                          disabled={deleteAccountMutation.isPending}
-                          className="flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Delete Account
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteRequest(request)}
+                            disabled={deleteAccountMutation.isPending || dismissRequestMutation.isPending}
+                            className="flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Delete Account
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDismissRequest(request)}
+                            disabled={deleteAccountMutation.isPending || dismissRequestMutation.isPending}
+                            className="flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -271,6 +322,17 @@ This action was completed by an administrator.`
         confirmText="Delete Account"
         cancelText="Cancel"
         variant="destructive"
+      />
+
+      <ConfirmationDialog
+        isOpen={showDismissDialog}
+        onClose={() => setShowDismissDialog(false)}
+        onConfirm={confirmDismiss}
+        title="Dismiss Account Deletion Request"
+        description={`Are you sure you want to dismiss the account deletion request for ${selectedRequest?.user_name} (${selectedRequest?.user_email})? This will remove the request without deleting the account.`}
+        confirmText="Dismiss Request"
+        cancelText="Cancel"
+        variant="default"
       />
     </div>
   );
