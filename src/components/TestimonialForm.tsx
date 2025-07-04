@@ -50,7 +50,6 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user testimonial:', error);
         return null;
       }
 
@@ -84,10 +83,6 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
 
   const submitTestimonial = useMutation({
     mutationFn: async (testimonialData: any) => {
-      console.log('Submitting testimonial with data:', testimonialData);
-      console.log('Current user:', user);
-      console.log('Is editing:', isEditing);
-      
       if (!user || !user.id) {
         throw new Error('User not authenticated');
       }
@@ -108,10 +103,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
           .select()
           .single();
 
-        console.log('Update result:', { data, error });
-
         if (error) {
-          console.error('Supabase update error:', error);
           throw error;
         }
         return data;
@@ -130,10 +122,7 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
           .select()
           .single();
 
-        console.log('Insert result:', { data, error });
-
         if (error) {
-          console.error('Supabase error:', error);
           throw error;
         }
         return data;
@@ -155,7 +144,6 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
       queryClient.invalidateQueries({ queryKey: ['user-testimonial'] });
     },
     onError: (error: any) => {
-      console.error('Mutation error:', error);
       toast({
         title: isEditing ? "Update Failed" : "Submission Failed",
         description: error.message || "Something went wrong. Please try again.",
@@ -166,8 +154,6 @@ const TestimonialForm = ({ open, onOpenChange }: TestimonialFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('Form submitted, user:', user);
     
     if (!user) {
       toast({

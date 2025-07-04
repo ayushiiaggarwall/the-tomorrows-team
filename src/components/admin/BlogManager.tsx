@@ -70,7 +70,7 @@ const BlogManager = () => {
 
       setBlogs(blogsWithAuthors);
     } catch (error) {
-      console.error('Error fetching blogs:', error);
+      // Error handled silently
     }
   };
 

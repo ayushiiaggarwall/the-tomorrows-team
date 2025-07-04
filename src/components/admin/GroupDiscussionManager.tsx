@@ -68,11 +68,9 @@ const GroupDiscussionManager = () => {
         .order('scheduled_date', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching discussions:', error);
         throw error;
       }
-
-      console.log('✅ Fetched discussions:', data);
+      
       return data || [];
     }
   });
@@ -102,11 +100,9 @@ const GroupDiscussionManager = () => {
         .single();
 
       if (error) {
-        console.error('❌ Error creating GD:', error);
         throw error;
       }
-
-      console.log('✅ Created GD:', data);
+      
       return data;
     },
     onSuccess: () => {
@@ -127,7 +123,6 @@ const GroupDiscussionManager = () => {
       });
     },
     onError: (error) => {
-      console.error('💥 Error creating GD:', error);
       toast({
         title: "Error",
         description: "Failed to create group discussion. Please try again.",
@@ -155,11 +150,9 @@ const GroupDiscussionManager = () => {
         .single();
 
       if (error) {
-        console.error('❌ Error updating GD:', error);
         throw error;
       }
-
-      console.log('✅ Updated GD:', data);
+      
       return data;
     },
     onSuccess: () => {
@@ -172,7 +165,6 @@ const GroupDiscussionManager = () => {
       });
     },
     onError: (error) => {
-      console.error('💥 Error updating GD:', error);
       toast({
         title: "Error",
         description: "Failed to update group discussion. Please try again.",
@@ -206,7 +198,6 @@ const GroupDiscussionManager = () => {
       });
     },
     onError: (error) => {
-      console.error('💥 Error deleting GD:', error);
       toast({
         title: "Error",
         description: "Failed to delete group discussion. Please try again.",

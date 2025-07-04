@@ -65,7 +65,6 @@ const AnnouncementManager = () => {
     },
     onError: (error) => {
       toast.error('Failed to create announcement');
-      console.error('Create error:', error);
     }
   });
 
@@ -91,7 +90,6 @@ const AnnouncementManager = () => {
     },
     onError: (error) => {
       toast.error('Failed to update announcement');
-      console.error('Update error:', error);
     }
   });
 
@@ -111,7 +109,6 @@ const AnnouncementManager = () => {
     },
     onError: (error) => {
       toast.error('Failed to delete announcement');
-      console.error('Delete error:', error);
     }
   });
 

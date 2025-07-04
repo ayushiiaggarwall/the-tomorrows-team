@@ -25,10 +25,7 @@ export const useAutoRefresh = ({
   useEffect(() => {
     if (!enabled) return;
 
-    console.log('Setting up auto-refresh every', interval / 1000, 'seconds');
-    
     const intervalId = setInterval(() => {
-      console.log('Auto-refreshing queries:', queryKeys);
       
       // Force refetch instead of just invalidating
       queryKeys.forEach(queryKey => {
@@ -43,7 +40,6 @@ export const useAutoRefresh = ({
     }, interval);
 
     return () => {
-      console.log('Cleaning up auto-refresh interval');
       clearInterval(intervalId);
     };
   }, [queryClient, interval, enabled, queryKeys]);

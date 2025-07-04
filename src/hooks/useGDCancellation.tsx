@@ -17,19 +17,15 @@ export const useGDCancellation = () => {
 
   const cancelRegistration = useMutation({
     mutationFn: async ({ gdId, userId }: { gdId: string; userId: string }) => {
-      console.log('Cancelling registration for GD:', gdId, 'User:', userId);
-
       const { data, error } = await supabase.rpc('cancel_gd_registration', {
         p_gd_id: gdId,
         p_user_id: userId,
       });
 
       if (error) {
-        console.error('Cancellation error:', error);
         throw error;
       }
 
-      console.log('Cancellation successful:', data);
       return data as unknown as CancellationResponse;
     },
     onSuccess: (data) => {
@@ -49,8 +45,6 @@ export const useGDCancellation = () => {
       queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
     },
     onError: (error: any) => {
-      console.error('Cancellation mutation error:', error);
-      
       if (error.message?.includes('REGISTRATION_NOT_FOUND')) {
         toast({
           title: "Registration Not Found",

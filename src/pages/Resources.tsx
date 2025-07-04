@@ -46,8 +46,6 @@ const Resources = () => {
   const { data: latestBlogs, isLoading: blogsLoading, error: blogsError } = useQuery({
     queryKey: ['latest-blogs'],
     queryFn: async () => {
-      console.log('Fetching latest blogs...');
-      
       // First get the blogs
       const { data: blogsData, error: blogsError } = await supabase
         .from('blogs')
@@ -57,7 +55,6 @@ const Resources = () => {
         .limit(6);
 
       if (blogsError) {
-        console.error('Error fetching blogs:', blogsError);
         throw blogsError;
       }
 
@@ -77,7 +74,6 @@ const Resources = () => {
         })
       );
 
-      console.log('Fetched blogs with authors:', blogsWithAuthors);
       return blogsWithAuthors;
     }
   });

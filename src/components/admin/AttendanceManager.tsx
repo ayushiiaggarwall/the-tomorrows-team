@@ -85,7 +85,6 @@ const AttendanceManager = () => {
       });
     },
     onError: (error) => {
-      console.error('Error marking attendance:', error);
       toast({
         title: "Error",
         description: "Failed to update attendance. Please try again.",
