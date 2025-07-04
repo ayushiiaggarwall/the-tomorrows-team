@@ -176,89 +176,26 @@ const ProfileSettings = () => {
     mutationFn: async () => {
       console.log('Starting account deletion request process...');
       
-      // Create deletion request
-      const { error: insertError } = await supabase
-        .from('account_deletion_requests')
-        .insert({
-          user_id: user!.id,
-          status: 'pending'
-        });
-
-      if (insertError) {
-        console.error('Error creating deletion request:', insertError);
-        throw insertError;
-      }
-
-      console.log('Deletion request created successfully, sending admin email...');
-
-      // Send notification email to admin
-      const { error: adminEmailError } = await supabase.functions.invoke('send-contact-email', {
+      // Use the profile-management function to handle deletion request
+      const { data, error } = await supabase.functions.invoke('profile-management', {
         body: {
-          name: 'System Notification',
-          email: 'thetomorrowsteam@gmail.com',
-          topic: 'Account Deletion Request',
-          message: `A user has requested account deletion:
-          
-User: ${fullName || 'Unknown'} (${user!.email})
-User ID: ${user!.id}
-Requested: ${new Date().toLocaleString()}
-
-Please review this request in the admin dashboard and process the deletion if appropriate.
-
-The user has been signed out and notified that their account will be deleted within 24 hours pending admin review.`
+          action: 'delete_account'
         }
       });
 
-      if (adminEmailError) {
-        console.error('Error sending admin email:', adminEmailError);
-        throw new Error(`Failed to send admin notification: ${adminEmailError.message}`);
+      if (error || !data?.success) {
+        console.error('Error creating deletion request:', error);
+        throw error || new Error(data?.error || 'Failed to create deletion request');
       }
 
-      console.log('Admin email sent successfully, sending user confirmation email...');
-
-      // Send confirmation email to user
-      const { error: userEmailError } = await supabase.functions.invoke('send-contact-email', {
-        body: {
-          name: 'The Tomorrows Team',
-          email: user!.email!,
-          topic: 'Account Deletion Request Received',
-          message: `Dear ${fullName || 'User'},
-
-We have received your request for account deletion. We're sad to hear you want to say goodbye and hope we'll see you again in the future.
-
-Your account deletion request has been forwarded to our admin team for review and will be processed within 24 hours.
-
-Once your account is deleted, all your data including:
-- Profile information
-- Group discussion registrations
-- Reward points
-- Participation history
-
-Will be permanently removed and cannot be recovered.
-
-If you change your mind or have any questions, please contact us at thetomorrowsteam@gmail.com before your account is processed.
-
-Thank you for being part of The Tomorrows Team community.
-
-Best regards,
-The Tomorrows Team`
-        }
-      });
-
-      if (userEmailError) {
-        console.error('Error sending user email:', userEmailError);
-        throw new Error(`Failed to send confirmation email: ${userEmailError.message}`);
-      }
-
-      console.log('User confirmation email sent successfully, signing out user...');
-
-      // Sign out the user
-      await signOut();
+      console.log('Account deletion request submitted successfully');
+      return data;
     },
     onSuccess: () => {
       toast({
-        title: "Account deletion requested",
-        description: "You have been signed out. Your deletion request has been sent to our team for review and will be processed within 24 hours. Please check your email for confirmation.",
+        title: "Account Deletion Requested",
+        description: "Your account deletion request has been submitted. You'll receive an email confirmation shortly.",
+        variant: "default",
       });
       navigate('/');
     },
