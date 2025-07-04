@@ -174,8 +174,6 @@ const ProfileSettings = () => {
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      console.log('Starting account deletion request process...');
-      
       // Use the profile-management function to handle deletion request
       const { data, error } = await supabase.functions.invoke('profile-management', {
         body: {
@@ -184,11 +182,9 @@ const ProfileSettings = () => {
       });
 
       if (error || !data?.success) {
-        console.error('Error creating deletion request:', error);
         throw error || new Error(data?.error || 'Failed to create deletion request');
       }
 
-      console.log('Account deletion request submitted successfully');
       return data;
     },
     onSuccess: async () => {
