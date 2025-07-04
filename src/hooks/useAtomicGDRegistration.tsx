@@ -35,7 +35,7 @@ export const useAtomicGDRegistration = () => {
         selfEmployedProfession?: string;
       };
     }) => {
-      console.log('Attempting atomic registration for GD:', gdId, 'User:', userId);
+      // Attempting atomic registration for GD
 
       const { data, error } = await supabase.rpc('register_for_gd_atomic', {
         p_gd_id: gdId,
@@ -53,7 +53,7 @@ export const useAtomicGDRegistration = () => {
       });
 
       if (error) {
-        console.error('Registration error:', error);
+        // Registration error
         
         if (error.message.includes('GD_FULL')) {
           throw new Error('This group discussion is now full. Please try another session.');
@@ -66,7 +66,7 @@ export const useAtomicGDRegistration = () => {
         }
       }
 
-      console.log('Registration successful:', data);
+      // Registration successful
       
       // Type guard to ensure data is an object with the expected properties
       if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -80,7 +80,7 @@ export const useAtomicGDRegistration = () => {
       throw new Error('Invalid response format from registration');
     },
     onSuccess: (data: RegistrationResponse) => {
-      console.log('Registration mutation successful:', data);
+      // Registration mutation successful
       
       // Show success toast with correct spots left count
       toast.success('Registration Successful!', {
@@ -99,7 +99,7 @@ export const useAtomicGDRegistration = () => {
       queryClient.invalidateQueries({ queryKey: ['user-registrations'] });
     },
     onError: (error: Error) => {
-      console.error('Registration mutation failed:', error);
+      // Registration mutation failed
       
       toast.error('Registration Failed', {
         description: error.message,

@@ -32,7 +32,7 @@ export const useAdminSettings = () => {
   const { data: settings, isLoading, refetch } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: async () => {
-      console.log('Fetching admin settings...');
+      // Fetching admin settings...
       
       const { data, error } = await supabase
         .from('admin_settings')
@@ -40,18 +40,18 @@ export const useAdminSettings = () => {
         .limit(1);
 
       if (error) {
-        console.error('Error fetching admin settings:', error);
+        // Error fetching admin settings
         throw error;
       }
 
       if (!data || data.length === 0) {
-        console.log('No admin settings found, using defaults');
+        // No admin settings found, using defaults
         return defaultSettings;
       }
 
       const settings = data[0];
 
-      console.log('Admin settings fetched:', settings);
+      // Admin settings fetched
       return {
         id: settings.id,
         points_per_attendance: settings.points_per_attendance,
@@ -69,7 +69,7 @@ export const useAdminSettings = () => {
 
   // Set up real-time subscription for admin settings (for all authenticated users)
   useEffect(() => {
-    console.log('Setting up real-time subscription for admin settings');
+    // Setting up real-time subscription for admin settings
 
     const channel = supabase
       .channel('admin-settings-changes')
@@ -81,7 +81,7 @@ export const useAdminSettings = () => {
           table: 'admin_settings'
         },
         (payload) => {
-          console.log('Real-time admin settings change detected:', payload);
+          // Real-time admin settings change detected
           // Force immediate refetch for all users
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
@@ -89,18 +89,18 @@ export const useAdminSettings = () => {
         }
       )
       .subscribe((status) => {
-        console.log('Admin settings subscription status:', status);
+        // Admin settings subscription status
       });
 
     return () => {
-      console.log('Cleaning up admin settings real-time subscription');
+      // Cleaning up admin settings real-time subscription
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Partial<AdminSettings>) => {
-      console.log('Saving admin settings:', newSettings);
+      // Saving admin settings
 
       // Only allow admins to save settings
       if (!isAdmin) {
@@ -145,15 +145,15 @@ export const useAdminSettings = () => {
       }
 
       if (result.error) {
-        console.error('Error saving admin settings:', result.error);
+        // Error saving admin settings
         throw result.error;
       }
 
-      console.log('Admin settings saved successfully:', result.data);
+      // Admin settings saved successfully
       return result.data;
     },
     onSuccess: (data) => {
-      console.log('Settings saved successfully, updating cache');
+      // Settings saved successfully, updating cache
       
       // Update the cache immediately with the new data
       const updatedSettings = {
@@ -175,7 +175,7 @@ export const useAdminSettings = () => {
       });
     },
     onError: (error) => {
-      console.error('Failed to save admin settings:', error);
+      // Failed to save admin settings
       toast({
         title: "Error",
         description: "Failed to save settings",

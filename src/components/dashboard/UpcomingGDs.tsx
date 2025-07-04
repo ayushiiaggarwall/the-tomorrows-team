@@ -18,7 +18,7 @@ const UpcomingGDs = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      console.log('Fetching upcoming GDs for dashboard user:', user.id);
+      // Fetching upcoming GDs for dashboard user
 
       // Get upcoming GDs
       const { data: gds, error: gdsError } = await supabase
@@ -29,7 +29,7 @@ const UpcomingGDs = () => {
         .order('scheduled_date', { ascending: true });
 
       if (gdsError) {
-        console.error('Error fetching GDs:', gdsError);
+        // Error fetching GDs
         return [];
       }
 
@@ -43,7 +43,7 @@ const UpcomingGDs = () => {
         .is('cancelled_at', null);
 
       if (regError) {
-        console.error('Error fetching user registrations:', regError);
+        // Error fetching user registrations
       }
 
       const userRegisteredGdIds = new Set(userRegistrations?.map(reg => reg.gd_id) || []);

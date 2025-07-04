@@ -39,7 +39,7 @@ const RewardPoints = () => {
     queryFn: async () => {
       if (!user?.id) return { history: [] };
 
-      console.log('Fetching reward points for user:', user.id, 'page:', currentPage);
+      // Fetching reward points for user
 
       const offset = (currentPage - 1) * pageSize;
 
@@ -60,32 +60,32 @@ const RewardPoints = () => {
         .range(offset, offset + pageSize - 1);
 
       if (rewardError) {
-        console.error('Error fetching reward points:', rewardError);
+        // Error fetching reward points
         return { history: [] };
       }
 
       if (!rewardPoints || rewardPoints.length === 0) {
-        console.log('No reward points found for user');
+        // No reward points found for user
         return { history: [] };
       }
 
-      console.log('Reward points fetched:', rewardPoints);
+      // Reward points fetched
       
       // Get unique awarded_by user IDs to fetch their profiles
       const awardedByIds = [...new Set(rewardPoints.map(entry => entry.awarded_by).filter(Boolean))];
       
       let awardedByProfiles: any[] = [];
       if (awardedByIds.length > 0) {
-        console.log('Fetching profiles for awarded_by IDs:', awardedByIds);
+        // Fetching profiles for awarded_by IDs
         const { data: profiles, error: profileError } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .in('id', awardedByIds);
         
         if (profileError) {
-          console.error('Error fetching profiles:', profileError);
+          // Error fetching profiles
         } else {
-          console.log('Profiles fetched:', profiles);
+          // Profiles fetched
           awardedByProfiles = profiles || [];
         }
       }
@@ -96,7 +96,7 @@ const RewardPoints = () => {
                               awardedByProfile?.email?.split('@')[0] || 
                               (entry.awarded_by ? 'Unknown User' : 'System');
         
-        console.log(`Entry ${entry.id}: awarded_by=${entry.awarded_by}, profile found=${!!awardedByProfile}, name=${awardedByName}`);
+        // Entry processing completed
         
         return {
           date: new Date(entry.created_at).toLocaleDateString('en-US', { 
@@ -110,7 +110,7 @@ const RewardPoints = () => {
         };
       });
 
-      console.log('Final history data:', history);
+      // Final history data prepared
       return { history };
     },
     enabled: !!user?.id,
@@ -122,7 +122,7 @@ const RewardPoints = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('Setting up real-time subscription for user reward points:', user.id);
+    // Setting up real-time subscription for user reward points
 
     const channel = supabase
       .channel(`user-reward-points-${user.id}`)
@@ -135,17 +135,17 @@ const RewardPoints = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('Real-time reward points change:', payload);
+          // Real-time reward points change
           // Force immediate refetch
           refetch();
         }
       )
       .subscribe((status) => {
-        console.log('User reward points subscription status:', status);
+        // User reward points subscription status
       });
 
     return () => {
-      console.log('Cleaning up user reward points real-time subscription');
+      // Cleaning up user reward points real-time subscription
       supabase.removeChannel(channel);
     };
   }, [user?.id, refetch]);

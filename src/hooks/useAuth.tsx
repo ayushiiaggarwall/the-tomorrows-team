@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         // If profile doesn't exist (user was deleted), sign them out
         if (error.code === 'PGRST116') {
-          console.log('User profile not found, signing out...');
+          // User profile not found, signing out...
           await supabase.auth.signOut();
           return;
         }
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const storedReferralCode = localStorage.getItem('pendingReferralCode');
     if (!storedReferralCode) return;
 
-    console.log('Processing stored referral code:', storedReferralCode, 'for user:', userId);
+    // Processing stored referral code for user
 
     try {
       // First try exact match (in case someone enters full UUID)
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('id', storedReferralCode);
         
       if (exactMatch && exactMatch.length > 0) {
-        console.log('Found exact UUID match:', exactMatch[0].id);
+        // Found exact UUID match
         const referrerId = exactMatch[0].id;
         await createReferralRelationship(referrerId, userId, storedReferralCode);
         localStorage.removeItem('pendingReferralCode');
@@ -78,13 +78,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // If no exact match, fetch all profiles and filter client-side for partial UUID match
-      console.log('No exact match found, trying client-side filtering...');
+      // No exact match found, trying client-side filtering...
       const { data: allProfiles, error: allError } = await supabase
         .from('profiles')
         .select('id, full_name');
         
       if (allError) {
-        console.error('Error fetching profiles:', allError);
+        // Error fetching profiles
         return;
       }
       
@@ -94,17 +94,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       );
       
       if (!matchingProfile) {
-        console.log('No referrer found for code:', storedReferralCode);
+        // No referrer found for code
         localStorage.removeItem('pendingReferralCode');
         return;
       }
       
-      console.log('Found referrer via client-side filtering:', matchingProfile.id);
+      // Found referrer via client-side filtering
       await createReferralRelationship(matchingProfile.id, userId, storedReferralCode);
       localStorage.removeItem('pendingReferralCode');
 
     } catch (error) {
-      console.error('Error processing stored referral:', error);
+      // Error processing stored referral
       localStorage.removeItem('pendingReferralCode');
     }
   };
@@ -112,7 +112,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const createReferralRelationship = async (referrerId: string, newUserId: string, referralCode: string) => {
     // Don't allow self-referrals
     if (referrerId === newUserId) {
-      console.log('Self-referral attempted, ignoring');
       return;
     }
 
@@ -124,11 +123,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .single();
 
     if (existingReferral) {
-      console.log('Referral relationship already exists');
+      // Referral relationship already exists
       return;
     }
 
-    console.log('Creating referral relationship:', { referrerId, newUserId, referralCode });
+    // Creating referral relationship
 
     // Store the referral relationship - database triggers will handle notifications
     const { data, error: referralError } = await supabase
@@ -142,9 +141,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .select();
 
     if (referralError) {
-      console.error('Error storing referral:', referralError);
+      // Error storing referral
     } else {
-      console.log('Referral relationship stored successfully:', data);
+      // Referral relationship stored successfully
       
       // Manually trigger signup notification since trigger might not fire immediately
       setTimeout(async () => {
@@ -175,12 +174,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
 
           if (notificationError) {
-            console.error('Error creating signup notification:', notificationError);
+            // Error creating signup notification
           } else {
-            console.log('Signup notification sent successfully');
+            // Signup notification sent successfully
           }
         } catch (error) {
-          console.error('Error sending signup notification:', error);
+          // Error sending signup notification
         }
       }, 2000); // Wait 2 seconds for profile to be fully created
     }
@@ -190,14 +189,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email_confirmed_at);
+        // Auth state change event
         
         setSession(session);
         setUser(session?.user ?? null);
         
         // Handle different auth events
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('User signed in:', session.user.email, 'Email confirmed:', session.user.email_confirmed_at);
+          // User signed in successfully
           
           // Process any stored referral code after successful sign in
           if (session.user.email_confirmed_at) {
@@ -218,10 +217,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         
         if (event === 'TOKEN_REFRESHED' && session?.user) {
-          console.log('Token refreshed, checking email confirmation status');
+          // Token refreshed, checking email confirmation status
           // Check if email was confirmed during token refresh
           if (session.user.email_confirmed_at) {
-            console.log('Email confirmed during token refresh');
+            // Email confirmed during token refresh
             // Process any stored referral code
             setTimeout(() => {
               processStoredReferralCode(session.user.id);
@@ -250,7 +249,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email_confirmed_at);
+      // Initial session check
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -274,7 +273,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Use the current domain for redirect
     const redirectUrl = `${window.location.origin}/email-verified`;
     
-    console.log('Signing up with redirect URL:', redirectUrl);
+    // Signing up with redirect URL
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -288,9 +287,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     
     if (error) {
-      console.error('Signup error:', error);
+      // Signup error occurred
     } else {
-      console.log('Signup successful, user should receive confirmation email');
+      // Signup successful, user should receive confirmation email
     }
     
     return { error };
@@ -303,14 +302,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     
     if (error) {
-      console.error('Sign in error:', error);
+      // Sign in error
       
       // Provide more specific error handling
       if (error.message.includes('Email not confirmed')) {
-        console.log('Email not confirmed error detected');
+        // Email not confirmed error detected
       }
     } else {
-      console.log('Sign in successful');
+      // Sign in successful
     }
     
     return { error };
@@ -323,7 +322,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     try {
-      console.log('Attempting to reset password for:', email);
+      // Attempting to reset password
       
       // First check if user exists in our profiles table
       const { data: profile, error: profileError } = await supabase
@@ -332,11 +331,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq('email', email)
         .maybeSingle();
       
-      console.log('Profile check result:', { profile, profileError });
+      // Profile check result
       
       // If user doesn't exist in profiles, return a user not found error
       if (!profile) {
-        console.log('User not found in profiles table');
+        // User not found in profiles table
         return { 
           error: { 
             message: 'User not found - not registered',
@@ -350,11 +349,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         redirectTo: `${window.location.origin}/reset-password`
       });
       
-      console.log('Reset password response:', { error });
+      // Reset password response
       
       return { error };
     } catch (error: any) {
-      console.log('Reset password error caught:', error);
+      // Reset password error caught
       return { error };
     }
   };

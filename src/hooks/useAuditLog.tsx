@@ -38,9 +38,9 @@ export const useAuditLog = () => {
         throw error;
       }
 
-      console.log(`Admin action logged: ${action}`, details);
+      // Admin action logged
     } catch (error) {
-      console.error('Failed to log admin action:', error);
+      // Failed to log admin action
       throw createSafeError(error, 'database');
     } finally {
       setIsLogging(false);

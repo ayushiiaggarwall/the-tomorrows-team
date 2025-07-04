@@ -27,11 +27,7 @@ export const useAdminSecurity = () => {
       });
       
       // Log unauthorized access attempt
-      console.warn(`Unauthorized admin access attempt: ${action}`, {
-        userId: user.id,
-        action,
-        timestamp: new Date().toISOString()
-      });
+      // Unauthorized admin access attempt detected
       
       return false;
     }
@@ -60,7 +56,7 @@ export const useAdminSecurity = () => {
 
       return { success: true, data: result };
     } catch (error) {
-      console.error(`Admin action failed: ${action}`, error);
+      // Admin action failed
       
       // Log failed admin action
       await logAdminAction(action, {

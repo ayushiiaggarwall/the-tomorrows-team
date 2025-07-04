@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 const CommunityAnnouncements = () => {
   const { announcements } = useCommunityAnnouncements();
 
-  console.log('CommunityAnnouncements - announcements:', announcements);
+  // CommunityAnnouncements component
 
   if (!announcements || announcements.length === 0) {
     return (
