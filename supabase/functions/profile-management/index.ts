@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -208,37 +211,35 @@ async function handleAccountDeletion(supabase: any, userId: string): Promise<Res
 
     // Send account deletion request email to user
     if (userProfile) {
-      await supabase.functions.invoke('send-contact-email', {
-        body: {
-          name: 'The Tomorrows Team',
-          email: userProfile.email,
-          topic: 'Your Account Deletion Request – The Tomorrows Team',
-          message: `Hi ${userProfile.full_name || 'User'},
+      await resend.emails.send({
+        from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
+        to: [userProfile.email],
+        subject: "Your Account Deletion Request – The Tomorrows Team",
+        html: `Hi ${userProfile.full_name || 'User'},<br><br>
 
-Thank you for reaching out to The Tomorrows Team.
+Thank you for reaching out to The Tomorrows Team.<br><br>
 
-We've received your request to permanently delete your account. While we're sad to see you go, we respect your decision and appreciate the time you've spent with us.
+We've received your request to permanently delete your account. While we're sad to see you go, we respect your decision and appreciate the time you've spent with us.<br><br>
 
-🕒 What happens next:
-Your request has been forwarded to our admin team and will be processed within 24 hours.
+🕒 <strong>What happens next:</strong><br>
+Your request has been forwarded to our admin team and will be processed within 24 hours.<br><br>
 
-📌 Once deleted, all associated data will be permanently removed, including:
+📌 <strong>Once deleted, all associated data will be permanently removed, including:</strong><br><br>
 
-• Your profile details
-• Group discussion bookings
-• Reward points
-• Participation history
+• Your profile details<br>
+• Group discussion bookings<br>
+• Reward points<br>
+• Participation history<br><br>
 
-This action is irreversible.
+This action is irreversible.<br><br>
 
-If you have any questions or decide to cancel your request, please contact us at thetomorrowsteam@gmail.com before the deletion is finalized.
+If you have any questions or decide to cancel your request, please contact us at thetomorrowsteam@gmail.com before the deletion is finalized.<br><br>
 
-Thank you once again for being part of our community.
-We hope our paths cross again in the future.
+Thank you once again for being part of our community.<br>
+We hope our paths cross again in the future.<br><br>
 
-Warm regards,
-The Tomorrows Team`
-        }
+Warm regards,<br>
+The Tomorrows Team`,
       });
     }
 
@@ -252,14 +253,12 @@ The Tomorrows Team`
     });
 
     // Send simple admin notification email
-    await supabase.functions.invoke('send-contact-email', {
-      body: {
-        name: 'Admin Team',
-        email: 'thetomorrowsteam@gmail.com',
-        topic: 'Account Deletion Request',
-        message: `User: ${userProfile?.full_name || 'Unknown'} (${userProfile?.email || 'Unknown'})
-Account deletion request submitted.`
-      }
+    await resend.emails.send({
+      from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
+      to: ["thetomorrowsteam@gmail.com"],
+      subject: "Account Deletion Request",
+      html: `User: ${userProfile?.full_name || 'Unknown'} (${userProfile?.email || 'Unknown'})<br>
+Account deletion request submitted.`,
     });
 
     // Create notification for admins
