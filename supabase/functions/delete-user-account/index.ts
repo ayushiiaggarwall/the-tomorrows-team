@@ -141,6 +141,9 @@ Account has been permanently deleted.`,
 
     // Delete all related data first (using admin client to bypass RLS)
     const deleteOperations = [
+      // Delete blogs first (foreign key constraint)
+      supabaseAdmin.from('blogs').delete().eq('author_id', userId),
+      
       // Delete user referrals (both as referrer and referred)
       supabaseAdmin.from('user_referrals').delete().eq('referrer_id', userId),
       supabaseAdmin.from('user_referrals').delete().eq('referred_id', userId),
