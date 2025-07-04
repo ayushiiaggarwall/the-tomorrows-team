@@ -1,518 +1,287 @@
-import { useState, useEffect } from 'react';
+
+import { useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import SEO from '@/components/SEO';
-import TestimonialForm from '@/components/TestimonialForm';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Link, useNavigate } from 'react-router-dom';
-import { Users, Mic, Trophy, Calendar, Play, Star, LogIn, X } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
-import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import HomeGDCard from '@/components/HomeGDCard';
-
-// Helper function to convert video URLs to embeddable format
-const getEmbeddableUrl = (url: string): string => {
-  // YouTube URLs
-  if (url.includes('youtube.com/watch?v=')) {
-    const videoId = url.split('v=')[1]?.split('&')[0];
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  
-  if (url.includes('youtu.be/')) {
-    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  
-  // Already an embed URL
-  if (url.includes('youtube.com/embed/')) {
-    return url;
-  }
-  
-  // Vimeo URLs
-  if (url.includes('vimeo.com/')) {
-    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-    return `https://player.vimeo.com/video/${videoId}`;
-  }
-  
-  // For other platforms or already embeddable URLs, return as-is
-  return url;
-};
+import TestimonialsCarousel from '@/components/dashboard/TestimonialsCarousel';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 const Index = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-
-  // Auto-refresh every 30 seconds for live updates
-  useAutoRefresh({
-    interval: 30000, // 30 seconds for more responsive updates
-    enabled: true
-  });
+  
+  // Set up auto-refresh for the home page
+  useAutoRefresh('home-page');
 
   useEffect(() => {
-    document.title = 'Home - The Tomorrows Team';
+    document.title = 'The Tomorrows Team - Skill Building Through Group Discussions';
   }, []);
 
-  const [showTestimonialForm, setShowTestimonialForm] = useState(false);
-
-  const features = [{
-    icon: <Users className="w-6 h-6" />,
-    title: "Online Group Discussions",
-    description: "Join weekly public speaking group discussions with like-minded peers and improve communication skills with live discussions."
-  }, {
-    icon: <Mic className="w-6 h-6" />,
-    title: "Communication Podcasts & Resources",
-    description: "Access podcasts and resources for communication skills - learn from recorded sessions and expert insights."
-  }, {
-    icon: <Trophy className="w-6 h-6" />,
-    title: "Rewards & Recognition",
-    description: "Earn points through critical thinking community activities, climb the leaderboard, and get recognized for your participation."
-  }];
-
-  // Fetch real upcoming GDs from database
-  const { data: upcomingGDs, isLoading: upcomingLoading } = useQuery({
-    queryKey: ['home-upcoming-gds', user?.id],
+  // Query to get upcoming group discussions
+  const { data: upcomingGDs, isLoading: gdsLoading } = useQuery({
+    queryKey: ['home-upcoming-gds'],
     queryFn: async () => {
       const { data: gds, error } = await supabase
         .from('group_discussions')
-        .select(`
-          id,
-          topic_name,
-          scheduled_date,
-          slot_capacity
-        `)
+        .select('*')
         .eq('is_active', true)
         .gte('scheduled_date', new Date().toISOString())
         .order('scheduled_date', { ascending: true })
-        .limit(3);
+        .limit(6);
 
       if (error) {
-        console.error('Error fetching GDs:', error);
-        return [];
+        throw error;
       }
 
-      if (!gds) return [];
-
-      // Get user's registrations if logged in - only active ones (not cancelled)
-      let userRegistrations = [];
-      if (user?.id) {
-        const { data: registrations, error: regError } = await supabase
-          .from('gd_registrations')
-          .select('gd_id, cancelled_at')
-          .eq('user_id', user.id);
-
-        if (!regError && registrations) {
-          userRegistrations = registrations;
-        }
-      }
-
-      const gdsWithUserStatus = gds.map((gd) => {
-        // Check if user has any registration for this GD
-        const userReg = userRegistrations.find(reg => reg.gd_id === gd.id);
-        // User is registered if they have a registration that is NOT cancelled
-        const isUserRegistered = userReg && !userReg.cancelled_at;
-
-        // Parse the date properly without adding 'Z'
-        const scheduledDate = new Date(gd.scheduled_date);
-
-        return {
-          id: gd.id,
-          date: scheduledDate.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric' 
-          }),
-          time: scheduledDate.toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true
-          }),
-          topic: gd.topic_name,
-          totalCapacity: gd.slot_capacity,
-          isRegistered: isUserRegistered
-        };
-      });
-
-      return gdsWithUserStatus;
+      return gds || [];
     },
     staleTime: 0,
     gcTime: 0,
   });
 
-  // Set up real-time subscription for registration changes on home page
+  // Set up real-time listener for GD changes on home page
   useEffect(() => {
-    console.log('Setting up real-time subscription for home page GD registrations');
-    
     const channel = supabase
-      .channel(`home-gd-updates`)
+      .channel('home-gd-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'gd_registrations'
-        },
-        (payload) => {
-          console.log('Home page GD registration change detected, refetching counts:', payload);
-          // Force immediate refetch with fresh data
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          // Force refetch with the current user ID
-          queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
-          // Also refetch all GD registration counts
-          queryClient.refetchQueries({ queryKey: ['gd-registration-count'] });
+        { event: '*', schema: 'public', table: 'group_discussions' },
+        () => {
+          // Invalidate and refetch GD data when there are changes
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'group_discussions'
-        },
-        (payload) => {
-          console.log('Home page GD change detected, refetching counts:', payload);
-          // Force immediate refetch with fresh data
-          queryClient.invalidateQueries({ queryKey: ['home-upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds'] });
-          queryClient.invalidateQueries({ queryKey: ['upcoming-gds-for-registration'] });
-          queryClient.refetchQueries({ queryKey: ['home-upcoming-gds', user?.id] });
+        { event: '*', schema: 'public', table: 'gd_registrations' },
+        () => {
+          // Invalidate and refetch when registrations change
         }
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up home page real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [queryClient, user?.id]);
-
-  // Fetch featured video from media_content table with optimized caching
-  const { data: featuredVideo } = useQuery({
-    queryKey: ['featured-video'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('media_content')
-        .select('*')
-        .eq('is_featured', true)
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching featured video:', error);
-        return null;
-      }
-
-      return data;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-
-  // Fetch real testimonials from database with optimized caching
-  const { data: testimonials } = useQuery({
-    queryKey: ['home-testimonials'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('testimonials')
-        .select('*')
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-      if (error) {
-        console.error('Error fetching testimonials:', error);
-        return [];
-      }
-
-      return data || [];
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 20 * 60 * 1000, // 20 minutes
-  });
-
-  // Check if current user has existing testimonial
-  const { data: userTestimonial } = useQuery({
-    queryKey: ['user-testimonial', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('testimonials')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user testimonial:', error);
-        return null;
-      }
-
-      return data;
-    },
-    enabled: !!user?.id
-  });
-
-  const handleJoinGDClick = () => {
-    if (user) {
-      navigate('/join-gd');
-    } else {
-      navigate('/login');
-    }
-  };
-
-  const handleTestimonialClick = () => {
-    console.log('Testimonial button clicked, user:', user);
-    setShowTestimonialForm(true);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO
-        title="The Tomorrows Team - Leadership Through Group Discussions"
-        description="Join engaging group discussions, earn reward points, and develop leadership skills with The Tomorrows Team. Participate in structured debates and build your communication expertise."
-        keywords="group discussions, leadership development, communication skills, debate, reward points, team building, professional development, public speaking, career growth"
-        url="/"
-        type="website"
-      />
       <Navigation />
       
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="hero-gradient py-24 px-4">
-          <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-              Speak Up. Stand Out.<br />
-              <span className="text-white/90">Shape Tomorrow.</span>
-            </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto animate-fade-in">
-              Join a growing community of bold thinkers improving their communication skills through live group discussions, podcasts, and resources that matter.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
-              <Button size="lg" className="btn-join-gd text-lg" onClick={handleJoinGDClick}>
-                Join a Group Discussion
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-50 to-blue-50">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Build Skills Through <br />
+            <span className="text-purple-600">Group Discussions</span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            Join our vibrant community of learners and professionals. Participate in engaging group discussions, 
+            earn points, and climb the leaderboard while building valuable communication skills.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link to={user ? "/join-gd" : "/login"}>
+              <Button size="lg" className="btn-primary text-lg px-8 py-4">
+                🚀 Join Discussion
               </Button>
-              <Link to="/watch-learn">
-                <Button size="lg" className="btn-watch-gd text-lg">
-                  <Play className="w-5 h-5 mr-2" />
-                  Watch Past GDs
-                </Button>
-              </Link>
-            </div>
+            </Link>
+            <Link to="/watch-learn">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4">
+                📺 Watch & Learn
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* What We Do Section */}
-      <section className="py-20 px-4">
+      {/* Stats Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              What We Do
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Empowering young minds through structured communication practice and community learning.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => <Card key={index} className="feature-card text-center">
-                <CardContent className="pt-6">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4 text-primary">
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>)}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-purple-600 mb-2">500+</div>
+              <div className="text-gray-600">Active Members</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-blue-600 mb-2">100+</div>
+              <div className="text-gray-600">Discussions Held</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-green-600 mb-2">95%</div>
+              <div className="text-gray-600">Satisfaction Rate</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-orange-600 mb-2">24/7</div>
+              <div className="text-gray-600">Community Support</div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Upcoming GDs Section */}
-      <section className="py-20 px-4 bg-muted/50">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Book Group Discussion Sessions Online
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              🗓️ Upcoming Group Discussions
             </h2>
-            <p className="text-xl text-muted-foreground">
-              Join our live discussion community - reserve your spot in upcoming sessions
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Join our next sessions and start your journey to better communication
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            {upcomingLoading ? (
-              // Loading skeleton
-              [...Array(3)].map((_, i) => (
-                <Card key={i} className="feature-card">
-                  <CardContent className="p-6">
-                    <div className="animate-pulse space-y-4">
-                      <div className="h-4 bg-muted/50 rounded w-3/4"></div>
-                      <div className="h-4 bg-muted/50 rounded w-1/2"></div>
-                      <div className="h-8 bg-muted/50 rounded w-full"></div>
-                      <div className="flex justify-between">
-                        <div className="h-4 bg-muted/50 rounded w-1/3"></div>
-                        <div className="h-8 bg-muted/50 rounded w-1/4"></div>
-                      </div>
-                    </div>
+          {gdsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                    <div className="h-10 bg-gray-200 rounded"></div>
                   </CardContent>
                 </Card>
-              ))
-            ) : !upcomingGDs?.length ? (
-              <div className="col-span-full text-center py-12">
-                <div className="text-4xl mb-4">📅</div>
-                <h3 className="text-lg font-semibold mb-2">No Upcoming Sessions</h3>
-                <p className="text-muted-foreground mb-4">
-                  New group discussions will be scheduled soon. Check back later!
-                </p>
-                <Link to="/join-gd">
-                  <Button className="btn-primary">View All Sessions</Button>
+              ))}
+            </div>
+          ) : !upcomingGDs?.length ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📅</div>
+              <h3 className="text-2xl font-semibold mb-4">No Upcoming Discussions</h3>
+              <p className="text-gray-600 mb-6">
+                We're planning exciting new sessions. Check back soon or explore our resources!
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Link to="/watch-learn">
+                  <Button className="btn-primary">
+                    📺 Watch Past Sessions
+                  </Button>
+                </Link>
+                <Link to="/resources">
+                  <Button variant="outline">
+                    📚 Browse Resources
+                  </Button>
                 </Link>
               </div>
-            ) : (
-              upcomingGDs.map((gd, index) => <HomeGDCard key={index} gd={gd} />)
-            )}
-          </div>
-          
-          {upcomingGDs?.length ? (
-            <div className="text-center mt-8">
-              <Link to="/join-gd">
-                <Button className="btn-secondary">View All Sessions</Button>
-              </Link>
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Featured Video */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-8">
-            Featured Video
-          </h2>
-          {featuredVideo ? (
-            <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">
-              <iframe 
-                width="100%" 
-                height="100%" 
-                src={getEmbeddableUrl(featuredVideo.media_url)} 
-                title={featuredVideo.title} 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowFullScreen
-              />
             </div>
           ) : (
-            <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted flex items-center justify-center">
-              <div className="text-center">
-                <Play className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No featured video available</p>
-                <p className="text-sm text-muted-foreground mt-2">Admin can add videos from the dashboard</p>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {upcomingGDs.slice(0, 6).map((gd) => (
+                  <HomeGDCard key={gd.id} gd={gd} />
+                ))}
               </div>
-            </div>
+              
+              <div className="text-center">
+                <Link to="/join-gd">
+                  <Button size="lg" className="btn-primary">
+                    🔘 View All Sessions
+                  </Button>
+                </Link>
+              </div>
+            </>
           )}
-          <div className="mt-8">
-            <Link to="/watch-learn">
-              <Button className="btn-secondary">Explore More Videos</Button>
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 px-4 bg-muted/50">
+      {/* Features Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              What Our Community Says
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              ✨ Why Choose Us?
             </h2>
-            <p className="text-xl text-muted-foreground">
-              Real stories from real participants
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Discover what makes our community special
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {!testimonials?.length ? (
-              <div className="col-span-full text-center py-12">
-                <div className="text-4xl mb-4">💬</div>
-                <h3 className="text-lg font-semibold mb-2">No Reviews Yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Be the first to share your experience with our community!
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="border-2 border-purple-100 hover:border-purple-200 transition-colors">
+              <CardHeader>
+                <div className="text-4xl mb-2">🏆</div>
+                <CardTitle className="text-purple-600">Gamified Learning</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Earn points, badges, and climb the leaderboard while improving your communication skills.
                 </p>
-                <Button 
-                  className="btn-primary"
-                  onClick={handleTestimonialClick}
-                >
-                  Share Your Review
-                </Button>
-              </div>
-            ) : (
-              testimonials.map((testimonial) => <Card key={testimonial.id} className="feature-card">
-                  <CardContent className="p-6">
-                    <div className="flex mb-3">
-                      {[...Array(testimonial.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
-                    </div>
-                    <p className="text-muted-foreground mb-4 italic break-words overflow-wrap-anywhere">
-                      "{testimonial.content}"
-                    </p>
-                    <div>
-                      <p className="font-semibold break-words">{testimonial.user_name}</p>
-                      {testimonial.user_role && (
-                        <p className="text-sm text-muted-foreground break-words">{testimonial.user_role}</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>)
-            )}
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-blue-100 hover:border-blue-200 transition-colors">
+              <CardHeader>
+                <div className="text-4xl mb-2">👥</div>
+                <CardTitle className="text-blue-600">Diverse Community</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Connect with students, professionals, and experts from various backgrounds and industries.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-2 border-green-100 hover:border-green-200 transition-colors">
+              <CardHeader>
+                <div className="text-4xl mb-2">📈</div>
+                <CardTitle className="text-green-600">Skill Development</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Practice public speaking, critical thinking, and leadership in a supportive environment.
+                </p>
+              </CardContent>
+            </Card>
           </div>
+        </div>
+      </section>
 
-          {testimonials?.length ? (
-            <div className="text-center mt-8">
-              <Button 
-                className="btn-secondary"
-                onClick={handleTestimonialClick}
-              >
-                {userTestimonial ? 'Edit Your Review' : 'Share Your Review'}
-              </Button>
-            </div>
-          ) : null}
+      {/* Testimonials Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              💬 What Our Members Say
+            </h2>
+            <p className="text-xl text-gray-600">
+              Real stories from our amazing community
+            </p>
+          </div>
+          
+          <TestimonialsCarousel />
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-900 text-white">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-            Ready to Transform Your Communication Skills?
+          <h2 className="text-4xl font-bold mb-4">
+            Ready to Start Your Journey?
           </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Join thousands of young professionals who've already started their journey with us.
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            Join thousands of learners who are already improving their communication skills and building meaningful connections.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="btn-join-gd text-lg" onClick={handleJoinGDClick}>
-              Join Your First GD
-            </Button>
-            <Link to="/leaderboard">
-              <Button size="lg" className="btn-secondary text-lg">
-                See Rewards & Leaderboard
+            <Link to={user ? "/join-gd" : "/login"}>
+              <Button size="lg" className="bg-purple-600 hover:bg-purple-700 text-lg px-8 py-4">
+                🚀 Get Started Now
+              </Button>
+            </Link>
+            <Link to="/about">
+              <Button size="lg" variant="outline" className="text-lg px-8 py-4 border-white text-white hover:bg-white hover:text-gray-900">
+                📖 Learn More
               </Button>
             </Link>
           </div>
         </div>
       </section>
-
-      <TestimonialForm 
-        open={showTestimonialForm}
-        onOpenChange={setShowTestimonialForm}
-      />
 
       <Footer />
     </div>
