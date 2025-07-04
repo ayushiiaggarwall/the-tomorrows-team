@@ -3,6 +3,7 @@ import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import SEO from '@/components/SEO';
 import TestimonialForm from '@/components/TestimonialForm';
+import FeaturedVideo from '@/components/FeaturedVideo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,33 +16,6 @@ import { useGDRegistrationCount } from '@/hooks/useGDRegistrationCount';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import HomeGDCard from '@/components/HomeGDCard';
 
-// Helper function to convert video URLs to embeddable format
-const getEmbeddableUrl = (url: string): string => {
-  // YouTube URLs
-  if (url.includes('youtube.com/watch?v=')) {
-    const videoId = url.split('v=')[1]?.split('&')[0];
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  
-  if (url.includes('youtu.be/')) {
-    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  
-  // Already an embed URL
-  if (url.includes('youtube.com/embed/')) {
-    return url;
-  }
-  
-  // Vimeo URLs
-  if (url.includes('vimeo.com/')) {
-    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-    return `https://player.vimeo.com/video/${videoId}`;
-  }
-  
-  // For other platforms or already embeddable URLs, return as-is
-  return url;
-};
 
 const Index = () => {
   const { user } = useAuth();
@@ -389,17 +363,7 @@ const Index = () => {
             Featured Video
           </h2>
           {featuredVideo ? (
-            <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted">
-              <iframe 
-                width="100%" 
-                height="100%" 
-                src={getEmbeddableUrl(featuredVideo.media_url)} 
-                title={featuredVideo.title} 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowFullScreen
-              />
-            </div>
+            <FeaturedVideo video={featuredVideo} />
           ) : (
             <div className="aspect-video rounded-xl overflow-hidden shadow-lg bg-muted flex items-center justify-center">
               <div className="text-center">
