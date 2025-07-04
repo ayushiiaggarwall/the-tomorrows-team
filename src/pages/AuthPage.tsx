@@ -229,9 +229,15 @@ const AuthPage = () => {
         const { error } = await signUp(formData.email, formData.password, formData.fullName);
         
         if (error) {
+          // Make hook timeout errors more user-friendly
+          let errorMessage = error.message;
+          if (error.message.includes('Failed to reach hook') || error.message.includes('maximum time')) {
+            errorMessage = 'Failed to signup. Please try again.';
+          }
+          
           toast({
             title: "Sign up failed",
-            description: error.message,
+            description: errorMessage,
             variant: "destructive"
           });
         } else {
