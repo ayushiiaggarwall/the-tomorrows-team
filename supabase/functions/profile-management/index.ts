@@ -211,11 +211,13 @@ async function handleAccountDeletion(supabase: any, userId: string): Promise<Res
 
     // Send account deletion request email to user
     if (userProfile) {
-      await resend.emails.send({
-        from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
-        to: [userProfile.email],
-        subject: "Your Account Deletion Request – The Tomorrows Team",
-        html: `Hi ${userProfile.full_name || 'User'},<br><br>
+      console.log('Sending account deletion email to user:', userProfile.email);
+      try {
+        const emailResult = await resend.emails.send({
+          from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
+          to: [userProfile.email],
+          subject: "Your Account Deletion Request – The Tomorrows Team",
+          html: `Hi ${userProfile.full_name || 'User'},<br><br>
 
 Thank you for reaching out to The Tomorrows Team.<br><br>
 
@@ -240,7 +242,11 @@ We hope our paths cross again in the future.<br><br>
 
 Warm regards,<br>
 The Tomorrows Team`,
-      });
+        });
+        console.log('User email sent successfully:', emailResult);
+      } catch (emailError) {
+        console.error('Failed to send user email:', emailError);
+      }
     }
 
     // Create notification for user
@@ -253,13 +259,19 @@ The Tomorrows Team`,
     });
 
     // Send simple admin notification email
-    await resend.emails.send({
-      from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
-      to: ["thetomorrowsteam@gmail.com"],
-      subject: "Account Deletion Request",
-      html: `User: ${userProfile?.full_name || 'Unknown'} (${userProfile?.email || 'Unknown'})<br>
+    console.log('Sending admin notification email');
+    try {
+      const adminEmailResult = await resend.emails.send({
+        from: "The Tomorrows Team <hello@thetomorrowsteam.com>",
+        to: ["thetomorrowsteam@gmail.com"],
+        subject: "Account Deletion Request",
+        html: `User: ${userProfile?.full_name || 'Unknown'} (${userProfile?.email || 'Unknown'})<br>
 Account deletion request submitted.`,
-    });
+      });
+      console.log('Admin email sent successfully:', adminEmailResult);
+    } catch (adminEmailError) {
+      console.error('Failed to send admin email:', adminEmailError);
+    }
 
     // Create notification for admins
     const { data: admins } = await supabase

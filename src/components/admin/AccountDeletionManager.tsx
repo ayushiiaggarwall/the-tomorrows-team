@@ -123,49 +123,11 @@ const AccountDeletionManager = () => {
 
           if (updateError) throw updateError;
 
-          // Send final confirmation email to user
-          await supabase.functions.invoke('send-contact-email', {
-            body: {
-              name: 'The Tomorrows Team',
-              email: request.user_email,
-              topic: 'Account Deletion Completed',
-              message: `Dear ${request.user_name || 'User'},
+          // Final confirmation email is handled by the delete-user-account edge function
+          // No need to send additional emails here
 
-Your account deletion request has been processed and your account has been permanently deleted from The Tomorrows Team platform.
-
-All your data including:
-- Profile information
-- Group discussion registrations  
-- Reward points
-- Participation history
-
-Has been permanently removed from our systems and cannot be recovered.
-
-Thank you for being part of The Tomorrows Team community. We're sorry to see you go and hope our paths cross again in the future.
-
-If you have any questions or concerns, please contact us at thetomorrowsteam@gmail.com.
-
-Best regards,
-The Tomorrows Team`
-            }
-          });
-
-          // Send notification to admin team
-          await supabase.functions.invoke('send-contact-email', {
-            body: {
-              name: 'Admin Team',
-              email: 'thetomorrowsteam@gmail.com',
-              topic: 'Account Deletion Completed',
-              message: `User account has been permanently deleted:
-              
-User: ${request.user_name} (${request.user_email})
-User ID: ${request.user_id}
-Requested: ${new Date(request.requested_at).toLocaleString()}
-Deleted: ${new Date().toLocaleString()}
-
-This action was completed by an administrator.`
-            }
-          });
+          // Admin notification is handled by the delete-user-account edge function
+          // No need to send additional emails here
 
           return { success: true };
         },
