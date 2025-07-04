@@ -7,7 +7,7 @@ export const useCommunityAnnouncements = () => {
   const { data: announcements, refetch } = useQuery({
     queryKey: ['community-announcements'],
     queryFn: async () => {
-      console.log('Fetching community announcements...');
+      // Fetching community announcements...
       const { data, error } = await supabase
         .from('community_announcements')
         .select('*')
@@ -16,11 +16,11 @@ export const useCommunityAnnouncements = () => {
         .limit(10);
       
       if (error) {
-        console.error('Error fetching announcements:', error);
+        // Error fetching announcements
         throw error;
       }
       
-      console.log('Fetched announcements:', data);
+      // Fetched announcements
       return data;
     },
     staleTime: 0, // Always fetch fresh data
@@ -29,7 +29,7 @@ export const useCommunityAnnouncements = () => {
 
   // Set up real-time subscription
   useEffect(() => {
-    console.log('Setting up real-time subscription for community announcements');
+    // Setting up real-time subscription for community announcements
     
     const channel = supabase
       .channel('community-announcements-changes')
@@ -41,14 +41,14 @@ export const useCommunityAnnouncements = () => {
           table: 'community_announcements'
         },
         (payload) => {
-          console.log('Real-time announcement change:', payload);
+          // Real-time announcement change
           refetch();
         }
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up announcements real-time subscription');
+      // Cleaning up announcements real-time subscription
       supabase.removeChannel(channel);
     };
   }, [refetch]);

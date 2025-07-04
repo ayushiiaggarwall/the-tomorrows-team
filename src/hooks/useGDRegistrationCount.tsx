@@ -33,7 +33,7 @@ export const useGDRegistrationCount = (gdId?: string) => {
       const totalRegistrations = registrationCount || 0;
       const spotsLeft = Math.max(0, gd.slot_capacity - totalRegistrations);
 
-      console.log(`GD ${gdId}: ${totalRegistrations}/${gd.slot_capacity} registered, ${spotsLeft} spots left`);
+      // Registration count calculated
 
       return {
         gdId,
@@ -53,7 +53,7 @@ export const useGDRegistrationCount = (gdId?: string) => {
   useEffect(() => {
     if (!gdId) return;
 
-    console.log(`Setting up real-time listener for GD: ${gdId}`);
+    // Setting up real-time listener for GD
 
     const channel = supabase
       .channel(`gd-registration-updates-${gdId}`)
@@ -66,7 +66,7 @@ export const useGDRegistrationCount = (gdId?: string) => {
           filter: `gd_id=eq.${gdId}`
         },
         (payload) => {
-          console.log(`Registration change detected for GD ${gdId}:`, payload);
+          // Registration change detected
           // Immediately refetch the count for this specific GD
           queryClient.invalidateQueries({ queryKey: ['gd-registration-count', gdId] });
           queryClient.refetchQueries({ queryKey: ['gd-registration-count', gdId] });
@@ -80,7 +80,7 @@ export const useGDRegistrationCount = (gdId?: string) => {
       .subscribe();
 
     return () => {
-      console.log(`Cleaning up real-time listener for GD: ${gdId}`);
+      // Cleaning up real-time listener for GD
       supabase.removeChannel(channel);
     };
   }, [gdId, queryClient]);

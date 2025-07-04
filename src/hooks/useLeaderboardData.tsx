@@ -15,7 +15,7 @@ export const useLeaderboardData = () => {
   const query = useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
-      console.log('Fetching leaderboard data from database...');
+      // Fetching leaderboard data from database...
       
       try {
         // Get only verified users by joining with auth.users table
@@ -23,12 +23,12 @@ export const useLeaderboardData = () => {
           .rpc('get_verified_users_paginated', { start_index: 0, end_index: 10000 });
 
         if (usersError) {
-          console.error('Error fetching verified users:', usersError);
+          // Error fetching verified users
           return [];
         }
 
         if (!allUsers || allUsers.length === 0) {
-          console.log('No users found in database');
+          // No users found in database
           return [];
         }
 
@@ -45,7 +45,7 @@ export const useLeaderboardData = () => {
           .lte('created_at', monthEnd.toISOString());
 
         if (pointsError) {
-          console.error('Error fetching reward points:', pointsError);
+          // Error fetching reward points
           // Continue without points data - show users with 0 points
         }
 
@@ -91,7 +91,7 @@ export const useLeaderboardData = () => {
             const type = entry.type;
             
             if (typeof points !== 'number') {
-              console.warn(`Invalid points value detected: ${points} for user ${userId}`);
+              // Invalid points value detected
               return;
             }
             
@@ -201,10 +201,10 @@ export const useLeaderboardData = () => {
         const allPerformers = Array.from(userPointsMap.values())
           .sort((a, b) => b.points - a.points);
 
-        console.log('Processed all performers from database:', allPerformers);
+        // Processed all performers from database
         return allPerformers;
       } catch (error) {
-        console.error('Failed to fetch leaderboard data:', error);
+        // Failed to fetch leaderboard data
         return [];
       }
     },
@@ -220,7 +220,7 @@ export const useLeaderboardData = () => {
 
   // Set up real-time subscription for reward points and profiles
   useEffect(() => {
-    console.log('Setting up real-time subscription for leaderboard');
+    // Setting up real-time subscription for leaderboard
 
     // Create unique channel name to avoid conflicts when multiple components use this hook
     const channelName = `leaderboard-realtime-${Math.random().toString(36).substr(2, 9)}`;
@@ -234,7 +234,7 @@ export const useLeaderboardData = () => {
           table: 'reward_points'
         },
         (payload) => {
-          console.log('Real-time leaderboard change (reward_points):', payload);
+          // Real-time leaderboard change (reward_points)
           // Force immediate refetch
           query.refetch();
         }
@@ -247,17 +247,17 @@ export const useLeaderboardData = () => {
           table: 'profiles'
         },
         (payload) => {
-          console.log('Real-time leaderboard change (profiles):', payload);
+          // Real-time leaderboard change (profiles)
           // Force immediate refetch
           query.refetch();
         }
       )
       .subscribe((status) => {
-        console.log('Leaderboard subscription status:', status);
+        // Leaderboard subscription status
       });
 
     return () => {
-      console.log('Cleaning up leaderboard real-time subscription');
+      // Cleaning up leaderboard real-time subscription
       supabase.removeChannel(channel);
     };
   }, []); // Remove query.refetch from dependencies to prevent recreation
