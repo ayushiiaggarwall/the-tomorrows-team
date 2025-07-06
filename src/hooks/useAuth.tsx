@@ -43,9 +43,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // If no profile exists (user was deleted), sign them out
+      // If no profile exists (user was deleted), sign them out silently
       if (!data) {
-        console.log('User profile not found, signing out...');
         await supabase.auth.signOut();
         return;
       }
@@ -297,7 +296,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
@@ -309,11 +308,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error.message.includes('Email not confirmed')) {
         // Email not confirmed error detected
       }
-    } else {
-      // Sign in successful
+      return { error };
     }
     
-    return { error };
+    // If auth succeeded, check if profile exists (for deleted users)
+    if (data.user) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        
+        // If no profile exists, sign out and return error
+        if (!profile) {
+          await supabase.auth.signOut();
+          return { 
+            error: { 
+              message: 'Invalid login credentials',
+              code: 'invalid_credentials'
+            }
+          };
+        }
+      } catch (profileError) {
+        // If profile check fails, sign out and return error
+        await supabase.auth.signOut();
+        return { 
+          error: { 
+            message: 'Invalid login credentials',
+            code: 'invalid_credentials'
+          }
+        };
+      }
+    }
+    
+    // Sign in successful
+    return { error: null };
   };
 
   const signOut = async () => {
