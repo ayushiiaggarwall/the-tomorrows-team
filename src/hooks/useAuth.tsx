@@ -35,21 +35,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .from('profiles')
         .select('is_admin')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) {
-        // If profile doesn't exist (user was deleted), sign them out
-        if (error.code === 'PGRST116') {
-          // User profile not found, signing out...
-          await supabase.auth.signOut();
-          return;
-        }
-        throw error;
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+        return;
       }
       
-      if (data) {
-        setIsAdmin(data.is_admin);
+      // If no profile exists (user was deleted), sign them out
+      if (!data) {
+        console.log('User profile not found, signing out...');
+        await supabase.auth.signOut();
+        return;
       }
+      
+      setIsAdmin(data.is_admin);
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
