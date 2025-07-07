@@ -540,8 +540,16 @@ const JoinGD = () => {
                           <Label htmlFor="phone">Phone Number *</Label>
                           <Input
                             id="phone"
+                            type="tel"
                             value={formData.phone}
-                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Allow only digits, spaces, parentheses, plus, and hyphens
+                              const phoneRegex = /^[0-9+\-\s()]*$/;
+                              if (phoneRegex.test(value)) {
+                                setFormData(prev => ({ ...prev, phone: value }));
+                              }
+                            }}
                             required
                             placeholder="Enter your phone number"
                             disabled={!user}
