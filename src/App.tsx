@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
+import PageTracker from "@/components/PageTracker";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { lazy, Suspense } from "react";
 
@@ -93,6 +94,7 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <PageTracker />
             <AuthWrapper>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
