@@ -52,12 +52,14 @@ export const useLeaderboardData = () => {
         // Calculate total points and type-specific stats for each user
         const userPointsMap = new Map<string, UserPerformance>();
 
-        // Initialize all users with 0 points and empty tags
-        allUsers.forEach(user => {
-          const displayName = user.full_name || user.email?.split('@')[0] || `User ${user.id.slice(0, 8)}`;
-          const sanitizedName = validateInput.sanitizeHtml(displayName);
-          userPointsMap.set(user.id, { userId: user.id, name: sanitizedName, points: 0, tags: [] });
-        });
+        // Initialize all non-admin users with 0 points and empty tags
+        allUsers
+          .filter(user => !user.is_admin) // Exclude admin users from leaderboard
+          .forEach(user => {
+            const displayName = user.full_name || user.email?.split('@')[0] || `User ${user.id.slice(0, 8)}`;
+            const sanitizedName = validateInput.sanitizeHtml(displayName);
+            userPointsMap.set(user.id, { userId: user.id, name: sanitizedName, points: 0, tags: [] });
+          });
 
         // Track stats for tag assignment
         const userStats = new Map<string, {
