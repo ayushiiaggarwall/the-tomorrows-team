@@ -254,7 +254,7 @@ const Index = () => {
           <div className="max-w-7xl mx-auto text-center">
             <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/90 text-sm mb-6 animate-fade-in">
               <Users className="w-4 h-4 mr-2" />
-              Join 500+ professionals improving their communication skills
+              Join our growing community of professionals
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
               Master Public Speaking &<br />
