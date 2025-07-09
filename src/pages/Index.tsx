@@ -265,12 +265,12 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
               <Button size="lg" className="btn-join-gd text-lg shadow-xl" onClick={handleJoinGDClick}>
-                {user ? 'Book Your Session Now' : 'Join Free Sessions'}
+                {user ? 'Book Your Session Now' : 'Start FREE with US'}
               </Button>
               <Link to="/watch-learn">
                 <Button size="lg" className="btn-watch-gd text-lg border-white/30 hover:border-white/50">
                   <Play className="w-5 h-5 mr-2" />
-                  Watch Past GDs
+                  Watch Past Sessions
                 </Button>
               </Link>
             </div>
@@ -282,10 +282,6 @@ const Index = () => {
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
                 Weekly sessions available
-              </div>
-              <div className="flex items-center">
-                <Star className="w-4 h-4 mr-1" />
-                4.8/5 participant rating
               </div>
             </div>
           </div>
