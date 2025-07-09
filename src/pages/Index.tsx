@@ -261,7 +261,7 @@ const Index = () => {
               <span className="text-white/90">Land Your Dream Job</span>
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto animate-fade-in">
-              Join live group discussions, practice presentations, and build confidence that gets you noticed in interviews and meetings. <span className="font-semibold">First session is FREE!</span>
+              Join live group discussions, practice presentations, and build confidence that gets you noticed in interviews and meetings. <span className="font-semibold">100% FREE sessions!</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
               <Button size="lg" className="btn-join-gd text-lg shadow-xl" onClick={handleJoinGDClick}>
