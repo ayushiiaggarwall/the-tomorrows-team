@@ -252,23 +252,41 @@ const Index = () => {
       <section className="relative overflow-hidden">
         <div className="hero-gradient py-24 px-4">
           <div className="max-w-7xl mx-auto text-center">
+            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/90 text-sm mb-6 animate-fade-in">
+              <Users className="w-4 h-4 mr-2" />
+              Join 500+ professionals improving their communication skills
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-              Speak Up. Stand Out.<br />
-              <span className="text-white/90">Shape Tomorrow.</span>
+              Master Public Speaking &<br />
+              <span className="text-white/90">Land Your Dream Job</span>
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto animate-fade-in">
-              Join a growing community of bold thinkers improving their communication skills through live group discussions, podcasts, and resources that matter.
+              Join live group discussions, practice presentations, and build confidence that gets you noticed in interviews and meetings. <span className="font-semibold">First session is FREE!</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
-              <Button size="lg" className="btn-join-gd text-lg" onClick={handleJoinGDClick}>
-                Join a Group Discussion
+              <Button size="lg" className="btn-join-gd text-lg shadow-xl" onClick={handleJoinGDClick}>
+                {user ? 'Book Your FREE Session' : 'Start FREE - No Credit Card'}
               </Button>
               <Link to="/watch-learn">
-                <Button size="lg" className="btn-watch-gd text-lg">
+                <Button size="lg" className="btn-watch-gd text-lg border-white/30 hover:border-white/50">
                   <Play className="w-5 h-5 mr-2" />
-                  Watch Past GDs
+                  Watch Success Stories
                 </Button>
               </Link>
+            </div>
+            <div className="flex items-center justify-center gap-6 mt-8 text-white/70 text-sm animate-fade-in">
+              <div className="flex items-center">
+                <Trophy className="w-4 h-4 mr-1" />
+                Earn rewards for participation
+              </div>
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-1" />
+                Weekly sessions available
+              </div>
+              <div className="flex items-center">
+                <Star className="w-4 h-4 mr-1" />
+                4.8/5 participant rating
+              </div>
             </div>
           </div>
         </div>
