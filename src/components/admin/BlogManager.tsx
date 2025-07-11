@@ -220,7 +220,7 @@ const BlogManager = () => {
               <p className="text-sm text-muted-foreground mb-2">
                 Use Markdown formatting for better styling:
                 <br />
-                <code className="text-xs bg-muted px-1 rounded">**bold**, *italic*, # Headings, - Lists, [links](url), ```code blocks```</code>
+                <code className="text-xs bg-muted px-1 rounded">**bold**, *italic*, # Headings, - Lists, [links](url), ![images](url), ```code blocks```</code>
               </p>
               <Textarea
                 id="content"

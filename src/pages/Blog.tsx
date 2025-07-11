@@ -273,6 +273,14 @@ const Blog = () => {
                     </code>
                   );
                 },
+                img: ({ src, alt }) => (
+                  <img 
+                    src={src} 
+                    alt={alt} 
+                    className="w-full max-w-2xl mx-auto my-6 rounded-lg shadow-md"
+                    loading="lazy"
+                  />
+                ),
                 a: ({ href, children }) => (
                   <a 
                     href={href} 
