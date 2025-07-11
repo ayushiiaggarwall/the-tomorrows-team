@@ -217,13 +217,42 @@ const BlogManager = () => {
             
             <div>
               <Label htmlFor="content">Content</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Use Markdown formatting for better styling:
+                <br />
+                <code className="text-xs bg-muted px-1 rounded">**bold**, *italic*, # Headings, - Lists, [links](url), ```code blocks```</code>
+              </p>
               <Textarea
                 id="content"
-                placeholder="Write your blog content here..."
+                placeholder="# Your Blog Title
+
+## Introduction
+Start with an engaging introduction...
+
+## Main Points
+- Use bullet points for clarity
+- **Bold text** for emphasis
+- *Italic text* for subtle emphasis
+
+### Subheadings
+Break content into digestible sections.
+
+## Conclusion
+Wrap up your thoughts...
+
+> Use blockquotes for important callouts
+
+```
+// Code examples if needed
+const example = 'formatted code';
+```
+
+[Link to relevant resources](https://example.com)"
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                rows={10}
+                rows={15}
                 required
+                className="font-mono text-sm"
               />
             </div>
             

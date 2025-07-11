@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import SEO from '@/components/SEO';
@@ -243,13 +245,50 @@ const Blog = () => {
             )}
           </div>
 
-          <div className="prose prose-lg max-w-none">
-            <div 
-              className="text-foreground leading-relaxed"
-              style={{ whiteSpace: 'pre-wrap' }}
+          <div className="prose prose-lg max-w-none dark:prose-invert text-foreground leading-relaxed">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => <h1 className="text-3xl font-bold mb-6 text-foreground">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-2xl font-semibold mb-4 mt-8 text-foreground">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-xl font-medium mb-3 mt-6 text-foreground">{children}</h3>,
+                p: ({ children }) => <p className="mb-4 text-foreground leading-relaxed">{children}</p>,
+                ul: ({ children }) => <ul className="mb-4 list-disc list-inside space-y-2 text-foreground">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-4 list-decimal list-inside space-y-2 text-foreground">{children}</ol>,
+                li: ({ children }) => <li className="text-foreground">{children}</li>,
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-primary pl-4 italic my-6 text-muted-foreground bg-muted/50 py-2 rounded-r">
+                    {children}
+                  </blockquote>
+                ),
+                code: ({ children, className }) => {
+                  const isInline = !className;
+                  return isInline ? (
+                    <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground">
+                      {children}
+                    </code>
+                  ) : (
+                    <code className="block bg-muted p-4 rounded-lg overflow-x-auto text-sm font-mono text-foreground whitespace-pre">
+                      {children}
+                    </code>
+                  );
+                },
+                a: ({ href, children }) => (
+                  <a 
+                    href={href} 
+                    className="text-primary hover:text-primary/80 underline font-medium"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {children}
+                  </a>
+                ),
+                strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                em: ({ children }) => <em className="italic text-foreground">{children}</em>,
+              }}
             >
               {blogPost.content}
-            </div>
+            </ReactMarkdown>
           </div>
         </article>
 
