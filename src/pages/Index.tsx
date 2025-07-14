@@ -319,7 +319,7 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Book Group Discussion Sessions Online
+              Book Sessions Online
             </h2>
             <p className="text-xl text-muted-foreground">
               Join our live discussion community - reserve your spot in upcoming sessions

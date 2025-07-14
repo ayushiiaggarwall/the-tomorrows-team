@@ -56,7 +56,7 @@ const Footer = () => {
                 About Us
               </Link>
               <Link to="/join-gd" className="block text-muted-foreground hover:text-primary transition-colors">
-                Join a GD
+                Join Session
               </Link>
               <Link to="/leaderboard" className="block text-muted-foreground hover:text-primary transition-colors">
                 Leaderboard
