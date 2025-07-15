@@ -48,8 +48,11 @@ const GroupDiscussionManager = () => {
     scheduled_date: '',
     slot_capacity: 10,
     meet_link: '',
-    is_active: true
+    is_active: true,
+    session_type: 'Group Discussion'
   });
+  const [emailOption, setEmailOption] = useState<'all' | 'none' | 'selected'>('all');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -115,39 +118,54 @@ const GroupDiscussionManager = () => {
         scheduled_date: '',
         slot_capacity: 10,
         meet_link: '',
-        is_active: true
+        is_active: true,
+        session_type: 'Group Discussion'
       });
+      setEmailOption('all');
+      setSelectedUsers([]);
       
-      // Send email notifications to all users
-      try {
-        console.log('📧 Sending session notification emails...');
-        const { error: emailError } = await supabase.functions.invoke('send-session-notification', {
-          body: {
-            sessionId: newSession.id,
-            topicName: newSession.topic_name,
-            description: newSession.description,
-            scheduledDate: newSession.scheduled_date,
-            sessionType: 'Session'
-          }
-        });
-        
-        if (emailError) {
-          console.error('Email notification error:', emailError);
-          toast({
-            title: "Session Created",
-            description: "Session created successfully! Email notifications are being sent.",
+      // Send email notifications based on user choice
+      if (emailOption !== 'none') {
+        try {
+          console.log('📧 Sending session notification emails...');
+          const { error: emailError } = await supabase.functions.invoke('send-session-notification', {
+            body: {
+              sessionId: newSession.id,
+              topicName: newSession.topic_name,
+              description: newSession.description,
+              scheduledDate: newSession.scheduled_date,
+              sessionType: newSession.session_type,
+              emailOption,
+              selectedUsers: emailOption === 'selected' ? selectedUsers : undefined
+            }
           });
-        } else {
+          
+          if (emailError) {
+            console.error('Email notification error:', emailError);
+            toast({
+              title: "Session Created",
+              description: "Session created successfully! Email notifications are being sent.",
+            });
+          } else {
+            const emailMessage = emailOption === 'all' 
+              ? "Session created and email notifications sent to all users!"
+              : `Session created and email notifications sent to ${selectedUsers.length} selected users!`;
+            toast({
+              title: "Success",
+              description: emailMessage,
+            });
+          }
+        } catch (error) {
+          console.error('Error sending email notifications:', error);
           toast({
             title: "Success",
-            description: "Session created and email notifications sent to all users!",
+            description: "Session created successfully! Email notifications are being processed.",
           });
         }
-      } catch (error) {
-        console.error('Error sending email notifications:', error);
+      } else {
         toast({
           title: "Success",
-          description: "Session created successfully! Email notifications are being processed.",
+          description: "Session created successfully!",
         });
       }
     },
@@ -190,13 +208,13 @@ const GroupDiscussionManager = () => {
       setEditingGD(null);
       toast({
         title: "Success",
-        description: "Group discussion updated successfully!",
+        description: "Session updated successfully!",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update group discussion. Please try again.",
+        description: "Failed to update session. Please try again.",
         variant: "destructive",
       });
     }
@@ -223,13 +241,13 @@ const GroupDiscussionManager = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
       toast({
         title: "Success",
-        description: "Group discussion deleted successfully!",
+        description: "Session deleted successfully!",
       });
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete group discussion. Please try again.",
+        description: "Failed to delete session. Please try again.",
         variant: "destructive",
       });
     }
@@ -242,7 +260,7 @@ const GroupDiscussionManager = () => {
     if (!user?.id) {
       toast({
         title: "Error",
-        description: "You must be logged in to create group discussions.",
+        description: "You must be logged in to create sessions.",
         variant: "destructive",
       });
       return;
@@ -260,7 +278,7 @@ const GroupDiscussionManager = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this group discussion?')) {
+    if (confirm('Are you sure you want to delete this session?')) {
       console.log('🚀 Confirming delete:', id);
       deleteMutation.mutate(id);
     }
@@ -319,10 +337,10 @@ const GroupDiscussionManager = () => {
       </Card>
 
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Group Discussions</h2>
+        <h2 className="text-2xl font-bold">Sessions</h2>
         <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          Create New GD
+          Create New Session
         </Button>
       </div>
 
@@ -331,7 +349,7 @@ const GroupDiscussionManager = () => {
         <CardContent className="p-4">
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <Label htmlFor="search">Search Discussions</Label>
+              <Label htmlFor="search">Search Sessions</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -364,7 +382,7 @@ const GroupDiscussionManager = () => {
       {showCreateForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New Group Discussion</CardTitle>
+            <CardTitle>Create New Session</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -377,6 +395,23 @@ const GroupDiscussionManager = () => {
                     onChange={(e) => setNewGD({ ...newGD, topic_name: e.target.value })}
                     required
                   />
+                </div>
+                <div>
+                  <Label htmlFor="session_type">Session Type</Label>
+                  <Select value={newGD.session_type} onValueChange={(value) => setNewGD({ ...newGD, session_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Group Discussion">Group Discussion</SelectItem>
+                      <SelectItem value="Debate">Debate</SelectItem>
+                      <SelectItem value="Model United Nations">Model United Nations</SelectItem>
+                      <SelectItem value="Workshop">Workshop</SelectItem>
+                      <SelectItem value="Seminar">Seminar</SelectItem>
+                      <SelectItem value="Panel Discussion">Panel Discussion</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="scheduled_date">Scheduled Date & Time</Label>
@@ -423,9 +458,38 @@ const GroupDiscussionManager = () => {
                   rows={3}
                 />
               </div>
+              
+              {/* Email Notification Options */}
+              <div className="space-y-3">
+                <Label>Email Notifications</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="emailOption"
+                      value="all"
+                      checked={emailOption === 'all'}
+                      onChange={(e) => setEmailOption(e.target.value as 'all')}
+                      className="text-primary"
+                    />
+                    <span className="text-sm">Send to all users</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="emailOption"
+                      value="none"
+                      checked={emailOption === 'none'}
+                      onChange={(e) => setEmailOption(e.target.value as 'none')}
+                      className="text-primary"
+                    />
+                    <span className="text-sm">Don't send emails</span>
+                  </label>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Creating...' : 'Create Discussion'}
+                  {createMutation.isPending ? 'Creating...' : 'Create Session'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
                   Cancel
@@ -440,7 +504,7 @@ const GroupDiscussionManager = () => {
       {editingGD && (
         <Card>
           <CardHeader>
-            <CardTitle>Edit Group Discussion</CardTitle>
+            <CardTitle>Edit Session</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdate} className="space-y-4">
@@ -453,6 +517,23 @@ const GroupDiscussionManager = () => {
                     onChange={(e) => setEditingGD({ ...editingGD, topic_name: e.target.value })}
                     required
                   />
+                </div>
+                <div>
+                  <Label htmlFor="edit_session_type">Session Type</Label>
+                  <Select value={editingGD.session_type || 'Group Discussion'} onValueChange={(value) => setEditingGD({ ...editingGD, session_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Group Discussion">Group Discussion</SelectItem>
+                      <SelectItem value="Debate">Debate</SelectItem>
+                      <SelectItem value="Model United Nations">Model United Nations</SelectItem>
+                      <SelectItem value="Workshop">Workshop</SelectItem>
+                      <SelectItem value="Seminar">Seminar</SelectItem>
+                      <SelectItem value="Panel Discussion">Panel Discussion</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="edit_scheduled_date">Scheduled Date & Time</Label>
@@ -501,7 +582,7 @@ const GroupDiscussionManager = () => {
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? 'Updating...' : 'Update Discussion'}
+                  {updateMutation.isPending ? 'Updating...' : 'Update Session'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setEditingGD(null)}>
                   Cancel
@@ -516,15 +597,15 @@ const GroupDiscussionManager = () => {
       {isLoading ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <div className="text-muted-foreground">⏳ Loading discussions...</div>
+            <div className="text-muted-foreground">⏳ Loading sessions...</div>
           </CardContent>
         </Card>
       ) : filteredDiscussions.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <div className="text-muted-foreground mb-4">📋 No discussions found</div>
+            <div className="text-muted-foreground mb-4">📋 No sessions found</div>
             {discussions?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Create your first group discussion to get started!</p>
+              <p className="text-sm text-muted-foreground">Create your first session to get started!</p>
             ) : (
               <p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
             )}
@@ -537,7 +618,12 @@ const GroupDiscussionManager = () => {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">{discussion.topic_name}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold">{discussion.topic_name}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {discussion.session_type || 'Group Discussion'}
+                      </Badge>
+                    </div>
                     <p className="text-muted-foreground text-sm mb-3">{discussion.description}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">

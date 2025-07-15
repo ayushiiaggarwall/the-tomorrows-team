@@ -18,6 +18,8 @@ interface SessionNotificationRequest {
   description?: string;
   scheduledDate: string;
   sessionType?: string;
+  emailOption?: 'all' | 'selected';
+  selectedUsers?: string[];
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -34,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { sessionId, topicName, description, scheduledDate, sessionType = 'Session' }: SessionNotificationRequest = await req.json();
+    const { sessionId, topicName, description, scheduledDate, sessionType = 'Session', emailOption = 'all', selectedUsers = [] }: SessionNotificationRequest = await req.json();
 
     console.log('Processing session notification for:', { sessionId, topicName, sessionType });
 
@@ -44,20 +46,38 @@ const handler = async (req: Request): Promise<Response> => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all user emails
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('email, full_name')
-      .neq('email', '');
-
-    if (profilesError) {
-      console.error('Error fetching user profiles:', profilesError);
-      throw profilesError;
+    // Get user emails based on email option
+    let profiles;
+    if (emailOption === 'selected' && selectedUsers.length > 0) {
+      const { data, error: profilesError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .in('id', selectedUsers)
+        .neq('email', '');
+      
+      profiles = data;
+      if (profilesError) {
+        console.error('Error fetching selected user profiles:', profilesError);
+        throw profilesError;
+      }
+    } else {
+      // Send to all users
+      const { data, error: profilesError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .neq('email', '');
+      
+      profiles = data;
+      if (profilesError) {
+        console.error('Error fetching user profiles:', profilesError);
+        throw profilesError;
+      }
     }
 
     if (!profiles || profiles.length === 0) {
-      console.log('No users found to notify');
-      return new Response(JSON.stringify({ success: true, message: 'No users to notify' }), {
+      const message = emailOption === 'selected' ? 'No selected users found to notify' : 'No users found to notify';
+      console.log(message);
+      return new Response(JSON.stringify({ success: true, message }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -132,9 +152,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('Session notification emails queued successfully');
+    const message = emailOption === 'selected' 
+      ? `Session notification emails queued for ${profiles.length} selected users`
+      : `Session notification emails queued for ${profiles.length} users`;
     return new Response(JSON.stringify({ 
       success: true, 
-      message: `Session notification emails queued for ${profiles.length} users`,
+      message,
       userCount: profiles.length
     }), {
       status: 200,

@@ -335,6 +335,7 @@ export type Database = {
           meet_link: string | null
           moderator_id: string | null
           scheduled_date: string
+          session_type: string | null
           slot_capacity: number | null
           topic_name: string
           updated_at: string | null
@@ -348,6 +349,7 @@ export type Database = {
           meet_link?: string | null
           moderator_id?: string | null
           scheduled_date: string
+          session_type?: string | null
           slot_capacity?: number | null
           topic_name: string
           updated_at?: string | null
@@ -361,6 +363,7 @@ export type Database = {
           meet_link?: string | null
           moderator_id?: string | null
           scheduled_date?: string
+          session_type?: string | null
           slot_capacity?: number | null
           topic_name?: string
           updated_at?: string | null
