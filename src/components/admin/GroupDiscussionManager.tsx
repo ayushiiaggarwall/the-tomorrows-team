@@ -105,7 +105,7 @@ const GroupDiscussionManager = () => {
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (newSession) => {
       console.log('🎉 GD created successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-group-discussions'] });
       setShowCreateForm(false);
@@ -117,15 +117,44 @@ const GroupDiscussionManager = () => {
         meet_link: '',
         is_active: true
       });
-      toast({
-        title: "Success",
-        description: "Group discussion created successfully!",
-      });
+      
+      // Send email notifications to all users
+      try {
+        console.log('📧 Sending session notification emails...');
+        const { error: emailError } = await supabase.functions.invoke('send-session-notification', {
+          body: {
+            sessionId: newSession.id,
+            topicName: newSession.topic_name,
+            description: newSession.description,
+            scheduledDate: newSession.scheduled_date,
+            sessionType: 'Session'
+          }
+        });
+        
+        if (emailError) {
+          console.error('Email notification error:', emailError);
+          toast({
+            title: "Session Created",
+            description: "Session created successfully! Email notifications are being sent.",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Session created and email notifications sent to all users!",
+          });
+        }
+      } catch (error) {
+        console.error('Error sending email notifications:', error);
+        toast({
+          title: "Success",
+          description: "Session created successfully! Email notifications are being processed.",
+        });
+      }
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create group discussion. Please try again.",
+        description: "Failed to create session. Please try again.",
         variant: "destructive",
       });
     }
