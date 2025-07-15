@@ -84,9 +84,9 @@ const UpcomingGDs = () => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            🗓️ Upcoming Group Discussions
-          </CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          🗓️ Upcoming Sessions
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -103,7 +103,7 @@ const UpcomingGDs = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          🗓️ Upcoming Group Discussions
+          🗓️ Upcoming Sessions
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {upcomingGDs?.length ? "Next scheduled sessions:" : "No upcoming GDs found"}
