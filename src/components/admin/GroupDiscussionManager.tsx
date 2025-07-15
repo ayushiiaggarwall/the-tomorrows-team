@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, Plus, Edit, Trash2, Search, Link } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, Edit, Trash2, Search, Link, UserCheck } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -78,7 +78,22 @@ const GroupDiscussionManager = () => {
     }
   });
 
-  console.log('📋 Query results:', { discussions, isLoading, error });
+  // Fetch all users for the user selector
+  const { data: allUsers } = useQuery({
+    queryKey: ['all-users-for-email'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .neq('email', '');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: emailOption === 'selected'
+  });
+  
+console.log('📋 Query results:', { discussions, isLoading, error });
 
   // Create mutation
   const createMutation = useMutation({
@@ -478,6 +493,17 @@ const GroupDiscussionManager = () => {
                     <input
                       type="radio"
                       name="emailOption"
+                      value="selected"
+                      checked={emailOption === 'selected'}
+                      onChange={(e) => setEmailOption(e.target.value as 'selected')}
+                      className="text-primary"
+                    />
+                    <span className="text-sm">Send to selected users</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="emailOption"
                       value="none"
                       checked={emailOption === 'none'}
                       onChange={(e) => setEmailOption(e.target.value as 'none')}
@@ -486,6 +512,48 @@ const GroupDiscussionManager = () => {
                     <span className="text-sm">Don't send emails</span>
                   </label>
                 </div>
+                
+                {/* User Selection when "selected" is chosen */}
+                {emailOption === 'selected' && (
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-sm font-medium">Select Users to Notify</Label>
+                    <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
+                      {allUsers && allUsers.length > 0 ? (
+                        <div className="space-y-2">
+                          {allUsers.map((user) => (
+                            <label key={user.id} className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50 p-2 rounded">
+                              <input
+                                type="checkbox"
+                                checked={selectedUsers.includes(user.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedUsers([...selectedUsers, user.id]);
+                                  } else {
+                                    setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                                  }
+                                }}
+                                className="text-primary"
+                              />
+                              <UserCheck className="h-4 w-4 text-muted-foreground" />
+                              <div className="flex-1">
+                                <span className="text-sm font-medium">{user.full_name || 'Unknown'}</span>
+                                <br />
+                                <span className="text-xs text-muted-foreground">{user.email}</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Loading users...</p>
+                      )}
+                    </div>
+                    {selectedUsers.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedUsers.length} user(s) selected
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={createMutation.isPending}>
