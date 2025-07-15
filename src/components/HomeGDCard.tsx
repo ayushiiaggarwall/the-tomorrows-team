@@ -48,7 +48,7 @@ const HomeGDCard = memo(({ gd }: HomeGDCardProps) => {
       text: 'Register',
       variant: 'default' as const,
       disabled: false,
-      href: user ? "/join-gd" : "/login"
+      href: user ? "/joinsession" : "/login"
     };
   }, [gd.isRegistered, registrationData?.isFull, user]);
 

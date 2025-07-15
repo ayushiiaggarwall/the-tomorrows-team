@@ -157,7 +157,7 @@ const ParticipationSummary = () => {
             <p className="text-muted-foreground mb-4">
               Start your journey by joining your first group discussion. Your participation stats will appear here.
             </p>
-            <Link to="/join-gd">
+            <Link to="/joinsession">
               <Button className="btn-primary">Join Your First GD</Button>
             </Link>
           </div>

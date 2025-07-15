@@ -100,7 +100,7 @@ const App = () => {
                 <Routes>
                 <Route path="/" element={<HomeRedirect />} />
                 <Route path="/about" element={<About />} />
-                <Route path="/join-gd" element={<JoinGD />} />
+                <Route path="/joinsession" element={<JoinGD />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/watch-learn" element={<WatchLearn />} />
                 <Route path="/resources" element={<Resources />} />

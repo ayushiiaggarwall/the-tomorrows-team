@@ -55,7 +55,7 @@ const Footer = () => {
               <Link to="/about" className="block text-muted-foreground hover:text-primary transition-colors">
                 About Us
               </Link>
-              <Link to="/join-gd" className="block text-muted-foreground hover:text-primary transition-colors">
+              <Link to="/joinsession" className="block text-muted-foreground hover:text-primary transition-colors">
                 Join Session
               </Link>
               <Link to="/leaderboard" className="block text-muted-foreground hover:text-primary transition-colors">

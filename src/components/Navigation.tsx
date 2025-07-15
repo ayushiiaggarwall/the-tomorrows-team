@@ -48,14 +48,14 @@ const Navigation = () => {
   const navItems = user ? [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'About', href: '/about' },
-    { name: 'Join Session', href: '/join-gd' },
+    { name: 'Join Session', href: '/joinsession' },
     { name: 'Leaderboard', href: '/leaderboard' },
     { name: 'Watch & Learn', href: '/watch-learn' },
     { name: 'Resources', href: '/resources' },
   ] : [
     { name: 'Home', href: '/' },
     { name: 'About', href: '/about' },
-    { name: 'Join Session', href: '/join-gd' },
+    { name: 'Join Session', href: '/joinsession' },
     { name: 'Leaderboard', href: '/leaderboard' },
     { name: 'Watch & Learn', href: '/watch-learn' },
     { name: 'Resources', href: '/resources' },

@@ -119,7 +119,7 @@ const UpcomingGDs = () => {
                 There are no group discussions scheduled at the moment. Check back soon or explore past sessions.
               </p>
               <div className="flex gap-2 justify-center">
-                <Link to="/join-gd">
+                <Link to="/joinsession">
                   <Button className="btn-primary">Browse All Sessions</Button>
                 </Link>
                 <Link to="/watch-learn">
@@ -134,7 +134,7 @@ const UpcomingGDs = () => {
               ))}
               
               <div className="mt-6 text-center">
-                <Link to="/join-gd">
+                <Link to="/joinsession">
                   <Button className="btn-primary">
                     🔘 View All Sessions
                   </Button>
@@ -230,7 +230,7 @@ const GDCard = ({ gd }: { gd: any }) => {
           ) : (
             <>
               <Badge variant="secondary">Available</Badge>
-              <Link to={user ? "/join-gd" : "/login"}>
+              <Link to={user ? "/joinsession" : "/login"}>
                 <Button size="sm" variant="outline">
                   Register
                 </Button>

@@ -17,7 +17,7 @@ const DashboardSidebar = () => {
   
   const sidebarItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home },
-    { name: 'My GD Schedule', path: '/join-gd', icon: Calendar },
+    { name: 'My GD Schedule', path: '/joinsession', icon: Calendar },
     { name: 'My Rewards', path: '/leaderboard', icon: Trophy },
     { name: 'Resources', path: '/resources', icon: BookOpen },
     { name: 'Profile Settings', path: '/dashboard/profile', icon: User },

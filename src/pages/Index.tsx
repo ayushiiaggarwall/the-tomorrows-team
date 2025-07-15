@@ -227,7 +227,7 @@ const Index = () => {
 
   const handleJoinGDClick = () => {
     if (user) {
-      navigate('/join-gd');
+      navigate('/joinsession');
     } else {
       navigate('/login');
     }
@@ -351,7 +351,7 @@ const Index = () => {
                 <p className="text-muted-foreground mb-4">
                   New group discussions will be scheduled soon. Check back later!
                 </p>
-                <Link to="/join-gd">
+                <Link to="/joinsession">
                   <Button className="btn-primary">View All Sessions</Button>
                 </Link>
               </div>
@@ -362,7 +362,7 @@ const Index = () => {
           
           {upcomingGDs?.length ? (
             <div className="text-center mt-8">
-              <Link to="/join-gd">
+              <Link to="/joinsession">
                 <Button className="btn-secondary">View All Sessions</Button>
               </Link>
             </div>

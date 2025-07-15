@@ -26,7 +26,7 @@ const Sitemap = () => {
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://thetomorrowsteam.com/join-gd</loc>
+    <loc>https://thetomorrowsteam.com/joinsession</loc>
     <lastmod>2025-07-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>

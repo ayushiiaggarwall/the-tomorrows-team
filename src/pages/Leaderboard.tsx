@@ -56,7 +56,7 @@ const Leaderboard = () => {
   };
 
   const handleJoinNextGD = () => {
-    navigate('/join-gd');
+    navigate('/joinsession');
   };
 
   // Generate referral code based on user ID
