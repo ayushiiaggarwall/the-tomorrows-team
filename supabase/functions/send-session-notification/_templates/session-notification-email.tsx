@@ -35,12 +35,12 @@ export const SessionNotificationEmail = ({
     <Preview>New {sessionType}: "{topicName}" - Register Now!</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>New Session Alert!</Heading>
+        <Heading style={h1}>New {sessionType === 'Other' ? 'Session' : sessionType} Alert!</Heading>
         
         <Text style={greeting}>Hi {firstName},</Text>
         
         <Text style={text}>
-          Exciting news! We've just scheduled a new <strong>session</strong> that you won't want to miss:
+          Exciting news! We've just scheduled a new <strong>{sessionType === 'Other' ? 'session' : sessionType.toLowerCase()}</strong> that you won't want to miss:
         </Text>
         
         <Section style={sessionBox}>
@@ -61,7 +61,7 @@ export const SessionNotificationEmail = ({
         
         <Section style={buttonContainer}>
           <Button href={registrationUrl} style={button}>
-            Register for Session
+            Register for {sessionType === 'Other' ? 'Session' : sessionType}
           </Button>
         </Section>
         

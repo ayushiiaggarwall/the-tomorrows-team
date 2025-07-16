@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
           const { error } = await resend.emails.send({
             from: 'hello@thetomorrowsteam.com',
             to: [profile.email],
-            subject: `New ${sessionType} Alert: "${topicName}" - Register Now!`,
+            subject: `New ${sessionType === 'Other' ? 'Session' : sessionType} Alert: "${topicName}" - Register Now!`,
             html,
           });
 
