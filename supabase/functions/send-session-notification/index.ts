@@ -49,29 +49,48 @@ const handler = async (req: Request): Promise<Response> => {
     // Get user emails based on email option
     let profiles;
     if (emailOption === 'selected' && selectedUsers.length > 0) {
+      // For selected users, get only verified users from the selection
       const { data, error: profilesError } = await supabase
         .from('profiles')
-        .select('email, full_name')
+        .select('email, full_name, id')
         .in('id', selectedUsers)
         .neq('email', '');
       
-      profiles = data;
       if (profilesError) {
         console.error('Error fetching selected user profiles:', profilesError);
         throw profilesError;
       }
+
+      // Filter to only include verified users by checking auth.users
+      const verifiedProfiles = [];
+      if (data && data.length > 0) {
+        for (const profile of data) {
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(profile.id);
+          if (!authError && authUser.user && authUser.user.email_confirmed_at) {
+            verifiedProfiles.push({
+              email: profile.email,
+              full_name: profile.full_name
+            });
+          }
+        }
+      }
+      profiles = verifiedProfiles;
     } else {
-      // Send to all users
-      const { data, error: profilesError } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .neq('email', '');
+      // Send to all verified users using the existing function
+      const { data: verifiedUsers, error: profilesError } = await supabase.rpc('get_verified_users_paginated', {
+        start_index: 0,
+        end_index: 9999 // Get all verified users
+      });
       
-      profiles = data;
       if (profilesError) {
-        console.error('Error fetching user profiles:', profilesError);
+        console.error('Error fetching verified user profiles:', profilesError);
         throw profilesError;
       }
+      
+      profiles = verifiedUsers?.map(user => ({
+        email: user.email,
+        full_name: user.full_name
+      })) || [];
     }
 
     if (!profiles || profiles.length === 0) {
