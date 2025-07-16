@@ -49,7 +49,7 @@ const AdminDashboard = () => {
             <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground min-w-max">
               <TabsTrigger value="overview" className="whitespace-nowrap">Overview</TabsTrigger>
               <TabsTrigger value="analytics" className="whitespace-nowrap">Analytics</TabsTrigger>
-              <TabsTrigger value="gds" className="whitespace-nowrap">GDs</TabsTrigger>
+              <TabsTrigger value="gds" className="whitespace-nowrap">Sessions</TabsTrigger>
               <TabsTrigger value="attendance" className="whitespace-nowrap">Attendance</TabsTrigger>
               <TabsTrigger value="points" className="whitespace-nowrap">Points</TabsTrigger>
               <TabsTrigger value="notifications" className="whitespace-nowrap">Notifications</TabsTrigger>

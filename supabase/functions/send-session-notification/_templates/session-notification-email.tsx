@@ -32,10 +32,10 @@ export const SessionNotificationEmail = ({
 }: SessionNotificationEmailProps) => (
   <Html>
     <Head />
-    <Preview>🎯 New {sessionType}: "{topicName}" - Register Now!</Preview>
+    <Preview>New {sessionType}: "{topicName}" - Register Now!</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>🎯 New {sessionType} Alert!</Heading>
+        <Heading style={h1}>New {sessionType} Alert!</Heading>
         
         <Text style={greeting}>Hi {firstName},</Text>
         
@@ -61,7 +61,7 @@ export const SessionNotificationEmail = ({
         
         <Section style={buttonContainer}>
           <Button href={registrationUrl} style={button}>
-            Register for {sessionType} 🚀
+            Register for {sessionType}
           </Button>
         </Section>
         

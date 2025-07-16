@@ -110,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
               topicName,
               description: description || '',
               scheduledDate: formattedDate,
-              registrationUrl: `${supabaseUrl.replace('/supabase.co', '.lovable.app')}/joinsession`
+              registrationUrl: `${supabaseUrl.replace('/supabase.co', '.lovable.app')}/join-gd`
             })
           );
 
@@ -118,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
           const { error } = await resend.emails.send({
             from: 'hello@thetomorrowsteam.com',
             to: [profile.email],
-            subject: `🎯 New ${sessionType} Alert: "${topicName}" - Register Now!`,
+            subject: `New ${sessionType} Alert: "${topicName}" - Register Now!`,
             html,
           });
 
