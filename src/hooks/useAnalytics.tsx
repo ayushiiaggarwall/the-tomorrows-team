@@ -16,10 +16,17 @@ export const usePageTracking = () => {
 
   const trackPageView = async (pagePath: string) => {
     try {
+      // Generate a session-based identifier for unique visitor tracking
+      let sessionId = sessionStorage.getItem('analytics_session_id');
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        sessionStorage.setItem('analytics_session_id', sessionId);
+      }
+      
       await supabase.rpc('track_page_view', {
         p_page_path: pagePath,
         p_user_id: user?.id || null,
-        p_ip_address: null, // Could be enhanced with actual IP
+        p_ip_address: sessionId, // Use session ID as unique identifier
         p_user_agent: navigator.userAgent
       });
     } catch (error) {
