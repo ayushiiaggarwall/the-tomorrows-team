@@ -7,7 +7,7 @@ import { Heart, Target, Users } from 'lucide-react';
 
 const About = () => {
   useEffect(() => {
-    document.title = 'About - T3 - The Tomorrows Team';
+    document.title = 'About - The Tomorrows Team';
   }, []);
 
   const values = [
@@ -31,7 +31,7 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="About Us - T3 - The Tomorrows Team Leadership Development"
+        title="About Us - The Tomorrows Team Leadership Development"
         description="Learn about The Tomorrows Team's mission to develop leadership skills through structured group discussions. Discover our story, values, and commitment to building tomorrow's leaders."
         keywords="about the tomorrows team, leadership development mission, group discussion platform, communication skills training, team building, professional development story"
         url="/about"
@@ -180,7 +180,7 @@ const About = () => {
                   </p>
                   <div className="mt-8 pt-6 border-t border-border">
                     <p className="font-semibold">— Ayushi Aggarwal</p>
-                    <p className="text-sm">Founder, T3 - The Tomorrows Team</p>
+                    <p className="text-sm">Founder, The Tomorrows Team</p>
                   </div>
                 </div>
               </div>
