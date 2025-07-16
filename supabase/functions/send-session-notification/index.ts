@@ -110,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
               topicName,
               description: description || '',
               scheduledDate: formattedDate,
-              registrationUrl: `${supabaseUrl.replace('/supabase.co', '.lovable.app')}/join-gd`
+              registrationUrl: `${supabaseUrl.replace('/supabase.co', '.lovable.app')}/joinsession`
             })
           );
 
