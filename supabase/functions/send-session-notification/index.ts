@@ -115,51 +115,91 @@ const handler = async (req: Request): Promise<Response> => {
       timeZoneName: 'short'
     });
 
-    // Use background task to send emails without blocking response
+    // Rate limiting helper function
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Send emails with rate limiting and retry logic
     const sendEmailsTask = async () => {
-      const emailPromises = profiles.map(async (profile) => {
-        try {
-          const firstName = profile.full_name?.split(' ')[0] || 'there';
-          
-          // Render the session notification email template
-          const html = await renderAsync(
-            React.createElement(SessionNotificationEmail, {
-              firstName,
-              sessionType,
-              topicName,
-              description: description || '',
-              scheduledDate: formattedDate,
-              registrationUrl: 'https://thetomorrowsteam.com/joinsession'
-            })
-          );
-
-          // Send the email
-          const { error } = await resend.emails.send({
-            from: 'hello@thetomorrowsteam.com',
-            to: [profile.email],
-            subject: `New ${sessionType === 'Other' ? 'Session' : sessionType} Alert: "${topicName}" - Register Now!`,
-            html,
-          });
-
-          if (error) {
-            console.error(`Error sending email to ${profile.email}:`, error);
-            return { email: profile.email, success: false, error: error.message };
-          } else {
-            console.log(`Session notification sent successfully to: ${profile.email}`);
-            return { email: profile.email, success: true };
-          }
-        } catch (error) {
-          console.error(`Error processing email for ${profile.email}:`, error);
-          return { email: profile.email, success: false, error: error.message };
-        }
-      });
-
-      const results = await Promise.allSettled(emailPromises);
-      const successCount = results.filter(result => 
-        result.status === 'fulfilled' && result.value.success
-      ).length;
+      const results: Array<{ email: string; success: boolean; error?: string }> = [];
       
-      console.log(`Email sending completed: ${successCount}/${profiles.length} emails sent successfully`);
+      // Send emails one by one with 500ms delay to respect 2 req/sec limit
+      for (const profile of profiles) {
+        let attempts = 0;
+        const maxAttempts = 3;
+        let success = false;
+        let lastError = '';
+
+        while (attempts < maxAttempts && !success) {
+          try {
+            const firstName = profile.full_name?.split(' ')[0] || 'there';
+            
+            // Render the session notification email template
+            const html = await renderAsync(
+              React.createElement(SessionNotificationEmail, {
+                firstName,
+                sessionType,
+                topicName,
+                description: description || '',
+                scheduledDate: formattedDate,
+                registrationUrl: 'https://thetomorrowsteam.com/joinsession'
+              })
+            );
+
+            // Send the email with company name in from field
+            const { error } = await resend.emails.send({
+              from: 'The Tomorrows Team <hello@thetomorrowsteam.com>',
+              to: [profile.email],
+              subject: `New ${sessionType === 'Other' ? 'Session' : sessionType} Alert: "${topicName}" - Register Now!`,
+              html,
+            });
+
+            if (error) {
+              attempts++;
+              lastError = error.message;
+              
+              // Check if it's a rate limit error
+              if (error.message.includes('rate_limit_exceeded') || error.message.includes('429')) {
+                console.log(`Rate limit hit for ${profile.email}, waiting 1 second before retry (attempt ${attempts}/${maxAttempts})`);
+                await sleep(1000); // Wait 1 second for rate limit
+              } else {
+                console.error(`Error sending email to ${profile.email}:`, error);
+                break; // Don't retry for non-rate-limit errors
+              }
+            } else {
+              success = true;
+              console.log(`Session notification sent successfully to: ${profile.email}`);
+            }
+          } catch (error) {
+            attempts++;
+            lastError = error.message;
+            console.error(`Error processing email for ${profile.email} (attempt ${attempts}):`, error);
+            
+            if (attempts < maxAttempts) {
+              await sleep(1000); // Wait before retry
+            }
+          }
+        }
+
+        results.push({
+          email: profile.email,
+          success,
+          error: success ? undefined : lastError
+        });
+
+        // Add delay between emails to respect rate limit (500ms = 2 req/sec)
+        if (profiles.indexOf(profile) < profiles.length - 1) {
+          await sleep(500);
+        }
+      }
+      
+      const successCount = results.filter(result => result.success).length;
+      const failedCount = results.filter(result => !result.success).length;
+      
+      console.log(`Email sending completed: ${successCount}/${profiles.length} emails sent successfully, ${failedCount} failed`);
+      
+      if (failedCount > 0) {
+        console.log('Failed emails:', results.filter(r => !r.success).map(r => `${r.email}: ${r.error}`));
+      }
     };
 
     // Use EdgeRuntime.waitUntil for proper background task handling
