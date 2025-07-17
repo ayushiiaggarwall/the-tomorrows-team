@@ -118,9 +118,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Helper function for delays
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Send emails with retry logic
+    // Send emails with batched retry logic
     const sendEmailsTask = async () => {
-      // Send all emails in parallel initially
+      const BATCH_SIZE = 10; // Send 10 emails at a time
+      const BATCH_DELAY = 6000; // Wait 6 seconds between batches (10 emails per 6 seconds = ~1.67/sec)
+      
       const sendEmailWithRetry = async (profile: any): Promise<{ email: string; success: boolean; error?: string }> => {
         const maxAttempts = 5;
         let lastError = '';
@@ -156,12 +158,12 @@ const handler = async (req: Request): Promise<Response> => {
               if (error.message.includes('rate_limit_exceeded') || error.message.includes('429')) {
                 console.log(`Rate limit hit for ${profile.email}, attempt ${attempt}/${maxAttempts}, waiting before retry`);
                 if (attempt < maxAttempts) {
-                  await sleep(1000 * attempt); // Exponential backoff: 1s, 2s, 3s, 4s
+                  await sleep(2000 * attempt); // Longer wait for rate limit: 2s, 4s, 6s, 8s
                 }
               } else {
                 console.error(`Error sending email to ${profile.email} (attempt ${attempt}):`, error);
                 if (attempt < maxAttempts) {
-                  await sleep(500); // Short delay for non-rate-limit errors
+                  await sleep(1000); // 1 second delay for non-rate-limit errors
                 }
               }
             } else {
@@ -181,24 +183,52 @@ const handler = async (req: Request): Promise<Response> => {
         return { email: profile.email, success: false, error: lastError };
       };
 
-      // Send emails in parallel with retry logic
-      console.log(`Starting to send emails to ${profiles.length} users in parallel...`);
-      const emailPromises = profiles.map(profile => sendEmailWithRetry(profile));
-      const results = await Promise.allSettled(emailPromises);
+      // Process emails in batches
+      console.log(`Starting to send emails to ${profiles.length} users in batches of ${BATCH_SIZE}...`);
+      const allResults: Array<{ email: string; success: boolean; error?: string }> = [];
+
+      for (let i = 0; i < profiles.length; i += BATCH_SIZE) {
+        const batch = profiles.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(profiles.length / BATCH_SIZE);
+        
+        console.log(`Processing batch ${batchNumber}/${totalBatches} with ${batch.length} emails...`);
+        
+        // Send emails in this batch in parallel
+        const batchPromises = batch.map(profile => sendEmailWithRetry(profile));
+        const batchResults = await Promise.allSettled(batchPromises);
+        
+        // Process batch results
+        const batchSuccessful = batchResults.map(result => {
+          if (result.status === 'fulfilled') {
+            allResults.push(result.value);
+            return result.value;
+          } else {
+            const failedResult = { email: 'unknown', success: false, error: result.reason?.message || 'Promise rejected' };
+            allResults.push(failedResult);
+            return failedResult;
+          }
+        });
+        
+        const batchSuccessCount = batchSuccessful.filter(r => r.success).length;
+        console.log(`Batch ${batchNumber} completed: ${batchSuccessCount}/${batch.length} emails sent successfully`);
+        
+        // Wait before next batch (except for the last batch)
+        if (i + BATCH_SIZE < profiles.length) {
+          console.log(`Waiting ${BATCH_DELAY / 1000} seconds before next batch...`);
+          await sleep(BATCH_DELAY);
+        }
+      }
       
-      const successCount = results.filter(result => 
-        result.status === 'fulfilled' && result.value.success
-      ).length;
-      const failedCount = results.filter(result => 
-        result.status === 'fulfilled' && !result.value.success
-      ).length;
+      const successCount = allResults.filter(r => r.success).length;
+      const failedCount = allResults.filter(r => !r.success).length;
       
       console.log(`Email sending completed: ${successCount}/${profiles.length} emails sent successfully, ${failedCount} failed`);
       
       if (failedCount > 0) {
-        const failedEmails = results
-          .filter(result => result.status === 'fulfilled' && !result.value.success)
-          .map(result => `${result.value.email}: ${result.value.error}`);
+        const failedEmails = allResults
+          .filter(r => !r.success)
+          .map(r => `${r.email}: ${r.error}`);
         console.log('Failed emails:', failedEmails);
       }
     };
