@@ -109,10 +109,28 @@ export const useSecureAuth = () => {
     }
   };
 
+  const secureSignInWithGoogle = async () => {
+    try {
+      const result = await auth.signInWithGoogle();
+      
+      if (result.error) {
+        logSecurityEvent('google_signin_failed', { error: result.error.message });
+      } else {
+        logSecurityEvent('google_signin_success', {});
+      }
+      
+      return result;
+    } catch (error) {
+      logSecurityEvent('google_signin_error', { error });
+      throw createSafeError(error, 'auth');
+    }
+  };
+
   return {
     ...auth,
     secureSignIn,
     secureSignUp,
+    secureSignInWithGoogle,
     sessionTimeRemaining: SESSION_TIMEOUT - (Date.now() - lastActivity)
   };
 };
