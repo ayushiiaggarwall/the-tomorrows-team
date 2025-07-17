@@ -115,21 +115,17 @@ const handler = async (req: Request): Promise<Response> => {
       timeZoneName: 'short'
     });
 
-    // Rate limiting helper function
+    // Helper function for delays
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Send emails with rate limiting and retry logic
+    // Send emails with retry logic
     const sendEmailsTask = async () => {
-      const results: Array<{ email: string; success: boolean; error?: string }> = [];
-      
-      // Send emails one by one with 500ms delay to respect 2 req/sec limit
-      for (const profile of profiles) {
-        let attempts = 0;
-        const maxAttempts = 3;
-        let success = false;
+      // Send all emails in parallel initially
+      const sendEmailWithRetry = async (profile: any): Promise<{ email: string; success: boolean; error?: string }> => {
+        const maxAttempts = 5;
         let lastError = '';
 
-        while (attempts < maxAttempts && !success) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           try {
             const firstName = profile.full_name?.split(' ')[0] || 'there';
             
@@ -154,51 +150,56 @@ const handler = async (req: Request): Promise<Response> => {
             });
 
             if (error) {
-              attempts++;
               lastError = error.message;
               
               // Check if it's a rate limit error
               if (error.message.includes('rate_limit_exceeded') || error.message.includes('429')) {
-                console.log(`Rate limit hit for ${profile.email}, waiting 1 second before retry (attempt ${attempts}/${maxAttempts})`);
-                await sleep(1000); // Wait 1 second for rate limit
+                console.log(`Rate limit hit for ${profile.email}, attempt ${attempt}/${maxAttempts}, waiting before retry`);
+                if (attempt < maxAttempts) {
+                  await sleep(1000 * attempt); // Exponential backoff: 1s, 2s, 3s, 4s
+                }
               } else {
-                console.error(`Error sending email to ${profile.email}:`, error);
-                break; // Don't retry for non-rate-limit errors
+                console.error(`Error sending email to ${profile.email} (attempt ${attempt}):`, error);
+                if (attempt < maxAttempts) {
+                  await sleep(500); // Short delay for non-rate-limit errors
+                }
               }
             } else {
-              success = true;
               console.log(`Session notification sent successfully to: ${profile.email}`);
+              return { email: profile.email, success: true };
             }
           } catch (error) {
-            attempts++;
             lastError = error.message;
-            console.error(`Error processing email for ${profile.email} (attempt ${attempts}):`, error);
+            console.error(`Error processing email for ${profile.email} (attempt ${attempt}):`, error);
             
-            if (attempts < maxAttempts) {
-              await sleep(1000); // Wait before retry
+            if (attempt < maxAttempts) {
+              await sleep(1000 * attempt); // Exponential backoff
             }
           }
         }
 
-        results.push({
-          email: profile.email,
-          success,
-          error: success ? undefined : lastError
-        });
+        return { email: profile.email, success: false, error: lastError };
+      };
 
-        // Add delay between emails to respect rate limit (500ms = 2 req/sec)
-        if (profiles.indexOf(profile) < profiles.length - 1) {
-          await sleep(500);
-        }
-      }
+      // Send emails in parallel with retry logic
+      console.log(`Starting to send emails to ${profiles.length} users in parallel...`);
+      const emailPromises = profiles.map(profile => sendEmailWithRetry(profile));
+      const results = await Promise.allSettled(emailPromises);
       
-      const successCount = results.filter(result => result.success).length;
-      const failedCount = results.filter(result => !result.success).length;
+      const successCount = results.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      ).length;
+      const failedCount = results.filter(result => 
+        result.status === 'fulfilled' && !result.value.success
+      ).length;
       
       console.log(`Email sending completed: ${successCount}/${profiles.length} emails sent successfully, ${failedCount} failed`);
       
       if (failedCount > 0) {
-        console.log('Failed emails:', results.filter(r => !r.success).map(r => `${r.email}: ${r.error}`));
+        const failedEmails = results
+          .filter(result => result.status === 'fulfilled' && !result.value.success)
+          .map(result => `${result.value.email}: ${result.value.error}`);
+        console.log('Failed emails:', failedEmails);
       }
     };
 
