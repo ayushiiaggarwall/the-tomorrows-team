@@ -394,13 +394,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Attempting Google sign-in');
     const redirectUrl = `${window.location.origin}/`;
     
+    // Force redirect flow by using window.location.href assignment
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
         queryParams: {
           prompt: 'select_account'
-        }
+        },
+        skipBrowserRedirect: false
       }
     });
 
