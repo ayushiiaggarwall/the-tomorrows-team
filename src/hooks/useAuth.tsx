@@ -392,27 +392,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     console.log('Attempting Google sign-in');
-    const redirectUrl = `${window.location.origin}/`;
     
-    // Force redirect flow by using window.location.href assignment
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        queryParams: {
-          prompt: 'select_account'
-        },
-        skipBrowserRedirect: false
+    try {
+      // Use direct window redirect to avoid iframe issues
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Google sign-in error:', error);
+        return { error };
       }
-    });
 
-    if (error) {
-      console.error('Google sign-in error:', error);
-    } else {
       console.log('Google sign-in initiated');
+      return { error: null };
+    } catch (err: any) {
+      console.error('Google sign-in exception:', err);
+      return { error: err };
     }
-
-    return { error };
   };
 
   const value = {
