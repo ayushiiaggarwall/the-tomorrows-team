@@ -236,6 +236,19 @@ async function handleAttendance(supabase: any, user: any, gdId: string, attendan
             const removedPoints = existingPenalties.reduce((sum, penalty) => sum + Math.abs(penalty.points), 0);
             console.log(`Removed ${removedPoints} penalty points for user ${attendanceData.user_id} for GD ${gdId}`);
             
+            // Remove/mark as read any existing no-show penalty notifications
+            const { error: notificationError } = await supabase
+              .from('notifications')
+              .update({ is_read: true })
+              .eq('user_id', attendanceData.user_id)
+              .eq('type', 'penalty')
+              .ilike('message', `%${gdInfo.topic_name}%`)
+              .ilike('message', '%no-show%');
+
+            if (notificationError) {
+              console.error('Error marking no-show penalty notifications as read:', notificationError);
+            }
+            
             // Create notification about penalty removal
             await supabase.rpc('create_notification', {
               p_user_id: attendanceData.user_id,
