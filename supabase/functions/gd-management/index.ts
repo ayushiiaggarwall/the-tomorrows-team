@@ -331,6 +331,74 @@ async function handleAttendance(supabase: any, user: any, gdId: string, attendan
           total_points: totalPoints 
         })
       });
+    } else {
+      // User marked as absent - remove any existing attendance/reward points and apply no-show penalty
+      const { data: gdInfo } = await supabase
+        .from('group_discussions')
+        .select('scheduled_date, topic_name')
+        .eq('id', gdId)
+        .single();
+
+      if (gdInfo) {
+        const gdDate = gdInfo.scheduled_date.split('T')[0];
+        
+        // Remove any existing points for this user and GD date (attendance, best speaker, moderator)
+        const { data: existingPoints } = await supabase
+          .from('reward_points')
+          .select('id, points, type')
+          .eq('user_id', attendanceData.user_id)
+          .eq('gd_date', gdDate)
+          .in('type', ['Attendance', 'Best Speaker', 'Moderator']);
+
+        if (existingPoints && existingPoints.length > 0) {
+          // Delete the point records
+          const { error: deleteError } = await supabase
+            .from('reward_points')
+            .delete()
+            .eq('user_id', attendanceData.user_id)
+            .eq('gd_date', gdDate)
+            .in('type', ['Attendance', 'Best Speaker', 'Moderator']);
+
+          if (deleteError) {
+            console.error('Error removing existing points:', deleteError);
+          } else {
+            const removedPoints = existingPoints.reduce((sum, point) => sum + point.points, 0);
+            console.log(`Removed ${removedPoints} points for user ${attendanceData.user_id} for GD ${gdId}`);
+          }
+        }
+
+        // Apply no-show penalty
+        const { error: penaltyError } = await supabase
+          .from('reward_points')
+          .insert({
+            user_id: attendanceData.user_id,
+            points: -10,
+            reason: 'No Show Penalty - Admin Override',
+            type: 'No Show',
+            gd_date: gdDate,
+            awarded_by: user.id
+          });
+
+        if (penaltyError) {
+          console.error('Error applying no-show penalty:', penaltyError);
+        } else {
+          console.log(`Applied -10 no-show penalty for user ${attendanceData.user_id} for GD ${gdId}`);
+          
+          // Create notification about penalty
+          await supabase.rpc('create_notification', {
+            p_user_id: attendanceData.user_id,
+            p_title: '⚠️ No-Show Penalty Applied',
+            p_message: `You've been marked absent for "${gdInfo.topic_name}" by an admin. -10 points penalty applied and previous rewards removed.`,
+            p_type: 'penalty',
+            p_metadata: JSON.stringify({ 
+              gd_id: gdId, 
+              gd_topic: gdInfo.topic_name,
+              penalty_applied: 10,
+              reason: 'Admin marked as absent'
+            })
+          });
+        }
+      }
     }
 
     console.log(`Attendance marked for user ${attendanceData.user_id}, GD ${gdId}: ${attendanceData.attended}`);
