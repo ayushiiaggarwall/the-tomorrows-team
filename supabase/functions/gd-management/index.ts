@@ -203,6 +203,56 @@ async function handleAttendance(supabase: any, user: any, gdId: string, attendan
     const pointsAwarded = [];
 
     if (attendanceData.attended) {
+      // First, check for and remove any existing no-show penalties for this GD
+      const { data: gdInfo } = await supabase
+        .from('group_discussions')
+        .select('scheduled_date, topic_name')
+        .eq('id', gdId)
+        .single();
+
+      if (gdInfo) {
+        const gdDate = gdInfo.scheduled_date.split('T')[0];
+        
+        // Remove any existing no-show penalties for this user and GD date
+        const { data: existingPenalties } = await supabase
+          .from('reward_points')
+          .select('id, points')
+          .eq('user_id', attendanceData.user_id)
+          .eq('type', 'No Show')
+          .eq('gd_date', gdDate);
+
+        if (existingPenalties && existingPenalties.length > 0) {
+          // Delete the no-show penalty records
+          const { error: deleteError } = await supabase
+            .from('reward_points')
+            .delete()
+            .eq('user_id', attendanceData.user_id)
+            .eq('type', 'No Show')
+            .eq('gd_date', gdDate);
+
+          if (deleteError) {
+            console.error('Error removing no-show penalties:', deleteError);
+          } else {
+            const removedPoints = existingPenalties.reduce((sum, penalty) => sum + Math.abs(penalty.points), 0);
+            console.log(`Removed ${removedPoints} penalty points for user ${attendanceData.user_id} for GD ${gdId}`);
+            
+            // Create notification about penalty removal
+            await supabase.rpc('create_notification', {
+              p_user_id: attendanceData.user_id,
+              p_title: '✅ Penalty Reversed',
+              p_message: `Your no-show penalty for "${gdInfo.topic_name}" has been removed by an admin. +${removedPoints} points restored.`,
+              p_type: 'success',
+              p_metadata: JSON.stringify({ 
+                gd_id: gdId, 
+                gd_topic: gdInfo.topic_name,
+                penalty_removed: removedPoints,
+                reason: 'Admin attendance override'
+              })
+            });
+          }
+        }
+      }
+
       // Award attendance points
       const { error: pointsError } = await supabase
         .from('reward_points')

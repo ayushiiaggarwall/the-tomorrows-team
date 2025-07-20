@@ -19,14 +19,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Starting no-show penalty check...');
 
-    // Calculate the cutoff time (2 hours ago)
-    const twoHoursAgo = new Date();
-    twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
-    const cutoffTime = twoHoursAgo.toISOString();
+    // Calculate the cutoff time (3 hours ago)
+    const threeHoursAgo = new Date();
+    threeHoursAgo.setHours(threeHoursAgo.getHours() - 3);
+    const cutoffTime = threeHoursAgo.toISOString();
 
     console.log(`Checking for GDs that ended before: ${cutoffTime}`);
 
-    // Find GDs that ended more than 2 hours ago
+    // Find GDs that ended more than 3 hours ago
     const { data: gdData, error: gdError } = await supabase
       .from('group_discussions')
       .select('id, topic_name, scheduled_date')
@@ -39,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (!gdData || gdData.length === 0) {
-      console.log('No GDs found that ended more than 2 hours ago');
+      console.log('No GDs found that ended more than 3 hours ago');
       return new Response(JSON.stringify({ 
         message: 'No GDs found for penalty processing',
         processed: 0 
