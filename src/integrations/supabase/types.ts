@@ -248,6 +248,63 @@ export type Database = {
         }
         Relationships: []
       }
+      gd_chat_messages: {
+        Row: {
+          created_at: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          gd_id: string
+          id: string
+          is_deleted: boolean | null
+          is_pinned: boolean | null
+          message: string
+          parent_message_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          gd_id: string
+          id?: string
+          is_deleted?: boolean | null
+          is_pinned?: boolean | null
+          message: string
+          parent_message_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          gd_id?: string
+          id?: string
+          is_deleted?: boolean | null
+          is_pinned?: boolean | null
+          message?: string
+          parent_message_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_chat_messages_gd_id_fkey"
+            columns: ["gd_id"]
+            isOneToOne: false
+            referencedRelation: "group_discussions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_chat_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "gd_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gd_registrations: {
         Row: {
           attended: boolean | null

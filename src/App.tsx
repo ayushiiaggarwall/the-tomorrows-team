@@ -34,6 +34,7 @@ const Achievements = lazy(() => import("./pages/Achievements"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const AlreadyRegistered = lazy(() => import("./pages/AlreadyRegistered"));
+const GDChat = lazy(() => import("./pages/GDChat"));
 const Sitemap = lazy(() => import("./components/Sitemap"));
 
 // Loading component for suspense fallback
@@ -163,6 +164,14 @@ const App = () => {
                   } 
                 />
                 <Route path="/already-registered" element={<AlreadyRegistered />} />
+                <Route 
+                  path="/gd-chat/:gdId" 
+                  element={
+                    <ProtectedRoute>
+                      <GDChat />
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route path="/sitemap.xml" element={<Sitemap />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

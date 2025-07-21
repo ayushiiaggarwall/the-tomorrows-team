@@ -9,6 +9,7 @@ import { useGDCancellation } from '@/hooks/useGDCancellation';
 import { GDCancellationDialog } from '@/components/GDCancellationDialog';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { MessageCircle, ExternalLink, UserX } from 'lucide-react';
 
 const UpcomingGDs = () => {
   const { user } = useAuth();
@@ -198,10 +199,18 @@ const GDCard = ({ gd }: { gd: any }) => {
                 Registered ✅
               </Badge>
               <div className="flex gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <Link to={`/gd-chat/${gd.id}`} className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" />
+                    Chat
+                  </Link>
+                </Button>
+                
                 {gd.meetLink ? (
                   <Button size="sm" className="btn-primary" asChild>
-                    <a href={gd.meetLink} target="_blank" rel="noopener noreferrer">
-                      📩 Join Meeting
+                    <a href={gd.meetLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      Join Meeting
                     </a>
                   </Button>
                 ) : (
@@ -209,13 +218,15 @@ const GDCard = ({ gd }: { gd: any }) => {
                     Link Coming Soon
                   </Button>
                 )}
+                
                 <Button 
                   size="sm" 
                   variant="outline"
                   onClick={() => setShowCancellationDialog(true)}
                   disabled={cancelMutation.isPending}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
                 >
+                  <UserX className="h-4 w-4" />
                   {hoursUntilGD < 24 ? 'Drop Out' : 'De-Register'}
                 </Button>
               </div>
