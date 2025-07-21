@@ -106,7 +106,7 @@ const GDChat = () => {
         .from('gd_chat_messages')
         .select(`
           *,
-          user_profile:profiles!gd_chat_messages_user_id_fkey(full_name, is_admin)
+          user_profile:profiles(full_name, is_admin)
         `)
         .eq('gd_id', gdId)
         .eq('is_deleted', false)
