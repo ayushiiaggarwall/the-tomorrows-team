@@ -305,6 +305,41 @@ export type Database = {
           },
         ]
       }
+      gd_message_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          message_id: string
+          updated_at: string | null
+          user_id: string
+          vote_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message_id: string
+          updated_at?: string | null
+          user_id: string
+          vote_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message_id?: string
+          updated_at?: string | null
+          user_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_message_votes_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "gd_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gd_registrations: {
         Row: {
           attended: boolean | null

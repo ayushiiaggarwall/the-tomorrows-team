@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Send, Pin, Trash2, Reply, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, Pin, Trash2, Reply, ArrowLeft, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
@@ -28,6 +28,11 @@ interface ChatMessage {
     is_admin: boolean;
   };
   replies?: ChatMessage[];
+  vote_counts?: {
+    upvotes: number;
+    downvotes: number;
+  };
+  user_vote?: 'upvote' | 'downvote' | null;
 }
 
 interface GDDetails {
@@ -121,8 +126,32 @@ const GDChat = () => {
         .select('id, full_name, is_admin')
         .in('id', userIds);
       
-      // Create a map for easy lookup
+      // Fetch vote counts for all messages
+      const messageIds = data?.map(msg => msg.id) || [];
+      const { data: voteData } = await supabase
+        .from('gd_message_votes')
+        .select('message_id, vote_type, user_id')
+        .in('message_id', messageIds);
+
+      // Create maps for easy lookup
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const voteCountMap = new Map();
+      const userVoteMap = new Map();
+
+      // Process votes
+      voteData?.forEach((vote: any) => {
+        if (!voteCountMap.has(vote.message_id)) {
+          voteCountMap.set(vote.message_id, { upvotes: 0, downvotes: 0 });
+        }
+        const counts = voteCountMap.get(vote.message_id);
+        if (vote.vote_type === 'upvote') counts.upvotes++;
+        else if (vote.vote_type === 'downvote') counts.downvotes++;
+
+        // Track user's vote
+        if (vote.user_id === user?.id) {
+          userVoteMap.set(vote.message_id, vote.vote_type);
+        }
+      });
 
       // Organize messages with replies
       const messageMap = new Map();
@@ -136,7 +165,9 @@ const GDChat = () => {
             full_name: userProfile.full_name,
             is_admin: userProfile.is_admin
           } : undefined,
-          replies: []
+          replies: [],
+          vote_counts: voteCountMap.get(msg.id) || { upvotes: 0, downvotes: 0 },
+          user_vote: userVoteMap.get(msg.id) || null
         };
         messageMap.set(msg.id, message);
 
@@ -218,6 +249,57 @@ const GDChat = () => {
     }
   });
 
+  // Vote message mutation
+  const voteMutation = useMutation({
+    mutationFn: async ({ messageId, voteType }: { messageId: string; voteType: 'upvote' | 'downvote' }) => {
+      // First, check if user already voted on this message
+      const { data: existingVote } = await supabase
+        .from('gd_message_votes')
+        .select('id, vote_type')
+        .eq('message_id', messageId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (existingVote) {
+        if (existingVote.vote_type === voteType) {
+          // Remove vote if clicking same vote type
+          const { error } = await supabase
+            .from('gd_message_votes')
+            .delete()
+            .eq('id', existingVote.id);
+          if (error) throw error;
+        } else {
+          // Update vote if clicking different vote type
+          const { error } = await supabase
+            .from('gd_message_votes')
+            .update({ vote_type: voteType })
+            .eq('id', existingVote.id);
+          if (error) throw error;
+        }
+      } else {
+        // Create new vote
+        const { error } = await supabase
+          .from('gd_message_votes')
+          .insert({
+            message_id: messageId,
+            user_id: user?.id,
+            vote_type: voteType
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to vote on message. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Real-time subscription
   useEffect(() => {
     if (!gdId) return;
@@ -231,6 +313,17 @@ const GDChat = () => {
           schema: 'public',
           table: 'gd_chat_messages',
           filter: `gd_id=eq.${gdId}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_message_votes'
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
@@ -300,6 +393,31 @@ const GDChat = () => {
         <p className="text-sm text-foreground mb-2 break-words">{message.message}</p>
         
         <div className="flex items-center gap-2">
+          {/* Vote buttons */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => voteMutation.mutate({ messageId: message.id, voteType: 'upvote' })}
+              className={`h-6 px-2 text-xs ${message.user_vote === 'upvote' ? 'text-green-600 bg-green-50' : 'text-muted-foreground'}`}
+              disabled={voteMutation.isPending}
+            >
+              <ArrowUp className="h-3 w-3 mr-1" />
+              {message.vote_counts?.upvotes || 0}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => voteMutation.mutate({ messageId: message.id, voteType: 'downvote' })}
+              className={`h-6 px-2 text-xs ${message.user_vote === 'downvote' ? 'text-red-600 bg-red-50' : 'text-muted-foreground'}`}
+              disabled={voteMutation.isPending}
+            >
+              <ArrowDown className="h-3 w-3 mr-1" />
+              {message.vote_counts?.downvotes || 0}
+            </Button>
+          </div>
+
           {!isReply && (
             <Button
               variant="ghost"
