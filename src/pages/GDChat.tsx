@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Send, Pin, Trash2, Reply, ArrowLeft } from 'lucide-react';
+import { Send, Pin, Trash2, Reply, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChatMessage {
@@ -44,6 +44,7 @@ const GDChat = () => {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch GD details
@@ -260,6 +261,18 @@ const GDChat = () => {
     });
   };
 
+  const toggleReplies = (messageId: string) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
   const MessageComponent = ({ message, isReply = false }: { message: ChatMessage; isReply?: boolean }) => (
     <div className={`flex gap-3 ${isReply ? 'ml-8 mt-2' : 'mb-4'} ${message.is_pinned ? 'bg-accent/50 p-3 rounded-lg' : ''}`}>
       <Avatar className="h-8 w-8 flex-shrink-0">
@@ -327,11 +340,34 @@ const GDChat = () => {
           )}
         </div>
         
-        {message.replies && message.replies.length > 0 && (
-          <div className="mt-3 space-y-2">
-            {message.replies.map((reply) => (
-              <MessageComponent key={reply.id} message={reply} isReply={true} />
-            ))}
+        {message.replies && message.replies.length > 0 && !isReply && (
+          <div className="mt-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleReplies(message.id)}
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground mb-2"
+            >
+              {expandedReplies.has(message.id) ? (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  Hide {message.replies.length} {message.replies.length === 1 ? 'reply' : 'replies'}
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="h-3 w-3 mr-1" />
+                  Show {message.replies.length} {message.replies.length === 1 ? 'reply' : 'replies'}
+                </>
+              )}
+            </Button>
+            
+            {expandedReplies.has(message.id) && (
+              <div className="space-y-2">
+                {message.replies.map((reply) => (
+                  <MessageComponent key={reply.id} message={reply} isReply={true} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
