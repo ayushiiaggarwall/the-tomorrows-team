@@ -105,8 +105,7 @@ const GDChat = () => {
       const { data, error } = await supabase
         .from('gd_chat_messages')
         .select(`
-          *,
-          user_profile:profiles(full_name, is_admin)
+          *
         `)
         .eq('gd_id', gdId)
         .eq('is_deleted', false)
@@ -114,13 +113,28 @@ const GDChat = () => {
       
       if (error) throw error;
 
+      // Fetch user profiles separately
+      const userIds = [...new Set(data?.map(msg => msg.user_id) || [])];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, is_admin')
+        .in('id', userIds);
+      
+      // Create a map for easy lookup
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
       // Organize messages with replies
       const messageMap = new Map();
       const rootMessages: ChatMessage[] = [];
 
       data.forEach((msg: any) => {
+        const userProfile = profileMap.get(msg.user_id);
         const message: ChatMessage = {
           ...msg,
+          user_profile: userProfile ? {
+            full_name: userProfile.full_name,
+            is_admin: userProfile.is_admin
+          } : undefined,
           replies: []
         };
         messageMap.set(msg.id, message);
