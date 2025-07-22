@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import Navigation from '@/components/Navigation';
@@ -10,6 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { MessageSquare } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const ParticipationHistory = () => {
   const { user } = useAuth();
@@ -66,6 +69,7 @@ const ParticipationHistory = () => {
 
         return {
           id: reg.id,
+          gdId: gd.id,
           topic: gd.topic_name,
           scheduledDate: new Date(gd.scheduled_date),
           registeredAt: new Date(reg.registered_at),
@@ -138,16 +142,17 @@ const ParticipationHistory = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Topic</TableHead>
-                        <TableHead>Scheduled Date</TableHead>
-                        <TableHead>Registered On</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Points Earned</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Topic</TableHead>
+                          <TableHead>Scheduled Date</TableHead>
+                          <TableHead>Registered On</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Points Earned</TableHead>
+                          <TableHead className="text-center">Chat</TableHead>
+                        </TableRow>
+                      </TableHeader>
                     <TableBody>
                       {paginatedData.map((entry) => (
                         <TableRow key={entry.id}>
@@ -182,6 +187,22 @@ const ParticipationHistory = () => {
                             'text-muted-foreground'
                           }`}>
                             {entry.pointsEarned > 0 ? `+${entry.pointsEarned}` : entry.pointsEarned || 0}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {entry.attended ? (
+                              <Link to={`/gd-chat/${entry.gdId}`}>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  title="View GD Chat"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">N/A</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
