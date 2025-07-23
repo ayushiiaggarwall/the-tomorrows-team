@@ -250,6 +250,8 @@ export type Database = {
       }
       gd_chat_messages: {
         Row: {
+          attachment_filename: string | null
+          attachment_url: string | null
           created_at: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -258,11 +260,14 @@ export type Database = {
           is_deleted: boolean | null
           is_pinned: boolean | null
           message: string
+          message_type: string | null
           parent_message_id: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          attachment_filename?: string | null
+          attachment_url?: string | null
           created_at?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -271,11 +276,14 @@ export type Database = {
           is_deleted?: boolean | null
           is_pinned?: boolean | null
           message: string
+          message_type?: string | null
           parent_message_id?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          attachment_filename?: string | null
+          attachment_url?: string | null
           created_at?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -284,6 +292,7 @@ export type Database = {
           is_deleted?: boolean | null
           is_pinned?: boolean | null
           message?: string
+          message_type?: string | null
           parent_message_id?: string | null
           updated_at?: string | null
           user_id?: string

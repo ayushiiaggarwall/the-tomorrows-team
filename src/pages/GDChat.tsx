@@ -11,13 +11,18 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDistanceToNow, format } from 'date-fns';
-import { Send, Pin, Trash2, Reply, ArrowLeft, ChevronDown, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Send, Pin, Trash2, Reply, ArrowLeft, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Smile, ImageIcon, FileImage } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import EmojiPicker from 'emoji-picker-react';
 
 interface ChatMessage {
   id: string;
   message: string;
+  message_type: 'text' | 'image' | 'gif';
+  attachment_url?: string;
+  attachment_filename?: string;
   user_id: string;
   parent_message_id?: string;
   is_pinned: boolean;
@@ -50,7 +55,10 @@ const GDChat = () => {
   const [newMessage, setNewMessage] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch GD details
   const { data: gdDetails } = useQuery({
@@ -189,13 +197,28 @@ const GDChat = () => {
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ message, parentId }: { message: string; parentId?: string }) => {
+    mutationFn: async ({ 
+      message, 
+      messageType = 'text', 
+      attachmentUrl, 
+      attachmentFilename, 
+      parentId 
+    }: { 
+      message: string; 
+      messageType?: 'text' | 'image' | 'gif'; 
+      attachmentUrl?: string; 
+      attachmentFilename?: string; 
+      parentId?: string; 
+    }) => {
       const { error } = await supabase
         .from('gd_chat_messages')
         .insert({
           gd_id: gdId,
           user_id: user?.id,
           message,
+          message_type: messageType,
+          attachment_url: attachmentUrl,
+          attachment_filename: attachmentFilename,
           parent_message_id: parentId || null
         });
       
@@ -354,6 +377,81 @@ const GDChat = () => {
     });
   };
 
+  const handleEmojiSelect = (emojiData: any) => {
+    setNewMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !gdId || !user?.id) return;
+
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please choose a file smaller than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check file type (images and GIFs only)
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please choose an image file (JPG, PNG, GIF, WebP).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingFile(true);
+
+    try {
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the file URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(fileName);
+
+      // Determine message type
+      const messageType = file.type === 'image/gif' ? 'gif' : 'image';
+      
+      // Send message with attachment
+      sendMessageMutation.mutate({
+        message: file.type === 'image/gif' ? 'Shared a GIF' : 'Shared an image',
+        messageType,
+        attachmentUrl: publicUrl,
+        attachmentFilename: file.name,
+        parentId: replyingTo || undefined
+      });
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const toggleReplies = (messageId: string) => {
     setExpandedReplies(prev => {
       const newSet = new Set(prev);
@@ -390,7 +488,22 @@ const GDChat = () => {
           </span>
         </div>
         
-        <p className="text-sm text-foreground mb-2 break-words">{message.message}</p>
+        {/* Message Content */}
+        {message.message_type === 'text' ? (
+          <p className="text-sm text-foreground mb-2 break-words">{message.message}</p>
+        ) : message.message_type === 'image' || message.message_type === 'gif' ? (
+          <div className="mb-2">
+            <p className="text-sm text-muted-foreground mb-2">{message.message}</p>
+            {message.attachment_url && (
+              <img 
+                src={message.attachment_url} 
+                alt={message.attachment_filename || 'Shared image'} 
+                className="max-w-sm max-h-64 rounded-lg border object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => window.open(message.attachment_url, '_blank')}
+              />
+            )}
+          </div>
+        ) : null}
         
         <div className="flex items-center gap-2">
           {/* Vote buttons */}
@@ -616,11 +729,51 @@ const GDChat = () => {
               )}
               
               <div className="flex gap-2">
+                <div className="flex gap-1">
+                  {/* Emoji Picker */}
+                  <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" type="button">
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" side="top">
+                      <EmojiPicker 
+                        onEmojiClick={handleEmojiSelect}
+                        height={350}
+                        width={320}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* File Upload */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingFile}
+                  >
+                    {uploadingFile ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <ImageIcon className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type your message..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                   className="flex-1"
                 />
                 <Button 
