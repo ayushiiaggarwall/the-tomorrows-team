@@ -262,6 +262,7 @@ export type Database = {
           message: string
           message_type: string | null
           parent_message_id: string | null
+          poll_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -278,6 +279,7 @@ export type Database = {
           message: string
           message_type?: string | null
           parent_message_id?: string | null
+          poll_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -294,6 +296,7 @@ export type Database = {
           message?: string
           message_type?: string | null
           parent_message_id?: string | null
+          poll_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -310,6 +313,13 @@ export type Database = {
             columns: ["parent_message_id"]
             isOneToOne: false
             referencedRelation: "gd_chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_chat_messages_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "gd_polls"
             referencedColumns: ["id"]
           },
         ]
@@ -342,6 +352,128 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "gd_message_votes_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "gd_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gd_poll_options: {
+        Row: {
+          created_at: string | null
+          id: string
+          option_text: string
+          poll_id: string
+          user_id: string
+          vote_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          option_text: string
+          poll_id: string
+          user_id: string
+          vote_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          option_text?: string
+          poll_id?: string
+          user_id?: string
+          vote_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "gd_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gd_poll_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          option_id: string
+          poll_id: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          option_id: string
+          poll_id: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          option_id?: string
+          poll_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "gd_poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "gd_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gd_polls: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          gd_id: string
+          id: string
+          is_active: boolean | null
+          message_id: string | null
+          poll_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          gd_id: string
+          id?: string
+          is_active?: boolean | null
+          message_id?: string | null
+          poll_type?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          gd_id?: string
+          id?: string
+          is_active?: boolean | null
+          message_id?: string | null
+          poll_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gd_polls_gd_id_fkey"
+            columns: ["gd_id"]
+            isOneToOne: false
+            referencedRelation: "group_discussions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gd_polls_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "gd_chat_messages"
@@ -795,6 +927,10 @@ export type Database = {
         Args: { p_gd_id: string; p_user_id: string }
         Returns: Json
       }
+      create_best_speaker_poll: {
+        Args: { p_gd_id: string }
+        Returns: string
+      }
       create_notification: {
         Args: {
           p_user_id: string
@@ -881,6 +1017,10 @@ export type Database = {
           p_user_agent?: string
         }
         Returns: string
+      }
+      vote_in_poll: {
+        Args: { p_poll_id: string; p_option_id: string; p_voter_id: string }
+        Returns: boolean
       }
     }
     Enums: {

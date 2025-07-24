@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { PollMessage } from '@/components/PollMessage';
+import { usePollTrigger } from '@/hooks/usePollTrigger';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +40,7 @@ interface ChatMessage {
     downvotes: number;
   };
   user_vote?: 'upvote' | 'downvote' | null;
+  poll_id?: string;
 }
 
 interface GDDetails {
@@ -59,6 +62,7 @@ const GDChat = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { createPoll, closePoll } = usePollTrigger();
 
   // Fetch GD details
   const { data: gdDetails } = useQuery({
@@ -175,7 +179,8 @@ const GDChat = () => {
           } : undefined,
           replies: [],
           vote_counts: voteCountMap.get(msg.id) || { upvotes: 0, downvotes: 0 },
-          user_vote: userVoteMap.get(msg.id) || null
+          user_vote: userVoteMap.get(msg.id) || null,
+          poll_id: msg.poll_id || undefined
         };
         messageMap.set(msg.id, message);
 
@@ -341,12 +346,34 @@ const GDChat = () => {
           queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
         }
       )
-      .on(
+        .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'gd_message_votes'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_polls'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_poll_votes'
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
@@ -490,7 +517,15 @@ const GDChat = () => {
         
         {/* Message Content */}
         {message.message_type === 'text' ? (
-          <p className="text-sm text-foreground mb-2 break-words">{message.message}</p>
+          <div className="mb-2">
+            <p className="text-sm text-foreground break-words">{message.message}</p>
+            {/* Show poll if it exists */}
+            {message.poll_id && (
+              <div className="mt-3">
+                <PollMessage pollId={message.poll_id} messageId={message.id} />
+              </div>
+            )}
+          </div>
         ) : message.message_type === 'image' || message.message_type === 'gif' ? (
           <div className="mb-2">
             <p className="text-sm text-muted-foreground mb-2">{message.message}</p>
@@ -669,11 +704,31 @@ const GDChat = () => {
                       {format(new Date(gdDetails.scheduled_date), 'PPP p')}
                     </p>
                   </div>
-                  <Badge variant="outline">Chat Room</Badge>
-                </div>
-                {gdDetails.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{gdDetails.description}</p>
-                )}
+                   <div className="flex gap-2">
+                     <Badge variant="outline">Chat Room</Badge>
+                     {isAdmin && (
+                       <div className="flex gap-2">
+                         <Button 
+                           variant="outline" 
+                           size="sm"
+                           onClick={() => createPoll(gdId!)}
+                         >
+                           Create Poll
+                         </Button>
+                         <Button 
+                           variant="outline" 
+                           size="sm"
+                           onClick={() => closePoll(gdId!)}
+                         >
+                           Close Poll
+                         </Button>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+                 {gdDetails.description && (
+                   <p className="text-sm text-muted-foreground mt-2">{gdDetails.description}</p>
+                 )}
               </CardHeader>
             </Card>
           </div>
