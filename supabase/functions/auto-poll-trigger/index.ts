@@ -24,6 +24,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { gd_id, action }: PollTriggerRequest = await req.json();
 
+    console.log(`Processing ${action} for GD: ${gd_id}`);
+
     if (action === 'create_poll') {
       // Check if poll already exists for this GD
       const { data: existingPoll } = await supabase
@@ -34,6 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
         .single();
 
       if (existingPoll) {
+        console.log('Poll already exists for GD:', gd_id);
         return new Response(
           JSON.stringify({ error: 'Poll already exists for this GD' }),
           { 
@@ -43,12 +46,78 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Create the best speaker poll
-      const { data: pollId, error } = await supabase
-        .rpc('create_best_speaker_poll', { p_gd_id: gd_id });
+      // Get GD participants for poll options
+      const { data: participants, error: participantsError } = await supabase
+        .from('gd_registrations')
+        .select(`
+          profiles (
+            id,
+            full_name
+          )
+        `)
+        .eq('gd_id', gd_id)
+        .eq('attendance_status', 'present');
 
-      if (error) {
-        console.error('Error creating poll:', error);
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch participants' }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
+
+      if (!participants || participants.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No participants found for this GD' }),
+          { 
+            status: 400, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
+
+      // Create poll message first
+      const { data: messageData, error: messageError } = await supabase
+        .from('gd_chat_messages')
+        .insert({
+          gd_id: gd_id,
+          user_id: null, // System message
+          message: "🗳️ Vote for the Best Speaker! Click on a name to cast your vote.",
+          message_type: 'poll',
+          is_pinned: true
+        })
+        .select('id')
+        .single();
+
+      if (messageError) {
+        console.error('Error creating poll message:', messageError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create poll message' }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
+
+      // Create the poll
+      const { data: pollData, error: pollError } = await supabase
+        .from('gd_polls')
+        .insert({
+          gd_id: gd_id,
+          message_id: messageData.id,
+          poll_type: 'best_speaker',
+          is_active: true,
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes from now
+        })
+        .select('id')
+        .single();
+
+      if (pollError) {
+        console.error('Error creating poll:', pollError);
         return new Response(
           JSON.stringify({ error: 'Failed to create poll' }),
           { 
@@ -58,10 +127,34 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      // Create poll options for each participant
+      const pollOptions = participants.map((participant: any) => ({
+        poll_id: pollData.id,
+        option_text: participant.profiles.full_name,
+        option_value: participant.profiles.id,
+        vote_count: 0
+      }));
+
+      const { error: optionsError } = await supabase
+        .from('gd_poll_options')
+        .insert(pollOptions);
+
+      if (optionsError) {
+        console.error('Error creating poll options:', optionsError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to create poll options' }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
+
+      console.log('Poll created successfully:', pollData.id);
       return new Response(
         JSON.stringify({ 
           success: true, 
-          poll_id: pollId,
+          poll_id: pollData.id,
           message: 'Best speaker poll created successfully' 
         }),
         { 
