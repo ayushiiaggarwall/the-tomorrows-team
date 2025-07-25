@@ -242,7 +242,7 @@ const Index = () => {
       <SEO
         title="The Tomorrows Team - Leadership Through Group Discussions"
         description="Join engaging group discussions, earn reward points, and develop leadership skills with The Tomorrows Team. Participate in structured debates and build your communication expertise."
-        keywords="group discussions, leadership development, communication skills, debate, reward points, team building, professional development, public speaking, career growth"
+        keywords="the tomorrows team, tomorrows team, thetomorrowsteam, group discussions, leadership development, communication skills, debate, reward points, team building, professional development, public speaking, career growth, TTT platform"
         url="/"
         type="website"
       />
