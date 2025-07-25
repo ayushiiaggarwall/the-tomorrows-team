@@ -199,6 +199,18 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       console.log('Poll created successfully:', pollData.id);
+
+      // Update the message with the poll_id
+      const { error: updateMessageError } = await supabase
+        .from('gd_chat_messages')
+        .update({ poll_id: pollData.id })
+        .eq('id', messageData.id);
+
+      if (updateMessageError) {
+        console.error('Error updating message with poll_id:', updateMessageError);
+      }
+
+      console.log('Poll and message linked successfully');
       return new Response(
         JSON.stringify({ 
           success: true, 
