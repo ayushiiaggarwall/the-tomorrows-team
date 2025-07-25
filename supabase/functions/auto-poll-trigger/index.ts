@@ -107,12 +107,18 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`Found ${registrations.length} participants for GD ${gd_id}`);
 
       // Get admin user for system messages
-      const { data: adminUser } = await supabase
+      const { data: adminUser, error: adminError } = await supabase
         .from('profiles')
         .select('id')
         .eq('is_admin', true)
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      if (adminError) {
+        console.error('Error fetching admin user:', adminError);
+      }
+
+      console.log('Admin user found:', adminUser?.id || 'No admin user found');
 
       // Create poll message first
       const { data: messageData, error: messageError } = await supabase
@@ -213,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('gd_id', gd_id)
         .eq('poll_type', 'best_speaker')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (!poll) {
         return new Response(
@@ -232,7 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('poll_id', poll.id)
         .order('vote_count', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       // Close the poll
       await supabase
@@ -242,11 +248,18 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Send winner announcement message
       if (winner && winner.vote_count > 0) {
+        const { data: adminUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('is_admin', true)
+          .limit(1)
+          .maybeSingle();
+
         await supabase
           .from('gd_chat_messages')
           .insert({
             gd_id: gd_id,
-            user_id: (await supabase.from('profiles').select('id').eq('is_admin', true).limit(1).single()).data?.id,
+            user_id: adminUser?.id || '00000000-0000-0000-0000-000000000000',
             message: `🎉 Congratulations to ${winner.option_text}! You've been voted Best Speaker by your peers.`,
             message_type: 'text',
             is_pinned: true
