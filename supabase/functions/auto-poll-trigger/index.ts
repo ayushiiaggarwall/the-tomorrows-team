@@ -60,13 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Get GD participants for poll options
       const { data: registrations, error: participantsError } = await supabase
         .from('gd_registrations')
-        .select(`
-          user_id,
-          profiles (
-            id,
-            full_name
-          )
-        `)
+        .select('user_id')
         .eq('gd_id', gd_id)
         .is('cancelled_at', null);
 
@@ -87,6 +81,24 @@ const handler = async (req: Request): Promise<Response> => {
           JSON.stringify({ error: 'No participants found for this GD' }),
           { 
             status: 400, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
+
+      // Get user names for poll options
+      const userIds = registrations.map(r => r.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching user profiles:', profilesError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch user profiles' }),
+          { 
+            status: 500, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           }
         );
@@ -155,12 +167,15 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('Created poll:', pollData.id);
 
       // Create poll options for each participant
-      const pollOptions = registrations.map((registration: any) => ({
-        poll_id: pollData.id,
-        option_text: registration.profiles?.full_name || 'Unknown User',
-        user_id: registration.profiles?.id || registration.user_id,
-        vote_count: 0
-      }));
+      const pollOptions = registrations.map((registration: any) => {
+        const profile = profiles?.find(p => p.id === registration.user_id);
+        return {
+          poll_id: pollData.id,
+          option_text: profile?.full_name || 'Unknown User',
+          user_id: registration.user_id,
+          vote_count: 0
+        };
+      });
 
       const { error: optionsError } = await supabase
         .from('gd_poll_options')
