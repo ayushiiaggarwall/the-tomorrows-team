@@ -28,12 +28,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (action === 'create_poll') {
       // Check if poll already exists for this GD
-      const { data: existingPoll } = await supabase
+      const { data: existingPoll, error: pollCheckError } = await supabase
         .from('gd_polls')
         .select('id')
         .eq('gd_id', gd_id)
         .eq('poll_type', 'best_speaker')
-        .single();
+        .maybeSingle();
+
+      if (pollCheckError) {
+        console.error('Error checking existing poll:', pollCheckError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to check existing polls' }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
 
       if (existingPoll) {
         console.log('Poll already exists for GD:', gd_id);
@@ -47,16 +58,17 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Get GD participants for poll options
-      const { data: participants, error: participantsError } = await supabase
+      const { data: registrations, error: participantsError } = await supabase
         .from('gd_registrations')
         .select(`
-          profiles (
+          user_id,
+          profiles!inner (
             id,
             full_name
           )
         `)
         .eq('gd_id', gd_id)
-        .eq('attendance_status', 'present');
+        .eq('cancelled_at', null);
 
       if (participantsError) {
         console.error('Error fetching participants:', participantsError);
@@ -69,7 +81,8 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      if (!participants || participants.length === 0) {
+      if (!registrations || registrations.length === 0) {
+        console.log('No participants found for GD:', gd_id);
         return new Response(
           JSON.stringify({ error: 'No participants found for this GD' }),
           { 
@@ -78,6 +91,8 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
       }
+
+      console.log(`Found ${registrations.length} participants for GD ${gd_id}`);
 
       // Create poll message first
       const { data: messageData, error: messageError } = await supabase
@@ -103,6 +118,8 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      console.log('Created poll message:', messageData.id);
+
       // Create the poll
       const { data: pollData, error: pollError } = await supabase
         .from('gd_polls')
@@ -127,11 +144,13 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
+      console.log('Created poll:', pollData.id);
+
       // Create poll options for each participant
-      const pollOptions = participants.map((participant: any) => ({
+      const pollOptions = registrations.map((registration: any) => ({
         poll_id: pollData.id,
-        option_text: participant.profiles.full_name,
-        option_value: participant.profiles.id,
+        option_text: registration.profiles?.full_name || 'Unknown User',
+        user_id: registration.profiles?.id || registration.user_id,
         vote_count: 0
       }));
 
