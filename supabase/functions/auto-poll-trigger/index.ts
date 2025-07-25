@@ -127,7 +127,7 @@ const handler = async (req: Request): Promise<Response> => {
           gd_id: gd_id,
           user_id: adminUser?.id || '00000000-0000-0000-0000-000000000000', // Fallback UUID
           message: "🗳️ Vote for the Best Speaker! Click on a name to cast your vote.",
-          message_type: 'poll',
+          message_type: 'text',
           is_pinned: true
         })
         .select('id')
