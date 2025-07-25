@@ -62,13 +62,13 @@ const handler = async (req: Request): Promise<Response> => {
         .from('gd_registrations')
         .select(`
           user_id,
-          profiles!inner (
+          profiles (
             id,
             full_name
           )
         `)
         .eq('gd_id', gd_id)
-        .eq('cancelled_at', null);
+        .is('cancelled_at', null);
 
       if (participantsError) {
         console.error('Error fetching participants:', participantsError);
@@ -94,12 +94,20 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`Found ${registrations.length} participants for GD ${gd_id}`);
 
+      // Get admin user for system messages
+      const { data: adminUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true)
+        .limit(1)
+        .single();
+
       // Create poll message first
       const { data: messageData, error: messageError } = await supabase
         .from('gd_chat_messages')
         .insert({
           gd_id: gd_id,
-          user_id: null, // System message
+          user_id: adminUser?.id || '00000000-0000-0000-0000-000000000000', // Fallback UUID
           message: "🗳️ Vote for the Best Speaker! Click on a name to cast your vote.",
           message_type: 'poll',
           is_pinned: true
