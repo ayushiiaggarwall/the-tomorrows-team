@@ -31,3 +31,15 @@ verify_jwt = true
 
 [functions.notification-system]
 verify_jwt = true
+
+[functions.auto-poll-trigger]
+verify_jwt = true
+
+[functions.auto-notifications]
+verify_jwt = false
+
+[functions.no-show-penalty]
+verify_jwt = false
+
+[functions.delete-user-account]
+verify_jwt = true
