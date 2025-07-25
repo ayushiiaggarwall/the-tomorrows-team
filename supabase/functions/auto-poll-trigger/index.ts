@@ -24,7 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { gd_id, action }: PollTriggerRequest = await req.json();
 
-    console.log(`Processing ${action} for GD: ${gd_id}`);
+    console.log(`Processing ${action} for GD: ${gd_id} - version 2`);
 
     if (action === 'create_poll') {
       // Check if poll already exists for this GD
