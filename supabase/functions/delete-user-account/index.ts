@@ -23,6 +23,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('Delete user account function called with method:', req.method);
+
   try {
     // Create admin client with service role key
     const supabaseAdmin = createClient(
@@ -52,13 +54,15 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     // Get the current user from the auth header
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    console.log('Auth check - User ID:', user?.id, 'Error:', userError?.message);
 
     if (userError || !user) {
+      console.error('Authentication failed:', userError);
       return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
+        JSON.stringify({ error: "Invalid authentication", details: userError?.message }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
