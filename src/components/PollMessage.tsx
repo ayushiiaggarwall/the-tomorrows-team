@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -81,6 +81,56 @@ export const PollMessage: React.FC<PollMessageProps> = ({ pollId, messageId }) =
     },
     enabled: !!user?.id
   });
+
+  // Real-time subscription for poll updates
+  useEffect(() => {
+    if (!pollId) return;
+
+    const channel = supabase
+      .channel(`poll-${pollId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_polls',
+          filter: `id=eq.${pollId}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['poll', pollId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_poll_options',
+          filter: `poll_id=eq.${pollId}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['poll-options', pollId] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_poll_votes',
+          filter: `poll_id=eq.${pollId}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['poll-options', pollId] });
+          queryClient.invalidateQueries({ queryKey: ['user-vote', pollId, user?.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [pollId, queryClient, user?.id]);
 
   // Vote mutation
   const voteMutation = useMutation({
