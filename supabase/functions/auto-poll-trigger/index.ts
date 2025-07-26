@@ -301,7 +301,7 @@ const handler = async (req: Request): Promise<Response> => {
           winnerMessage = `🏆 The winner is ${winners[0].option_text}`;
         } else {
           const winnerNames = winners.map(w => w.option_text).join(' and ');
-          winnerMessage = `🏆 It's a tie! The winners are ${winnerNames}`;
+          winnerMessage = `🏆 The winners are ${winnerNames}`;
         }
         
         // Post winner announcement message
