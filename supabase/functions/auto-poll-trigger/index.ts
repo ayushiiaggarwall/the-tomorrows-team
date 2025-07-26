@@ -281,8 +281,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Send winner announcement and award points if there's a winner with votes
       if (winnerOption && winnerOption.vote_count > 0) {
+        console.log('Processing winner:', winnerOption);
+        
         // Post winner announcement message
-        await supabase
+        const { data: messageData, error: messageError } = await supabase
           .from('gd_chat_messages')
           .insert({
             gd_id: gd_id,
@@ -292,8 +294,14 @@ const handler = async (req: Request): Promise<Response> => {
             is_pinned: true
           });
 
+        if (messageError) {
+          console.error('Error posting winner message:', messageError);
+        } else {
+          console.log('Winner message posted successfully');
+        }
+
         // Award 50 points to the winner
-        await supabase
+        const { data: pointsData, error: pointsError } = await supabase
           .from('reward_points')
           .insert({
             user_id: winnerOption.user_id,
@@ -302,8 +310,14 @@ const handler = async (req: Request): Promise<Response> => {
             type: 'Best Speaker'
           });
 
+        if (pointsError) {
+          console.error('Error awarding points:', pointsError);
+        } else {
+          console.log('Points awarded successfully to user:', winnerOption.user_id);
+        }
+
         // Send notification to the winner
-        await supabase
+        const { data: notificationData, error: notificationError } = await supabase
           .from('notifications')
           .insert({
             user_id: winnerOption.user_id,
@@ -311,6 +325,12 @@ const handler = async (req: Request): Promise<Response> => {
             message: `Congratulations! You've been voted Best Speaker and earned 50 points!`,
             type: 'reward'
           });
+
+        if (notificationError) {
+          console.error('Error sending notification:', notificationError);
+        } else {
+          console.log('Notification sent successfully to user:', winnerOption.user_id);
+        }
 
         console.log(`Best speaker award given to ${winnerOption.option_text} (${winnerOption.user_id})`);
 

@@ -49,8 +49,12 @@ export const usePollTrigger = () => {
           description: "Best speaker voting is now open!",
         });
       } else if (action === 'close_poll') {
-        // Invalidate chat messages to show winner announcement and refresh poll status
+        // Invalidate all related queries to refresh UI
         queryClient.invalidateQueries({ queryKey: ['gd-messages'] });
+        queryClient.invalidateQueries({ queryKey: ['poll'] });
+        queryClient.invalidateQueries({ queryKey: ['poll-options'] });
+        queryClient.invalidateQueries({ queryKey: ['user-vote'] });
+        
         const winnerMessage = data.winner 
           ? `Winner: ${data.winner} with ${data.votes} vote${data.votes !== 1 ? 's' : ''}!` 
           : "Poll ended with no votes.";
