@@ -50,9 +50,13 @@ const handler = async (req: Request): Promise<Response> => {
       if (existingPoll) {
         console.log('Poll already exists for GD:', gd_id);
         return new Response(
-          JSON.stringify({ error: 'Poll already exists for this GD' }),
+          JSON.stringify({ 
+            success: false,
+            error: 'POLL_EXISTS',
+            message: 'A poll is already active for this group discussion. Please wait for it to close or close it manually before creating a new one.' 
+          }),
           { 
-            status: 400, 
+            status: 200, // Return 200 instead of 400 for better frontend handling
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           }
         );

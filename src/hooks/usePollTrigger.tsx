@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,6 +9,7 @@ interface PollTriggerParams {
 
 export const usePollTrigger = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const triggerPollMutation = useMutation({
     mutationFn: async ({ gd_id, action }: PollTriggerParams) => {
@@ -22,7 +23,19 @@ export const usePollTrigger = () => {
     onSuccess: (data, variables) => {
       const { action } = variables;
       
+      // Check if the response indicates failure (like poll already exists)
+      if (data && !data.success && data.error === 'POLL_EXISTS') {
+        toast({
+          title: "Poll Already Active",
+          description: data.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (action === 'create_poll') {
+        // Invalidate chat messages to show the new poll
+        queryClient.invalidateQueries({ queryKey: ['gd-messages'] });
         toast({
           title: "Poll Created",
           description: "Best speaker voting is now open!",
