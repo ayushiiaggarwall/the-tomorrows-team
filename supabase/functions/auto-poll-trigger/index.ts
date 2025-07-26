@@ -260,14 +260,18 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // Get poll winner (option with highest vote count)
-      const { data: winnerOption } = await supabase
+      // Get poll winners (all users with highest vote count in case of ties)
+      const { data: allOptions } = await supabase
         .from('gd_poll_options')
         .select('option_text, vote_count, user_id')
         .eq('poll_id', poll.id)
-        .order('vote_count', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('vote_count', { ascending: false });
+
+      // Find the highest vote count
+      const highestVoteCount = allOptions && allOptions.length > 0 ? allOptions[0].vote_count : 0;
+      
+      // Get all winners (those with the highest vote count)
+      const winners = allOptions?.filter(option => option.vote_count === highestVoteCount && option.vote_count > 0) || [];
 
       // Close the poll
       await supabase
@@ -287,17 +291,26 @@ const handler = async (req: Request): Promise<Response> => {
 
       const adminUserId = adminUser?.id || '00000000-0000-0000-0000-000000000000';
 
-      // Send winner announcement and award points if there's a winner with votes
-      if (winnerOption && winnerOption.vote_count > 0) {
-        console.log('Processing winner:', winnerOption);
+      // Send winner announcement and award points if there are winners with votes
+      if (winners.length > 0) {
+        console.log('Processing winners:', winners);
         
-        // Post simple winner announcement message
+        // Create winner announcement message
+        let winnerMessage;
+        if (winners.length === 1) {
+          winnerMessage = `🏆 The winner is ${winners[0].option_text}`;
+        } else {
+          const winnerNames = winners.map(w => w.option_text).join(' and ');
+          winnerMessage = `🏆 It's a tie! The winners are ${winnerNames}`;
+        }
+        
+        // Post winner announcement message
         const { data: messageData, error: messageError } = await supabase
           .from('gd_chat_messages')
           .insert({
             gd_id: gd_id,
             user_id: adminUserId,
-            message: `🏆 The winner is ${winnerOption.option_text}`,
+            message: winnerMessage,
             message_type: 'text',
             is_pinned: true
           });
@@ -308,46 +321,51 @@ const handler = async (req: Request): Promise<Response> => {
           console.log('Winner message posted successfully');
         }
 
-        // Award 50 points to the winner
-        const { data: pointsData, error: pointsError } = await supabase
-          .from('reward_points')
-          .insert({
-            user_id: winnerOption.user_id,
-            points: 50,
-            reason: 'Best Speaker Award',
-            type: 'Best Speaker'
-          });
+        // Award 50 points to each winner and send notifications
+        for (const winner of winners) {
+          // Award 50 points to the winner
+          const { error: pointsError } = await supabase
+            .from('reward_points')
+            .insert({
+              user_id: winner.user_id,
+              points: 50,
+              reason: 'Best Speaker Award',
+              type: 'Best Speaker'
+            });
 
-        if (pointsError) {
-          console.error('Error awarding points:', pointsError);
-        } else {
-          console.log('Points awarded successfully to user:', winnerOption.user_id);
+          if (pointsError) {
+            console.error('Error awarding points to:', winner.user_id, pointsError);
+          } else {
+            console.log('Points awarded successfully to user:', winner.user_id);
+          }
+
+          // Send notification to the winner
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert({
+              user_id: winner.user_id,
+              title: '🏆 Best Speaker Award!',
+              message: winners.length === 1 
+                ? `Congratulations! You've been voted Best Speaker and earned 50 points!`
+                : `Congratulations! You tied for Best Speaker and earned 50 points!`,
+              type: 'reward'
+            });
+
+          if (notificationError) {
+            console.error('Error sending notification to:', winner.user_id, notificationError);
+          } else {
+            console.log('Notification sent successfully to user:', winner.user_id);
+          }
+
+          console.log(`Best speaker award given to ${winner.option_text} (${winner.user_id})`);
         }
-
-        // Send notification to the winner
-        const { data: notificationData, error: notificationError } = await supabase
-          .from('notifications')
-          .insert({
-            user_id: winnerOption.user_id,
-            title: '🏆 Best Speaker Award!',
-            message: `Congratulations! You've been voted Best Speaker and earned 50 points!`,
-            type: 'reward'
-          });
-
-        if (notificationError) {
-          console.error('Error sending notification:', notificationError);
-        } else {
-          console.log('Notification sent successfully to user:', winnerOption.user_id);
-        }
-
-        console.log(`Best speaker award given to ${winnerOption.option_text} (${winnerOption.user_id})`);
 
         return new Response(
           JSON.stringify({ 
             success: true, 
-            winner: winnerOption.option_text,
-            votes: winnerOption.vote_count,
-            message: 'Poll closed successfully and winner announced' 
+            winners: winners.map(w => w.option_text),
+            votes: winners[0].vote_count,
+            message: winners.length === 1 ? 'Poll closed successfully and winner announced' : 'Poll closed successfully and tied winners announced'
           }),
           { 
             status: 200, 
@@ -369,7 +387,7 @@ const handler = async (req: Request): Promise<Response> => {
         return new Response(
           JSON.stringify({ 
             success: true, 
-            winner: null,
+            winners: [],
             votes: 0,
             message: 'Poll closed - no votes were cast' 
           }),
