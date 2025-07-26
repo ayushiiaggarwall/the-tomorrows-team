@@ -297,7 +297,7 @@ const handler = async (req: Request): Promise<Response> => {
           .insert({
             gd_id: gd_id,
             user_id: adminUserId,
-            message: `🎉 Congratulations to ${winnerOption.option_text}! You've been voted Best Speaker by your peers with ${winnerOption.vote_count} vote${winnerOption.vote_count !== 1 ? 's' : ''}.`,
+            message: `🎉 Congratulations to ${winnerOption.option_text}! They've been voted Best Speaker by your peers with ${winnerOption.vote_count} vote${winnerOption.vote_count !== 1 ? 's' : ''}.`,
             message_type: 'text',
             is_pinned: true
           });
