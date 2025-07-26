@@ -22,7 +22,7 @@ import EmojiPicker from 'emoji-picker-react';
 interface ChatMessage {
   id: string;
   message: string;
-  message_type: 'text' | 'image' | 'gif';
+  message_type: 'text' | 'image' | 'gif' | 'winner_announcement';
   attachment_url?: string;
   attachment_filename?: string;
   user_id: string;
@@ -30,6 +30,7 @@ interface ChatMessage {
   is_pinned: boolean;
   is_deleted: boolean;
   created_at: string;
+  metadata?: any;
   user_profile?: {
     full_name?: string;
     is_admin: boolean;
@@ -328,7 +329,7 @@ const GDChat = () => {
     }
   });
 
-  // Real-time subscription
+  // Real-time subscription with enhanced poll updates
   useEffect(() => {
     if (!gdId) return;
 
@@ -346,7 +347,7 @@ const GDChat = () => {
           queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
         }
       )
-        .on(
+      .on(
         'postgres_changes',
         {
           event: '*',
@@ -366,6 +367,8 @@ const GDChat = () => {
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+          // Also invalidate poll-specific queries for better real-time updates
+          queryClient.invalidateQueries({ queryKey: ['poll'] });
         }
       )
       .on(
@@ -377,6 +380,19 @@ const GDChat = () => {
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+          queryClient.invalidateQueries({ queryKey: ['poll'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'gd_poll_options'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['gd-chat-messages', gdId] });
+          queryClient.invalidateQueries({ queryKey: ['poll'] });
         }
       )
       .subscribe();
@@ -525,6 +541,30 @@ const GDChat = () => {
                 <PollMessage pollId={message.poll_id} messageId={message.id} />
               </div>
             )}
+          </div>
+        ) : message.message_type === 'winner_announcement' ? (
+          <div className="mb-2">
+            {(() => {
+              try {
+                const metadata = message.metadata;
+                const isWinner = metadata?.winner_user_id === user?.id;
+                const winnerName = metadata?.winner_name || 'Someone';
+                const voteCount = metadata?.vote_count || 0;
+                
+                return (
+                  <div className="p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm font-medium text-yellow-800">
+                      🎉 {isWinner 
+                        ? `Congratulations! You've been voted Best Speaker with ${voteCount} vote${voteCount !== 1 ? 's' : ''}!`
+                        : `Congratulations to ${winnerName}! They've been voted Best Speaker with ${voteCount} vote${voteCount !== 1 ? 's' : ''}!`
+                      }
+                    </p>
+                  </div>
+                );
+              } catch (error) {
+                return <p className="text-sm text-foreground break-words">{message.message}</p>;
+              }
+            })()}
           </div>
         ) : message.message_type === 'image' || message.message_type === 'gif' ? (
           <div className="mb-2">

@@ -261,6 +261,7 @@ export type Database = {
           is_pinned: boolean | null
           message: string
           message_type: string | null
+          metadata: Json | null
           parent_message_id: string | null
           poll_id: string | null
           updated_at: string | null
@@ -278,6 +279,7 @@ export type Database = {
           is_pinned?: boolean | null
           message: string
           message_type?: string | null
+          metadata?: Json | null
           parent_message_id?: string | null
           poll_id?: string | null
           updated_at?: string | null
@@ -295,6 +297,7 @@ export type Database = {
           is_pinned?: boolean | null
           message?: string
           message_type?: string | null
+          metadata?: Json | null
           parent_message_id?: string | null
           poll_id?: string | null
           updated_at?: string | null
