@@ -177,6 +177,25 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log('Created poll:', pollData.id);
 
+      // Update the message with the poll_id
+      const { error: linkError } = await supabase
+        .from('gd_chat_messages')
+        .update({ poll_id: pollData.id })
+        .eq('id', messageData.id);
+
+      if (linkError) {
+        console.error('Error linking poll to message:', linkError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to link poll to message' }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
+
+      console.log('Poll and message linked successfully');
+
       // Create poll options for each participant
       const pollOptions = registrations.map((registration: any) => {
         const profile = profiles?.find(p => p.id === registration.user_id);
@@ -205,17 +224,6 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log('Poll created successfully:', pollData.id);
 
-      // Update the message with the poll_id
-      const { error: updateMessageError } = await supabase
-        .from('gd_chat_messages')
-        .update({ poll_id: pollData.id })
-        .eq('id', messageData.id);
-
-      if (updateMessageError) {
-        console.error('Error updating message with poll_id:', updateMessageError);
-      }
-
-      console.log('Poll and message linked successfully');
       return new Response(
         JSON.stringify({ 
           success: true, 
