@@ -321,14 +321,14 @@ const handler = async (req: Request): Promise<Response> => {
           console.log('Winner message posted successfully');
         }
 
-        // Award 50 points to each winner and send notifications
+        // Award 30 points to each winner and send notifications
         for (const winner of winners) {
-          // Award 50 points to the winner
+          // Award 30 points to the winner
           const { error: pointsError } = await supabase
             .from('reward_points')
             .insert({
               user_id: winner.user_id,
-              points: 50,
+              points: 30,
               reason: 'Best Speaker Award',
               type: 'Best Speaker'
             });
@@ -346,8 +346,8 @@ const handler = async (req: Request): Promise<Response> => {
               user_id: winner.user_id,
               title: '🏆 Best Speaker Award!',
               message: winners.length === 1 
-                ? `Congratulations! You've been voted Best Speaker and earned 50 points!`
-                : `Congratulations! You tied for Best Speaker and earned 50 points!`,
+                ? `Congratulations! You've been voted Best Speaker and earned 30 points!`
+                : `Congratulations! You tied for Best Speaker and earned 30 points!`,
               type: 'reward'
             });
 
