@@ -159,7 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
           message_id: messageData.id,
           poll_type: 'best_speaker',
           is_active: true,
-          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes from now
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
         })
         .select('id')
         .single();
