@@ -27,12 +27,13 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Processing ${action} for GD: ${gd_id} - version 2`);
 
     if (action === 'create_poll') {
-      // Check if poll already exists for this GD
+      // Check if active poll already exists for this GD
       const { data: existingPoll, error: pollCheckError } = await supabase
         .from('gd_polls')
         .select('id')
         .eq('gd_id', gd_id)
         .eq('poll_type', 'best_speaker')
+        .eq('is_active', true)
         .maybeSingle();
 
       if (pollCheckError) {
