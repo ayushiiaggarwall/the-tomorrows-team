@@ -291,21 +291,15 @@ const handler = async (req: Request): Promise<Response> => {
       if (winnerOption && winnerOption.vote_count > 0) {
         console.log('Processing winner:', winnerOption);
         
-        // Post winner announcement message with dynamic content for personalization
+        // Post simple winner announcement message
         const { data: messageData, error: messageError } = await supabase
           .from('gd_chat_messages')
           .insert({
             gd_id: gd_id,
             user_id: adminUserId,
-            message: `🎉 Best Speaker Poll Results: ${winnerOption.option_text} won with ${winnerOption.vote_count} vote${winnerOption.vote_count !== 1 ? 's' : ''}!`,
-            message_type: 'winner_announcement',
-            is_pinned: true,
-            // Store winner info in a metadata field that can be used for personalization
-            metadata: JSON.stringify({
-              winner_user_id: winnerOption.user_id,
-              winner_name: winnerOption.option_text,
-              vote_count: winnerOption.vote_count
-            })
+            message: `🏆 The winner is ${winnerOption.option_text}`,
+            message_type: 'text',
+            is_pinned: true
           });
 
         if (messageError) {
