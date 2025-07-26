@@ -240,18 +240,22 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (!poll) {
         return new Response(
-          JSON.stringify({ error: 'No active poll found for this GD' }),
+          JSON.stringify({ 
+            success: false,
+            error: 'NO_ACTIVE_POLL',
+            message: 'No active poll found for this GD' 
+          }),
           { 
-            status: 404, 
+            status: 200, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           }
         );
       }
 
-      // Get poll winner
-      const { data: winner } = await supabase
+      // Get poll winner (option with highest vote count)
+      const { data: winnerOption } = await supabase
         .from('gd_poll_options')
-        .select('option_text, vote_count')
+        .select('option_text, vote_count, user_id')
         .eq('poll_id', poll.id)
         .order('vote_count', { ascending: false })
         .limit(1)
@@ -263,37 +267,90 @@ const handler = async (req: Request): Promise<Response> => {
         .update({ is_active: false })
         .eq('id', poll.id);
 
-      // Send winner announcement message
-      if (winner && winner.vote_count > 0) {
-        const { data: adminUser } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('is_admin', true)
-          .limit(1)
-          .maybeSingle();
+      console.log('Poll closed successfully:', poll.id);
 
+      // Get admin user for system messages
+      const { data: adminUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true)
+        .limit(1)
+        .maybeSingle();
+
+      const adminUserId = adminUser?.id || '00000000-0000-0000-0000-000000000000';
+
+      // Send winner announcement and award points if there's a winner with votes
+      if (winnerOption && winnerOption.vote_count > 0) {
+        // Post winner announcement message
         await supabase
           .from('gd_chat_messages')
           .insert({
             gd_id: gd_id,
-            user_id: adminUser?.id || '00000000-0000-0000-0000-000000000000',
-            message: `🎉 Congratulations to ${winner.option_text}! You've been voted Best Speaker by your peers.`,
+            user_id: adminUserId,
+            message: `🎉 Congratulations to ${winnerOption.option_text}! You've been voted Best Speaker by your peers with ${winnerOption.vote_count} vote${winnerOption.vote_count !== 1 ? 's' : ''}.`,
             message_type: 'text',
             is_pinned: true
           });
-      }
 
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          winner: winner?.option_text || 'No winner (no votes)',
-          message: 'Poll closed successfully' 
-        }),
-        { 
-          status: 200, 
-          headers: { 'Content-Type': 'application/json', ...corsHeaders }
-        }
-      );
+        // Award 50 points to the winner
+        await supabase
+          .from('reward_points')
+          .insert({
+            user_id: winnerOption.user_id,
+            points: 50,
+            reason: 'Best Speaker Award',
+            type: 'Best Speaker'
+          });
+
+        // Send notification to the winner
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: winnerOption.user_id,
+            title: '🏆 Best Speaker Award!',
+            message: `Congratulations! You've been voted Best Speaker and earned 50 points!`,
+            type: 'reward'
+          });
+
+        console.log(`Best speaker award given to ${winnerOption.option_text} (${winnerOption.user_id})`);
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            winner: winnerOption.option_text,
+            votes: winnerOption.vote_count,
+            message: 'Poll closed successfully and winner announced' 
+          }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      } else {
+        // No votes cast - just announce poll closure
+        await supabase
+          .from('gd_chat_messages')
+          .insert({
+            gd_id: gd_id,
+            user_id: adminUserId,
+            message: '📊 The Best Speaker poll has been closed. No votes were cast.',
+            message_type: 'text',
+            is_pinned: true
+          });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            winner: null,
+            votes: 0,
+            message: 'Poll closed - no votes were cast' 
+          }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
+          }
+        );
+      }
     }
 
     return new Response(

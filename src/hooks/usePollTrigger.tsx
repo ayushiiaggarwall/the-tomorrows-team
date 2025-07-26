@@ -23,13 +23,21 @@ export const usePollTrigger = () => {
     onSuccess: (data, variables) => {
       const { action } = variables;
       
-      // Check if the response indicates failure (like poll already exists)
-      if (data && !data.success && data.error === 'POLL_EXISTS') {
-        toast({
-          title: "Poll Already Active",
-          description: data.message,
-          variant: "destructive",
-        });
+      // Check if the response indicates failure
+      if (data && !data.success) {
+        if (data.error === 'POLL_EXISTS') {
+          toast({
+            title: "Poll Already Active",
+            description: data.message,
+            variant: "destructive",
+          });
+        } else if (data.error === 'NO_ACTIVE_POLL') {
+          toast({
+            title: "No Active Poll",
+            description: data.message,
+            variant: "destructive",
+          });
+        }
         return;
       }
       
@@ -41,9 +49,14 @@ export const usePollTrigger = () => {
           description: "Best speaker voting is now open!",
         });
       } else if (action === 'close_poll') {
+        // Invalidate chat messages to show winner announcement and refresh poll status
+        queryClient.invalidateQueries({ queryKey: ['gd-messages'] });
+        const winnerMessage = data.winner 
+          ? `Winner: ${data.winner} with ${data.votes} vote${data.votes !== 1 ? 's' : ''}!` 
+          : "Poll ended with no votes.";
         toast({
           title: "Poll Closed",
-          description: data.winner ? `Winner: ${data.winner}` : "Poll ended with no votes.",
+          description: winnerMessage,
         });
       }
     },
