@@ -449,8 +449,10 @@ async function handlePointsAwarding(supabase: any, user: any, pointsData: any): 
     // Create notification
     await supabase.rpc('create_notification', {
       p_user_id: pointsData.user_id,
-      p_title: pointsData.points > 0 ? '🎉 Points Awarded!' : '⚠️ Points Deducted',
-      p_message: `${pointsData.points > 0 ? 'Earned' : 'Lost'} ${Math.abs(pointsData.points)} points: ${pointsData.reason}`,
+      p_title: pointsData.points > 0 ? '🎉 Points Awarded!' : '⚠️ Points Deducted!',
+      p_message: pointsData.points > 0 
+        ? `You've earned +${Math.abs(pointsData.points)} points for ${pointsData.reason}`
+        : `You've received ${pointsData.points} points for ${pointsData.reason}`,
       p_type: pointsData.points > 0 ? 'reward' : 'warning',
       p_metadata: JSON.stringify({ 
         points: pointsData.points,
