@@ -273,6 +273,11 @@ const Index = () => {
                   Watch Past Sessions
                 </Button>
               </Link>
+              <a href="https://chat.whatsapp.com/CBuF1RMAScJ6neCP5QU98C?mode=ac_t" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" className="btn-watch-gd text-lg border-white/30 hover:border-white/50">
+                  Join WhatsApp Community
+                </Button>
+              </a>
             </div>
             <div className="flex items-center justify-center gap-6 mt-8 text-white/70 text-sm animate-fade-in">
               <div className="flex items-center">
