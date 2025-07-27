@@ -44,8 +44,12 @@ export const useNotifications = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const channel = supabase
-      .channel(`notifications-updates-${user.id}`)
+    console.log('Setting up notifications subscription for user:', user.id);
+    
+    const channelName = `notifications-${user.id}-${Date.now()}`;
+    const channel = supabase.channel(channelName);
+    
+    channel
       .on(
         'postgres_changes',
         {
@@ -59,10 +63,13 @@ export const useNotifications = () => {
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Notifications subscription status:', status);
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      console.log('Cleaning up notifications subscription');
+      channel.unsubscribe();
     };
   }, [user?.id, queryClient]);
 
