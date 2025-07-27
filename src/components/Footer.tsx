@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Youtube, Instagram, Linkedin } from 'lucide-react';
+import { Youtube, Instagram, Linkedin, MessageCircle } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -44,6 +44,14 @@ const Footer = () => {
                 className="text-blue-600 hover:text-blue-700 transition-colors"
               >
                 <Linkedin size={24} />
+              </a>
+              <a 
+                href="https://chat.whatsapp.com/CBuF1RMAScJ6neCP5QU98C?mode=ac_t" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-600 hover:text-green-700 transition-colors"
+              >
+                <MessageCircle size={24} />
               </a>
             </div>
           </div>
