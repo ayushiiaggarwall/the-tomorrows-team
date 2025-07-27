@@ -305,7 +305,7 @@ const RewardPointsManager = () => {
                       case 'Attendance':
                         autoPoints = settings?.points_per_attendance.toString() || '10';
                         break;
-                      case 'Star Speaker':
+                      case 'Best Speaker':
                         autoPoints = '30';
                         break;
                       case 'Moderator':
@@ -337,7 +337,7 @@ const RewardPointsManager = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Attendance">Attendance</SelectItem>
-                    <SelectItem value="Star Speaker">Star Speaker</SelectItem>
+                    <SelectItem value="Best Speaker">Best Speaker</SelectItem>
                     <SelectItem value="Moderator">Session Moderator</SelectItem>
                     <SelectItem value="Perf Attendance">Perfect Attendance</SelectItem>
                     <SelectItem value="Referral">Referral</SelectItem>
