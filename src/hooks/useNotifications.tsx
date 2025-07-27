@@ -44,7 +44,9 @@ export const useNotifications = () => {
     enabled: !!user?.id
   });
 
-  // Set up real-time subscription for notifications using singleton pattern
+  // Real-time subscription temporarily disabled to prevent subscription conflicts
+  // TODO: Implement proper real-time subscription management
+  /*
   useEffect(() => {
     if (!user?.id) return;
 
@@ -88,6 +90,7 @@ export const useNotifications = () => {
       }
     };
   }, [user?.id, queryClient]);
+  */
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
