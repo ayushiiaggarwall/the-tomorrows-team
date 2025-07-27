@@ -140,7 +140,7 @@ const RewardPointsManager = () => {
       try {
         await supabase.rpc('create_notification', {
           p_user_id: data.userId,
-          p_title: `🎉 Points ${data.points > 0 ? 'Awarded' : 'Deducted'}!`,
+          p_title: data.points > 0 ? '🎉 Points Awarded!' : '⚠️ Points Deducted!',
           p_message: `You've received ${pointsText} points for ${data.reason}${data.type !== 'Other' ? ` (${data.type})` : ''}.`,
           p_type: 'reward',
           p_is_global: false,
