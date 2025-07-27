@@ -45,30 +45,17 @@ export const useNotifications = () => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('notifications-changes')
+      .channel('notifications-updates')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
+          table: 'notifications'
         },
-        () => {
+        (payload) => {
+          console.log('Notification change:', payload);
           // Invalidate and refetch notifications when changes occur
-          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: 'is_global=eq.true'
-        },
-        () => {
-          // Also listen for global notifications
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
         }
       )
