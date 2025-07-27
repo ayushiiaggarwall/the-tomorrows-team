@@ -47,8 +47,10 @@ const handler = async (req: Request): Promise<Response> => {
         break;
 
       case 'reward_points':
-        title = '🎉 Reward Points Earned!';
-        message = `You've earned +${payload.points} reward points! ${payload.reason}`;
+        title = payload.points! > 0 ? '🎉 Reward Points Earned!' : '⚠️ Points Deducted!';
+        message = payload.points! > 0 
+          ? `You've earned +${payload.points} reward points! ${payload.reason}`
+          : `You've received ${payload.points} points for ${payload.reason}`;
         metadata = {
           points: payload.points,
           reason: payload.reason
