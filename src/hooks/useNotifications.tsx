@@ -1,9 +1,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+
+// Global subscription manager to prevent multiple subscriptions
+let globalSubscription: any = null;
+let subscriberCount = 0;
 
 export interface Notification {
   id: string;
@@ -40,36 +44,48 @@ export const useNotifications = () => {
     enabled: !!user?.id
   });
 
-  // Set up real-time subscription for notifications
+  // Set up real-time subscription for notifications using singleton pattern
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('Setting up notifications subscription for user:', user.id);
-    
-    const channelName = `notifications-${user.id}-${Date.now()}`;
-    const channel = supabase.channel(channelName);
-    
-    channel
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('Notification change:', payload);
-          // Invalidate and refetch notifications when changes occur
-          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
-        }
-      )
-      .subscribe((status) => {
-        console.log('Notifications subscription status:', status);
-      });
+    subscriberCount++;
+    console.log('Subscriber count:', subscriberCount);
+
+    // Only create subscription if none exists
+    if (!globalSubscription) {
+      console.log('Creating new global subscription');
+      
+      const channel = supabase.channel('notifications-global');
+      
+      globalSubscription = channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications'
+          },
+          (payload) => {
+            console.log('Notification change:', payload);
+            // Invalidate all notifications queries
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          }
+        )
+        .subscribe((status) => {
+          console.log('Global notifications subscription status:', status);
+        });
+    }
 
     return () => {
-      console.log('Cleaning up notifications subscription');
-      channel.unsubscribe();
+      subscriberCount--;
+      console.log('Subscriber count after cleanup:', subscriberCount);
+      
+      // Only cleanup when no more subscribers
+      if (subscriberCount === 0 && globalSubscription) {
+        console.log('Cleaning up global subscription');
+        globalSubscription.unsubscribe();
+        globalSubscription = null;
+      }
     };
   }, [user?.id, queryClient]);
 
