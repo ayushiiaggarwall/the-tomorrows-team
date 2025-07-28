@@ -31,6 +31,7 @@ const JoinGD = () => {
   
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
     occupation: '',
     occupationOther: '',
@@ -41,6 +42,17 @@ const JoinGD = () => {
     selfEmployedProfession: '',
     selectedGdId: null as string | null
   });
+
+  // Auto-populate form with user data when user is loaded
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.user_metadata?.full_name || prev.name,
+        email: user.email || prev.email
+      }));
+    }
+  }, [user]);
 
   // Fetch upcoming GDs with registration counts
   const { data: upcomingGDs, isLoading } = useQuery({
@@ -240,7 +252,7 @@ const JoinGD = () => {
       userId: user!.id,
       registrationData: {
         participantName: formData.name,
-        participantEmail: user!.email || '',
+        participantEmail: formData.email,
         participantPhone: formData.phone,
         participantOccupation: formData.occupation,
         participantOccupationOther: formData.occupation === 'Others' ? formData.occupationOther : undefined,
@@ -255,6 +267,7 @@ const JoinGD = () => {
     // Reset form on success
     setFormData({
       name: '',
+      email: '',
       phone: '',
       occupation: '',
       occupationOther: '',
@@ -532,6 +545,19 @@ const JoinGD = () => {
                             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                             required
                             placeholder="Enter your full name"
+                            disabled={!user}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email Address *</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                            required
+                            placeholder="Enter your email address"
                             disabled={!user}
                           />
                         </div>
