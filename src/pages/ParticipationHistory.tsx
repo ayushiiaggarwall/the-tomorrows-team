@@ -189,7 +189,7 @@ const ParticipationHistory = () => {
                             {entry.pointsEarned > 0 ? `+${entry.pointsEarned}` : entry.pointsEarned || 0}
                           </TableCell>
                           <TableCell className="text-center">
-                            {entry.attended ? (
+                            {new Date(entry.scheduledDate) < new Date() ? (
                               <Link to={`/gd-chat/${entry.gdId}`}>
                                 <Button 
                                   variant="ghost" 

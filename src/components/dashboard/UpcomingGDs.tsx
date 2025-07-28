@@ -21,12 +21,13 @@ const UpcomingGDs = () => {
 
       // Fetching upcoming GDs for dashboard user
 
-      // Get upcoming GDs
+      // Get upcoming GDs (including those within 1 hour after scheduled time)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data: gds, error: gdsError } = await supabase
         .from('group_discussions')
         .select('*')
         .eq('is_active', true)
-        .gte('scheduled_date', new Date().toISOString())
+        .gte('scheduled_date', oneHourAgo)
         .order('scheduled_date', { ascending: true });
 
       if (gdsError) {
