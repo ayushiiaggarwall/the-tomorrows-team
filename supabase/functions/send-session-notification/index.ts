@@ -104,14 +104,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${profiles.length} users to notify`);
 
-    // Format the scheduled date for display
-    const formattedDate = new Date(scheduledDate).toLocaleString('en-US', {
+    // Format the scheduled date for display in IST
+    const formattedDate = new Date(scheduledDate).toLocaleString('en-IN', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
       timeZoneName: 'short'
     });
 
