@@ -51,7 +51,7 @@ const Dashboard = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">
-              Welcome, {displayName} 👋
+              Welcome, {displayName}
             </h1>
             <p className="text-lg text-muted-foreground">
               Here's your progress on The Tomorrows Team!
