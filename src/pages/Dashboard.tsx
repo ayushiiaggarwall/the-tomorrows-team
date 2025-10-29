@@ -1,9 +1,5 @@
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import ParticipationSummary from '@/components/dashboard/ParticipationSummary';
