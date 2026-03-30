@@ -46,7 +46,7 @@ export const logSecurityEvent = (event: string, details: any, userId?: string) =
   };
   
   // For now, just console.error in development
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     console.error('Security Event:', logEntry);
   }
   

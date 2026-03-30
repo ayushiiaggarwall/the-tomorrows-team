@@ -6,7 +6,7 @@ import { createSafeError, logSecurityEvent } from '@/utils/errorHandler';
 
 export const useSecureAuth = () => {
   const auth = useAuth();
-  const [sessionTimeout, setSessionTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [sessionTimeout, setSessionTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [lastActivity, setLastActivity] = useState(Date.now());
 
   // Session timeout configuration (30 minutes)
