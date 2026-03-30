@@ -8,7 +8,7 @@ interface ErrorResponse {
 
 export const createSafeError = (error: any, context: string): ErrorResponse => {
   // In production, don't expose internal error details
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = import.meta.env.PROD;
   
   if (isProduction) {
     // Generic error messages for production
