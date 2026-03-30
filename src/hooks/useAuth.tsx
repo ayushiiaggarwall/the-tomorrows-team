@@ -391,13 +391,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signInWithGoogle = async () => {
-    console.log('Attempting Google sign-in');
-    
     try {
-      // Direct redirect approach to avoid any iframe issues
-      window.location.href = `https://wusbwaddlufqjltabtnp.supabase.co/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/')}`;
-      
-      // This won't return since we're redirecting
+      const { lovable } = await import('@/integrations/lovable/index');
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        return { error: result.error };
+      }
       return { error: null };
     } catch (err: any) {
       console.error('Google sign-in exception:', err);
