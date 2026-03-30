@@ -46,18 +46,12 @@ const ResetPassword = () => {
     }
 
     // Check if user already has an active session from the recovery link
-    // (the PASSWORD_RECOVERY event may have already fired in the global auth listener)
+    // The PASSWORD_RECOVERY event fires in the global useAuth listener before
+    // this component mounts, so we check for an existing session instead
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // If we're on the reset-password page with an active session,
-        // it's likely from a recovery link that was already processed
-        const url = new URL(window.location.href);
-        const hashParams = new URLSearchParams(url.hash.substring(1));
-        if (hashParams.get('type') === 'recovery' || 
-            url.searchParams.get('type') === 'recovery' ||
-            hash.includes('type=recovery')) {
-          setMode('update');
-        }
+        // User has a session on the reset-password page = recovery link was used
+        setMode('update');
       }
     });
 
