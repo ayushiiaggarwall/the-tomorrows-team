@@ -33,11 +33,33 @@ const ResetPassword = () => {
       }
     );
 
-    // Also check URL hash for recovery tokens (Supabase redirects with hash params)
+    // Check URL hash for recovery tokens (Supabase redirects with hash params)
     const hash = window.location.hash;
     if (hash && (hash.includes('type=recovery') || hash.includes('type=magiclink'))) {
       setMode('update');
     }
+
+    // Also check URL search params (some flows use query params instead of hash)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('type') === 'recovery') {
+      setMode('update');
+    }
+
+    // Check if user already has an active session from the recovery link
+    // (the PASSWORD_RECOVERY event may have already fired in the global auth listener)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // If we're on the reset-password page with an active session,
+        // it's likely from a recovery link that was already processed
+        const url = new URL(window.location.href);
+        const hashParams = new URLSearchParams(url.hash.substring(1));
+        if (hashParams.get('type') === 'recovery' || 
+            url.searchParams.get('type') === 'recovery' ||
+            hash.includes('type=recovery')) {
+          setMode('update');
+        }
+      }
+    });
 
     return () => subscription.unsubscribe();
   }, []);
