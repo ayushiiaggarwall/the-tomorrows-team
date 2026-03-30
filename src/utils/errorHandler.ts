@@ -8,7 +8,7 @@ interface ErrorResponse {
 
 export const createSafeError = (error: any, context: string): ErrorResponse => {
   // In production, don't expose internal error details
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = import.meta.env.PROD;
   
   if (isProduction) {
     // Generic error messages for production
@@ -46,7 +46,7 @@ export const logSecurityEvent = (event: string, details: any, userId?: string) =
   };
   
   // For now, just console.error in development
-  if (process.env.NODE_ENV !== 'production') {
+  if (import.meta.env.DEV) {
     console.error('Security Event:', logEntry);
   }
   

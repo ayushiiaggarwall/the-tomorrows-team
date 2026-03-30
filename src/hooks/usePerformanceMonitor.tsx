@@ -10,7 +10,7 @@ interface PerformanceMetrics {
 export const usePerformanceMonitor = () => {
   useEffect(() => {
     // Only run in production
-    if (process.env.NODE_ENV !== 'production') return;
+    if (import.meta.env.DEV) return;
 
     const metrics: PerformanceMetrics = {};
 
